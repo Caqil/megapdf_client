@@ -2,13 +2,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:megapdf_client/presentation/pages/home/widgets/folder_actions_bottom_sheet.dart'
+    show FolderActionsBottomSheet;
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/extensions/context_extensions.dart';
 import '../../providers/file_manager_provider.dart';
 import '../../widgets/common/custom_app_bar.dart';
+import '../../widgets/dialogs/create_folder_dialog.dart';
 import 'widgets/file_manager_view.dart';
-import 'widgets/folder_actions_bottom_sheet.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -23,7 +25,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     super.initState();
     // Load files when the page loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(fileManagerNotifierProvider.notifier).loadFiles();
+      ref.read(fileManagerNotifierProvider.notifier).loadRootFolder();
     });
   }
 
@@ -41,21 +43,22 @@ class _HomePageState extends ConsumerState<HomePage> {
       body: Column(
         children: [
           // Path breadcrumb
-          if (fileManagerState.currentPath.isNotEmpty)
+          if (fileManagerState.folderPath.isNotEmpty)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               color: AppColors.surface,
               child: Row(
                 children: [
-                  IconButton(
-                    onPressed: () => fileManagerNotifier.navigateUp(),
-                    icon: const Icon(Icons.arrow_back),
-                    iconSize: 20,
-                  ),
+                  if (fileManagerNotifier.canGoUp())
+                    IconButton(
+                      onPressed: () => fileManagerNotifier.navigateUp(),
+                      icon: const Icon(Icons.arrow_back),
+                      iconSize: 20,
+                    ),
                   Expanded(
                     child: Text(
-                      _getDisplayPath(fileManagerState.currentPath),
+                      fileManagerNotifier.getCurrentPath(),
                       style: context.textTheme.bodyMedium?.copyWith(
                         color: AppColors.textSecondary,
                       ),
@@ -87,7 +90,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'My Files',
+                        fileManagerState.currentFolder?.name ?? 'My Files',
                         style: context.textTheme.titleMedium?.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.w600,
@@ -127,7 +130,9 @@ class _HomePageState extends ConsumerState<HomePage> {
           Expanded(
             child: FileManagerView(
               onFolderTap: (folder) {
-                fileManagerNotifier.navigateToFolder(folder.path);
+                if (folder.folderId != null) {
+                  fileManagerNotifier.navigateToFolder(folder.folderId!);
+                }
               },
               onFileTap: (file) {
                 _showFileOptionsBottomSheet(context, file);
@@ -143,12 +148,6 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
-  String _getDisplayPath(String fullPath) {
-    final pathParts = fullPath.split('/');
-    if (pathParts.length <= 2) return 'My Files';
-    return '.../${pathParts.skip(pathParts.length - 2).join('/')}';
-  }
-
   void _showSearchDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -160,7 +159,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             prefixIcon: Icon(Icons.search),
           ),
           onChanged: (value) {
-            // Implement search functionality
+            // TODO: Implement search functionality
           },
         ),
         actions: [
@@ -183,12 +182,13 @@ class _HomePageState extends ConsumerState<HomePage> {
       builder: (context) => FolderActionsBottomSheet(
         onCreateFolder: () => _showCreateFolderDialog(context),
         onImportFiles: () {
-          // Implement file import
+          // TODO: Implement file import
           Navigator.pop(context);
+          context.showSnackBar('File import feature coming soon!');
         },
         onSettings: () {
           Navigator.pop(context);
-          // Navigate to settings
+          context.go('/profile');
         },
       ),
     );
@@ -209,6 +209,134 @@ class _HomePageState extends ConsumerState<HomePage> {
     if (file.isPdf) {
       showModalBottomSheet(
         context: context,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        builder: (context) => Container(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle bar
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Title
+              Text(
+                file.name,
+                style: context.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+
+              // PDF Tools
+              GridView.count(
+                shrinkWrap: true,
+                crossAxisCount: 3,
+                mainAxisSpacing: 16,
+                crossAxisSpacing: 16,
+                childAspectRatio: 1.0,
+                children: [
+                  _buildToolOption(
+                    context,
+                    Icons.compress,
+                    'Compress',
+                    AppColors.compressColor,
+                    () {
+                      Navigator.pop(context);
+                      context.go('/compress');
+                    },
+                  ),
+                  _buildToolOption(
+                    context,
+                    Icons.call_split,
+                    'Split',
+                    AppColors.splitColor,
+                    () {
+                      Navigator.pop(context);
+                      context.go('/split');
+                    },
+                  ),
+                  _buildToolOption(
+                    context,
+                    Icons.transform,
+                    'Convert',
+                    AppColors.convertColor,
+                    () {
+                      Navigator.pop(context);
+                      context.go('/convert');
+                    },
+                  ),
+                  _buildToolOption(
+                    context,
+                    Icons.branding_watermark,
+                    'Watermark',
+                    AppColors.watermarkColor,
+                    () {
+                      Navigator.pop(context);
+                      context.go('/watermark');
+                    },
+                  ),
+                  _buildToolOption(
+                    context,
+                    Icons.lock,
+                    'Protect',
+                    AppColors.protectColor,
+                    () {
+                      Navigator.pop(context);
+                      context.go('/protect');
+                    },
+                  ),
+                  _buildToolOption(
+                    context,
+                    Icons.rotate_right,
+                    'Rotate',
+                    AppColors.rotateColor,
+                    () {
+                      Navigator.pop(context);
+                      context.go('/rotate');
+                    },
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 20),
+
+              // Delete option
+              ListTile(
+                leading: Icon(
+                  Icons.delete_outline,
+                  color: AppColors.error,
+                ),
+                title: Text(
+                  'Delete',
+                  style: TextStyle(color: AppColors.error),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _confirmDelete(context, file);
+                },
+              ),
+
+              // Bottom padding for safe area
+              SizedBox(height: MediaQuery.of(context).padding.bottom),
+            ],
+          ),
+        ),
+      );
+    } else {
+      // For non-PDF files, show basic options
+      showModalBottomSheet(
+        context: context,
         builder: (context) => Container(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -222,32 +350,18 @@ class _HomePageState extends ConsumerState<HomePage> {
               ),
               const SizedBox(height: 16),
               ListTile(
-                leading: const Icon(Icons.compress),
-                title: const Text('Compress PDF'),
+                leading: const Icon(Icons.edit),
+                title: const Text('Rename'),
                 onTap: () {
                   Navigator.pop(context);
-                  context.go('/compress');
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.call_split),
-                title: const Text('Split PDF'),
-                onTap: () {
-                  Navigator.pop(context);
-                  context.go('/split');
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.transform),
-                title: const Text('Convert PDF'),
-                onTap: () {
-                  Navigator.pop(context);
-                  context.go('/convert');
+                  _showRenameDialog(context, file);
                 },
               ),
               ListTile(
                 leading: const Icon(Icons.delete_outline),
                 title: const Text('Delete'),
+                textColor: AppColors.error,
+                iconColor: AppColors.error,
                 onTap: () {
                   Navigator.pop(context);
                   _confirmDelete(context, file);
@@ -258,6 +372,44 @@ class _HomePageState extends ConsumerState<HomePage> {
         ),
       );
     }
+  }
+
+  Widget _buildToolOption(
+    BuildContext context,
+    IconData icon,
+    String label,
+    Color color,
+    VoidCallback onTap,
+  ) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              color: color,
+              size: 28,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: context.textTheme.bodySmall?.copyWith(
+                color: color,
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showFileContextMenu(BuildContext context, file) {
@@ -276,22 +428,24 @@ class _HomePageState extends ConsumerState<HomePage> {
                 _showRenameDialog(context, file);
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.drive_file_move),
-              title: const Text('Move'),
-              onTap: () {
-                Navigator.pop(context);
-                // Implement move functionality
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.copy),
-              title: const Text('Copy'),
-              onTap: () {
-                Navigator.pop(context);
-                // Implement copy functionality
-              },
-            ),
+            if (file.isDirectory) ...[
+              ListTile(
+                leading: const Icon(Icons.create_new_folder),
+                title: const Text('New Folder'),
+                onTap: () {
+                  Navigator.pop(context);
+                  // Navigate to this folder first, then create
+                  if (file.folderId != null) {
+                    ref
+                        .read(fileManagerNotifierProvider.notifier)
+                        .navigateToFolder(file.folderId!);
+                    Future.delayed(const Duration(milliseconds: 300), () {
+                      _showCreateFolderDialog(context);
+                    });
+                  }
+                },
+              ),
+            ],
             ListTile(
               leading: const Icon(Icons.delete_outline),
               title: const Text('Delete'),
@@ -319,6 +473,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           decoration: const InputDecoration(
             labelText: 'New name',
           ),
+          autofocus: true,
         ),
         actions: [
           TextButton(
@@ -346,8 +501,11 @@ class _HomePageState extends ConsumerState<HomePage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete File'),
-        content: Text('Are you sure you want to delete "${file.name}"?'),
+        title: Text('Delete ${file.isDirectory ? 'Folder' : 'File'}'),
+        content: Text(
+          'Are you sure you want to delete "${file.name}"?'
+          '${file.isDirectory ? ' This will also delete all contents inside.' : ''}',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -357,6 +515,9 @@ class _HomePageState extends ConsumerState<HomePage> {
             onPressed: () {
               ref.read(fileManagerNotifierProvider.notifier).deleteItem(file);
               Navigator.pop(context);
+              context.showSnackBar(
+                '${file.isDirectory ? 'Folder' : 'File'} deleted successfully',
+              );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,

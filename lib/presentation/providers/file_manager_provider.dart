@@ -1,10 +1,11 @@
 // lib/presentation/providers/file_manager_provider.dart
 import 'dart:io';
-import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../data/models/file_item.dart';
+import '../../data/models/folder_model.dart';
+import '../../data/repositories/folder_repository.dart';
 import '../../core/errors/api_exception.dart';
 
 part 'file_manager_provider.g.dart';
@@ -16,43 +17,74 @@ class FileManagerNotifier extends _$FileManagerNotifier {
     return const FileManagerState();
   }
 
-  Future<void> loadFiles({String? folderPath}) async {
+  Future<void> loadRootFolder() async {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      final Directory baseDir;
-      if (folderPath != null) {
-        baseDir = Directory(folderPath);
+      final folderRepo = ref.read(folderRepositoryProvider);
+      final rootFolder = await folderRepo.getRootFolder();
+
+      if (rootFolder != null) {
+        await loadFolder(rootFolder.id!);
       } else {
-        baseDir = await _getDefaultDirectory();
+        // Create root folder if it doesn't exist
+        final rootId = await folderRepo.createFolder(
+          name: 'MegaPDF',
+          path: '/MegaPDF',
+        );
+        await loadFolder(rootId);
+      }
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+      );
+    }
+  }
+
+  Future<void> loadFolder(int folderId) async {
+    state = state.copyWith(isLoading: true, error: null);
+
+    try {
+      final folderRepo = ref.read(folderRepositoryProvider);
+      final currentFolder = await folderRepo.getFolderById(folderId);
+
+      if (currentFolder == null) {
+        throw Exception('Folder not found');
       }
 
-      if (!await baseDir.exists()) {
-        await baseDir.create(recursive: true);
-      }
+      // Get subfolders
+      final subfolders = await folderRepo.getFolders(parentId: folderId);
 
-      final List<FileSystemEntity> entities = baseDir.listSync();
+      // Get physical files in this folder (if any)
+      final physicalFiles = await _getPhysicalFiles(currentFolder.path);
+
+      // Combine folders and files
       final List<FileItem> fileItems = [];
 
-      for (final entity in entities) {
-        if (entity is Directory) {
-          fileItems.add(FileItem.fromDirectory(entity));
-        } else if (entity is File) {
-          fileItems.add(FileItem.fromFile(entity));
-        }
+      // Add folders first
+      for (final folder in subfolders) {
+        fileItems.add(FileItem(
+          name: folder.name,
+          path: folder.path,
+          isDirectory: true,
+          size: 0,
+          lastModified: folder.updatedAt,
+          folderId: folder.id,
+        ));
       }
 
-      // Sort: folders first, then files, both alphabetically
-      fileItems.sort((a, b) {
-        if (a.isDirectory && !b.isDirectory) return -1;
-        if (!a.isDirectory && b.isDirectory) return 1;
-        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
-      });
+      // Add physical files
+      fileItems.addAll(physicalFiles);
+
+      // Get folder path for breadcrumb
+      final folderPath = await folderRepo.getFolderPath(folderId);
 
       state = state.copyWith(
         isLoading: false,
         fileItems: fileItems,
-        currentPath: baseDir.path,
+        currentFolder: currentFolder,
+        folderPath: folderPath,
       );
     } catch (e) {
       state = state.copyWith(
@@ -62,24 +94,48 @@ class FileManagerNotifier extends _$FileManagerNotifier {
     }
   }
 
+  Future<List<FileItem>> _getPhysicalFiles(String folderPath) async {
+    try {
+      // This would be used if you want to also show actual files from device storage
+      // For now, we'll just return empty list since we're managing virtual folders
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
   Future<void> createFolder(String folderName) async {
     if (folderName.trim().isEmpty) {
       state = state.copyWith(error: 'Folder name cannot be empty');
       return;
     }
 
+    final currentFolder = state.currentFolder;
+    if (currentFolder == null) {
+      state = state.copyWith(error: 'No current folder selected');
+      return;
+    }
+
     try {
-      final currentDir = Directory(state.currentPath);
-      final newFolder =
-          Directory(path.join(currentDir.path, folderName.trim()));
+      final folderRepo = ref.read(folderRepositoryProvider);
 
-      if (await newFolder.exists()) {
-        state = state.copyWith(error: 'Folder already exists');
-        return;
-      }
+      // Generate unique folder path
+      final newPath = await folderRepo.generateUniqueFolderPath(
+        currentFolder.path,
+        folderName.trim(),
+      );
 
-      await newFolder.create();
-      await loadFiles(folderPath: state.currentPath);
+      final pathParts = newPath.split('/');
+      final uniqueName = pathParts.last;
+
+      await folderRepo.createFolder(
+        name: uniqueName,
+        path: newPath,
+        parentId: currentFolder.id,
+      );
+
+      // Reload current folder
+      await loadFolder(currentFolder.id!);
     } catch (e) {
       state = state.copyWith(error: 'Failed to create folder: $e');
     }
@@ -87,15 +143,21 @@ class FileManagerNotifier extends _$FileManagerNotifier {
 
   Future<void> deleteItem(FileItem item) async {
     try {
-      if (item.isDirectory) {
-        final dir = Directory(item.path);
-        await dir.delete(recursive: true);
+      if (item.isDirectory && item.folderId != null) {
+        final folderRepo = ref.read(folderRepositoryProvider);
+        await folderRepo.deleteFolder(item.folderId!);
       } else {
+        // Delete physical file if it exists
         final file = File(item.path);
-        await file.delete();
+        if (await file.exists()) {
+          await file.delete();
+        }
       }
 
-      await loadFiles(folderPath: state.currentPath);
+      // Reload current folder
+      if (state.currentFolder != null) {
+        await loadFolder(state.currentFolder!.id!);
+      }
     } catch (e) {
       state = state.copyWith(error: 'Failed to delete item: $e');
     }
@@ -108,55 +170,37 @@ class FileManagerNotifier extends _$FileManagerNotifier {
     }
 
     try {
-      final oldPath = item.path;
-      final parentDir = path.dirname(oldPath);
-      final newPath = path.join(parentDir, newName.trim());
-
-      if (item.isDirectory) {
-        final dir = Directory(oldPath);
-        await dir.rename(newPath);
+      if (item.isDirectory && item.folderId != null) {
+        final folderRepo = ref.read(folderRepositoryProvider);
+        await folderRepo.renameFolder(item.folderId!, newName.trim());
       } else {
-        final file = File(oldPath);
-        await file.rename(newPath);
+        // Rename physical file
+        final oldFile = File(item.path);
+        if (await oldFile.exists()) {
+          final directory = path.dirname(item.path);
+          final extension = path.extension(item.path);
+          final newPath = path.join(directory, '$newName$extension');
+          await oldFile.rename(newPath);
+        }
       }
 
-      await loadFiles(folderPath: state.currentPath);
+      // Reload current folder
+      if (state.currentFolder != null) {
+        await loadFolder(state.currentFolder!.id!);
+      }
     } catch (e) {
       state = state.copyWith(error: 'Failed to rename item: $e');
     }
   }
 
-  Future<void> moveItem(FileItem item, String destinationPath) async {
-    try {
-      final newPath = path.join(destinationPath, item.name);
-
-      if (item.isDirectory) {
-        final dir = Directory(item.path);
-        await dir.rename(newPath);
-      } else {
-        final file = File(item.path);
-        await file.copy(newPath);
-        await file.delete();
-      }
-
-      await loadFiles(folderPath: state.currentPath);
-    } catch (e) {
-      state = state.copyWith(error: 'Failed to move item: $e');
-    }
-  }
-
-  Future<void> navigateToFolder(String folderPath) async {
-    await loadFiles(folderPath: folderPath);
+  Future<void> navigateToFolder(int folderId) async {
+    await loadFolder(folderId);
   }
 
   Future<void> navigateUp() async {
-    final currentDir = Directory(state.currentPath);
-    final parentDir = currentDir.parent;
-
-    // Don't go above the app's base directory
-    final baseDir = await _getDefaultDirectory();
-    if (parentDir.path.length >= baseDir.path.length) {
-      await loadFiles(folderPath: parentDir.path);
+    final currentFolder = state.currentFolder;
+    if (currentFolder?.parentId != null) {
+      await loadFolder(currentFolder!.parentId!);
     }
   }
 
@@ -172,15 +216,19 @@ class FileManagerNotifier extends _$FileManagerNotifier {
     state = state.copyWith(error: null);
   }
 
-  Future<Directory> _getDefaultDirectory() async {
-    final appDocDir = await getApplicationDocumentsDirectory();
-    return Directory(path.join(appDocDir.path, 'MegaPDF'));
+  String getCurrentPath() {
+    return state.folderPath.map((f) => f.name).join(' / ');
+  }
+
+  bool canGoUp() {
+    return state.currentFolder?.parentId != null;
   }
 }
 
 class FileManagerState {
   final List<FileItem> fileItems;
-  final String currentPath;
+  final FolderModel? currentFolder;
+  final List<FolderModel> folderPath;
   final List<FileItem> selectedItems;
   final bool isLoading;
   final String? error;
@@ -188,7 +236,8 @@ class FileManagerState {
 
   const FileManagerState({
     this.fileItems = const [],
-    this.currentPath = '',
+    this.currentFolder,
+    this.folderPath = const [],
     this.selectedItems = const [],
     this.isLoading = false,
     this.error,
@@ -197,7 +246,8 @@ class FileManagerState {
 
   FileManagerState copyWith({
     List<FileItem>? fileItems,
-    String? currentPath,
+    FolderModel? currentFolder,
+    List<FolderModel>? folderPath,
     List<FileItem>? selectedItems,
     bool? isLoading,
     String? error,
@@ -205,7 +255,8 @@ class FileManagerState {
   }) {
     return FileManagerState(
       fileItems: fileItems ?? this.fileItems,
-      currentPath: currentPath ?? this.currentPath,
+      currentFolder: currentFolder ?? this.currentFolder,
+      folderPath: folderPath ?? this.folderPath,
       selectedItems: selectedItems ?? this.selectedItems,
       isLoading: isLoading ?? this.isLoading,
       error: error,

@@ -35,7 +35,14 @@ class FileManagerView extends ConsumerWidget {
       return Center(
         child: CustomErrorWidget(
           message: fileManagerState.error!,
-          onRetry: () => fileManagerNotifier.loadFiles(),
+          onRetry: () {
+            if (fileManagerState.currentFolder != null) {
+              fileManagerNotifier
+                  .loadFolder(fileManagerState.currentFolder!.id!);
+            } else {
+              fileManagerNotifier.loadRootFolder();
+            }
+          },
         ),
       );
     }

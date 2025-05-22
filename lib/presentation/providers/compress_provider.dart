@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:megapdf_client/data/repositories/pdf_repository_impl.dart';
+import 'package:megapdf_client/data/services/recent_files_service.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../data/models/compress_result.dart';
@@ -62,6 +63,19 @@ class CompressNotifier extends _$CompressNotifier {
         filename: filename,
         customFileName: 'compressed_${result.originalName ?? 'document'}',
       );
+
+      // Track in recent files
+      if (state.selectedFile != null) {
+        final recentFilesService = ref.read(recentFilesServiceProvider);
+        await recentFilesService.trackCompress(
+          originalFile: state.selectedFile!,
+          resultFileName: result.filename ?? 'compressed.pdf',
+          resultFilePath: localPath,
+          compressionRatio: result.compressionRatio,
+          originalSizeBytes: result.originalSize,
+          compressedSizeBytes: result.compressedSize,
+        );
+      }
 
       state = state.copyWith(
         isDownloading: false,

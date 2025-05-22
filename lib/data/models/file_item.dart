@@ -12,6 +12,7 @@ class FileItem extends Equatable {
   final int size;
   final DateTime lastModified;
   final String? extension;
+  final int? folderId; // Add this to link to database folder
 
   const FileItem({
     required this.name,
@@ -20,6 +21,7 @@ class FileItem extends Equatable {
     required this.size,
     required this.lastModified,
     this.extension,
+    this.folderId,
   });
 
   factory FileItem.fromFile(File file) {

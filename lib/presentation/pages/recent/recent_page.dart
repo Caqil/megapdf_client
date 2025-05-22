@@ -1,8 +1,10 @@
 // lib/presentation/pages/recent/recent_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:megapdf_client/data/models/recent_file_model.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../providers/recent_files_provider.dart';
 
 class RecentPage extends ConsumerStatefulWidget {
   const RecentPage({super.key});
@@ -12,8 +14,22 @@ class RecentPage extends ConsumerStatefulWidget {
 }
 
 class _RecentPageState extends ConsumerState<RecentPage> {
+  String? _selectedFilter;
+
+  @override
+  void initState() {
+    super.initState();
+    // Load recent files when page loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(recentFilesNotifierProvider.notifier).loadRecentFiles();
+      ref.read(recentFilesNotifierProvider.notifier).loadStats();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(recentFilesNotifierProvider);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -37,9 +53,22 @@ class _RecentPageState extends ConsumerState<RecentPage> {
                 case 'filter':
                   _showFilterOptions();
                   break;
+                case 'refresh':
+                  ref
+                      .read(recentFilesNotifierProvider.notifier)
+                      .loadRecentFiles();
+                  break;
               }
             },
             itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'refresh',
+                child: ListTile(
+                  leading: Icon(Icons.refresh, size: 20),
+                  title: Text('Refresh'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
               const PopupMenuItem(
                 value: 'filter',
                 child: ListTile(
@@ -60,86 +89,86 @@ class _RecentPageState extends ConsumerState<RecentPage> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Stats cards
-            Row(
-              children: [
-                Expanded(
-                  child: _StatsCard(
-                    title: 'Today',
-                    count: '5',
-                    subtitle: 'files processed',
-                    color: AppColors.primary,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _StatsCard(
-                    title: 'This Week',
-                    count: '23',
-                    subtitle: 'files processed',
-                    color: AppColors.secondary,
-                  ),
-                ),
-              ],
+      body: state.isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Stats cards
+                  if (state.stats.isNotEmpty) ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _StatsCard(
+                            title: 'Today',
+                            count: state.stats['today']?.toString() ?? '0',
+                            subtitle: 'files processed',
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _StatsCard(
+                            title: 'This Week',
+                            count: state.stats['thisWeek']?.toString() ?? '0',
+                            subtitle: 'files processed',
+                            color: AppColors.secondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+
+                  // Filter chips
+                  if (state.operationTypes.isNotEmpty) ...[
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        FilterChip(
+                          label: const Text('All'),
+                          selected: _selectedFilter == null,
+                          onSelected: (selected) {
+                            if (selected) {
+                              setState(() => _selectedFilter = null);
+                              ref
+                                  .read(recentFilesNotifierProvider.notifier)
+                                  .loadRecentFiles();
+                            }
+                          },
+                        ),
+                        ...state.operationTypes.map((type) {
+                          return FilterChip(
+                            label: Text(_getOperationDisplayName(type)),
+                            selected: _selectedFilter == type,
+                            onSelected: (selected) {
+                              setState(() {
+                                _selectedFilter = selected ? type : null;
+                              });
+                              ref
+                                  .read(recentFilesNotifierProvider.notifier)
+                                  .loadRecentFiles(
+                                      operationType: selected ? type : null);
+                            },
+                          );
+                        }).toList(),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+
+                  // Recent files list
+                  _buildRecentFilesList(state),
+                ],
+              ),
             ),
-
-            const SizedBox(height: 24),
-
-            // Recent files list
-            _buildRecentFilesList(),
-          ],
-        ),
-      ),
     );
   }
 
-  Widget _buildRecentFilesList() {
-    // Mock recent files data - replace with actual data from provider
-    final recentFiles = [
-      _RecentFileItem(
-        name: 'document_compressed.pdf',
-        operation: 'Compressed',
-        time: '2 hours ago',
-        originalSize: '5.2 MB',
-        finalSize: '2.1 MB',
-        icon: Icons.compress,
-        color: AppColors.compressColor,
-      ),
-      _RecentFileItem(
-        name: 'presentation_merged.pdf',
-        operation: 'Merged',
-        time: 'Yesterday',
-        originalSize: '3 files',
-        finalSize: '8.5 MB',
-        icon: Icons.merge,
-        color: AppColors.mergeColor,
-      ),
-      _RecentFileItem(
-        name: 'report_protected.pdf',
-        operation: 'Protected',
-        time: '2 days ago',
-        originalSize: '4.1 MB',
-        finalSize: '4.1 MB',
-        icon: Icons.lock,
-        color: AppColors.protectColor,
-      ),
-      _RecentFileItem(
-        name: 'invoice_split.pdf',
-        operation: 'Split',
-        time: '3 days ago',
-        originalSize: '12.3 MB',
-        finalSize: '5 parts',
-        icon: Icons.call_split,
-        color: AppColors.splitColor,
-      ),
-    ];
-
-    if (recentFiles.isEmpty) {
+  Widget _buildRecentFilesList(RecentFilesState state) {
+    if (state.recentFiles.isEmpty) {
       return _buildEmptyState();
     }
 
@@ -157,10 +186,10 @@ class _RecentPageState extends ConsumerState<RecentPage> {
         ListView.separated(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: recentFiles.length,
+          itemCount: state.recentFiles.length,
           separatorBuilder: (context, index) => const SizedBox(height: 12),
           itemBuilder: (context, index) {
-            final file = recentFiles[index];
+            final file = state.recentFiles[index];
             return _RecentFileCard(item: file);
           },
         ),
@@ -211,9 +240,16 @@ class _RecentPageState extends ConsumerState<RecentPage> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
-              // Implement clear recent files
+            onPressed: () async {
               Navigator.pop(context);
+              await ref
+                  .read(recentFilesNotifierProvider.notifier)
+                  .clearAllRecentFiles();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Recent files cleared')),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,
@@ -246,29 +282,34 @@ class _RecentPageState extends ConsumerState<RecentPage> {
               children: [
                 FilterChip(
                   label: const Text('All'),
-                  selected: true,
-                  onSelected: (selected) {},
+                  selected: _selectedFilter == null,
+                  onSelected: (selected) {
+                    setState(() => _selectedFilter = null);
+                    ref
+                        .read(recentFilesNotifierProvider.notifier)
+                        .loadRecentFiles();
+                    Navigator.pop(context);
+                  },
                 ),
-                FilterChip(
-                  label: const Text('Compress'),
-                  selected: false,
-                  onSelected: (selected) {},
-                ),
-                FilterChip(
-                  label: const Text('Merge'),
-                  selected: false,
-                  onSelected: (selected) {},
-                ),
-                FilterChip(
-                  label: const Text('Split'),
-                  selected: false,
-                  onSelected: (selected) {},
-                ),
-                FilterChip(
-                  label: const Text('Convert'),
-                  selected: false,
-                  onSelected: (selected) {},
-                ),
+                ...ref
+                    .read(recentFilesNotifierProvider)
+                    .operationTypes
+                    .map((type) {
+                  return FilterChip(
+                    label: Text(_getOperationDisplayName(type)),
+                    selected: _selectedFilter == type,
+                    onSelected: (selected) {
+                      setState(() {
+                        _selectedFilter = selected ? type : null;
+                      });
+                      ref
+                          .read(recentFilesNotifierProvider.notifier)
+                          .loadRecentFiles(
+                              operationType: selected ? type : null);
+                      Navigator.pop(context);
+                    },
+                  );
+                }).toList(),
               ],
             ),
             const SizedBox(height: 16),
@@ -276,6 +317,81 @@ class _RecentPageState extends ConsumerState<RecentPage> {
         ),
       ),
     );
+  }
+
+  String _getOperationDisplayName(String operationType) {
+    switch (operationType) {
+      case 'compress':
+        return 'Compress';
+      case 'merge':
+        return 'Merge';
+      case 'split':
+        return 'Split';
+      case 'convert':
+        return 'Convert';
+      case 'protect':
+        return 'Protect';
+      case 'unlock':
+        return 'Unlock';
+      case 'rotate':
+        return 'Rotate';
+      case 'watermark':
+        return 'Watermark';
+      case 'page_numbers':
+        return 'Page Numbers';
+      default:
+        return operationType.toUpperCase();
+    }
+  }
+
+  Color _getOperationColor(String operationType) {
+    switch (operationType) {
+      case 'compress':
+        return AppColors.compressColor;
+      case 'merge':
+        return AppColors.mergeColor;
+      case 'split':
+        return AppColors.splitColor;
+      case 'convert':
+        return AppColors.convertColor;
+      case 'protect':
+        return AppColors.protectColor;
+      case 'unlock':
+        return AppColors.unlockColor;
+      case 'rotate':
+        return AppColors.rotateColor;
+      case 'watermark':
+        return AppColors.watermarkColor;
+      case 'page_numbers':
+        return AppColors.pageNumbersColor;
+      default:
+        return AppColors.primary;
+    }
+  }
+
+  IconData _getOperationIcon(String operationType) {
+    switch (operationType) {
+      case 'compress':
+        return Icons.compress;
+      case 'merge':
+        return Icons.merge;
+      case 'split':
+        return Icons.call_split;
+      case 'convert':
+        return Icons.transform;
+      case 'protect':
+        return Icons.lock;
+      case 'unlock':
+        return Icons.lock_open;
+      case 'rotate':
+        return Icons.rotate_right;
+      case 'watermark':
+        return Icons.branding_watermark;
+      case 'page_numbers':
+        return Icons.format_list_numbered;
+      default:
+        return Icons.description;
+    }
   }
 }
 
@@ -331,13 +447,16 @@ class _StatsCard extends StatelessWidget {
   }
 }
 
-class _RecentFileCard extends StatelessWidget {
-  final _RecentFileItem item;
+class _RecentFileCard extends ConsumerWidget {
+  final RecentFileModel item;
 
   const _RecentFileCard({required this.item});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final color = _getOperationColor(item.operationType);
+    final icon = _getOperationIcon(item.operationType);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -350,12 +469,12 @@ class _RecentFileCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: item.color.withOpacity(0.1),
+              color: color.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
-              item.icon,
-              color: item.color,
+              icon,
+              color: color,
               size: 24,
             ),
           ),
@@ -365,7 +484,7 @@ class _RecentFileCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item.name,
+                  item.originalFileName,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w600,
                         color: AppColors.textPrimary,
@@ -380,20 +499,20 @@ class _RecentFileCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: item.color.withOpacity(0.1),
+                        color: color.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         item.operation,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: item.color,
+                              color: color,
                               fontWeight: FontWeight.w500,
                             ),
                       ),
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      '${item.originalSize} → ${item.finalSize}',
+                      '${item.originalSize}${item.resultSize != null ? ' → ${item.resultSize}' : ''}',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: AppColors.textSecondary,
                           ),
@@ -407,16 +526,33 @@ class _RecentFileCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                item.time,
+                item.timeAgo,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: AppColors.textSecondary,
                     ),
               ),
               const SizedBox(height: 8),
-              Icon(
-                Icons.more_vert,
-                color: AppColors.textSecondary,
-                size: 16,
+              PopupMenuButton<String>(
+                onSelected: (value) async {
+                  if (value == 'delete') {
+                    // TODO: Implement delete single item
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: ListTile(
+                      leading: Icon(Icons.delete, size: 16),
+                      title: Text('Remove'),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                ],
+                child: Icon(
+                  Icons.more_vert,
+                  color: AppColors.textSecondary,
+                  size: 16,
+                ),
               ),
             ],
           ),
@@ -424,24 +560,54 @@ class _RecentFileCard extends StatelessWidget {
       ),
     );
   }
-}
 
-class _RecentFileItem {
-  final String name;
-  final String operation;
-  final String time;
-  final String originalSize;
-  final String finalSize;
-  final IconData icon;
-  final Color color;
+  Color _getOperationColor(String operationType) {
+    switch (operationType) {
+      case 'compress':
+        return AppColors.compressColor;
+      case 'merge':
+        return AppColors.mergeColor;
+      case 'split':
+        return AppColors.splitColor;
+      case 'convert':
+        return AppColors.convertColor;
+      case 'protect':
+        return AppColors.protectColor;
+      case 'unlock':
+        return AppColors.unlockColor;
+      case 'rotate':
+        return AppColors.rotateColor;
+      case 'watermark':
+        return AppColors.watermarkColor;
+      case 'page_numbers':
+        return AppColors.pageNumbersColor;
+      default:
+        return AppColors.primary;
+    }
+  }
 
-  _RecentFileItem({
-    required this.name,
-    required this.operation,
-    required this.time,
-    required this.originalSize,
-    required this.finalSize,
-    required this.icon,
-    required this.color,
-  });
+  IconData _getOperationIcon(String operationType) {
+    switch (operationType) {
+      case 'compress':
+        return Icons.compress;
+      case 'merge':
+        return Icons.merge;
+      case 'split':
+        return Icons.call_split;
+      case 'convert':
+        return Icons.transform;
+      case 'protect':
+        return Icons.lock;
+      case 'unlock':
+        return Icons.lock_open;
+      case 'rotate':
+        return Icons.rotate_right;
+      case 'watermark':
+        return Icons.branding_watermark;
+      case 'page_numbers':
+        return Icons.format_list_numbered;
+      default:
+        return Icons.description;
+    }
+  }
 }
