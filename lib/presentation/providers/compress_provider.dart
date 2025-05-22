@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:megapdf_client/data/repositories/pdf_repository_impl.dart';
 import 'package:megapdf_client/data/services/recent_files_service.dart';
+import 'package:megapdf_client/data/services/file_service.dart';
+import 'package:flutter_file_downloader/flutter_file_downloader.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../data/models/compress_result.dart';
@@ -48,20 +50,28 @@ class CompressNotifier extends _$CompressNotifier {
     final result = state.result;
     if (result?.fileUrl == null || result?.filename == null) return;
 
-    state = state.copyWith(isDownloading: true);
+    state = state.copyWith(
+      isDownloading: true,
+      downloadProgress: 0.0,
+    );
 
     try {
-      final repository = ref.read(pdfRepositoryProvider);
+      final fileService = ref.read(fileServiceProvider);
 
       // Extract folder and filename from fileUrl
       final uri = Uri.parse(result!.fileUrl!);
       final folder = uri.queryParameters['folder'] ?? 'compressions';
       final filename = uri.queryParameters['filename'] ?? result.filename!;
 
-      final localPath = await repository.downloadFile(
+      String? downloadId;
+
+      final localPath = await fileService.downloadAndSaveFile(
         folder: folder,
         filename: filename,
         customFileName: 'compressed_${result.originalName ?? 'document'}',
+        onProgress: (progress) {
+          state = state.copyWith(downloadProgress: progress);
+        },
       );
 
       // Track in recent files
@@ -80,16 +90,42 @@ class CompressNotifier extends _$CompressNotifier {
       state = state.copyWith(
         isDownloading: false,
         downloadedPath: localPath,
+        downloadProgress: 1.0,
+        downloadId: null,
       );
     } on ApiException catch (e) {
       state = state.copyWith(
         isDownloading: false,
         error: e.userFriendlyMessage,
+        downloadProgress: null,
       );
     } catch (e) {
       state = state.copyWith(
         isDownloading: false,
         error: 'Failed to download file: ${e.toString()}',
+        downloadProgress: null,
+      );
+    }
+  }
+
+  Future<void> cancelDownload() async {
+    if (state.downloadId == null) return;
+
+    try {
+      final fileService = ref.read(fileServiceProvider);
+      final cancelled = await fileService.cancelDownload(state.downloadId!);
+
+      if (cancelled) {
+        state = state.copyWith(
+          isDownloading: false,
+          downloadProgress: null,
+          downloadId: null,
+          error: 'Download cancelled',
+        );
+      }
+    } catch (e) {
+      state = state.copyWith(
+        error: 'Failed to cancel download: ${e.toString()}',
       );
     }
   }
@@ -100,6 +136,8 @@ class CompressNotifier extends _$CompressNotifier {
       result: null,
       error: null,
       downloadedPath: null,
+      downloadProgress: null,
+      downloadId: null,
     );
   }
 
@@ -119,6 +157,8 @@ class CompressState {
   final CompressResult? result;
   final String? error;
   final String? downloadedPath;
+  final double? downloadProgress;
+  final int? downloadId;
 
   const CompressState({
     this.selectedFile,
@@ -127,6 +167,8 @@ class CompressState {
     this.result,
     this.error,
     this.downloadedPath,
+    this.downloadProgress,
+    this.downloadId,
   });
 
   CompressState copyWith({
@@ -136,6 +178,8 @@ class CompressState {
     CompressResult? result,
     String? error,
     String? downloadedPath,
+    double? downloadProgress,
+    int? downloadId,
   }) {
     return CompressState(
       selectedFile: selectedFile ?? this.selectedFile,
@@ -144,6 +188,8 @@ class CompressState {
       result: result ?? this.result,
       error: error,
       downloadedPath: downloadedPath,
+      downloadProgress: downloadProgress,
+      downloadId: downloadId,
     );
   }
 
@@ -153,4 +199,5 @@ class CompressState {
   bool get isProcessing => isLoading || isDownloading;
   bool get canCompress => hasFile && !isProcessing;
   bool get canDownload => hasResult && !isDownloading;
+  bool get canCancelDownload => isDownloading && downloadId != null;
 }

@@ -1,12 +1,11 @@
 import 'dart:io';
-import 'dart:typed_data';
-import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as path;
+import 'package:megapdf_client/core/utils/permission_manager.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:open_file/open_file.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_file_downloader/flutter_file_downloader.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
 
 import '../../core/errors/api_exception.dart';
 import 'pdf_api_service.dart';
@@ -22,7 +21,15 @@ FileService fileService(Ref ref) {
 class FileService {
   final PdfApiService _apiService;
 
-  FileService(this._apiService);
+  FileService(this._apiService) {
+    _initializeDownloader();
+  }
+
+  void _initializeDownloader() {
+    // Configure the downloader
+    FileDownloader.setLogEnabled(true);
+    FileDownloader.setMaximumParallelDownloads(5);
+  }
 
   /// Download a processed file and save it to device storage
   Future<String> downloadAndSaveFile({
@@ -35,41 +42,138 @@ class FileService {
       // Request storage permissions
       await _requestStoragePermissions();
 
-      // Get download directory
-      final downloadDir = await _getDownloadDirectory();
+      // Get file download URL from API
+      final response = await _apiService.downloadFile(folder, filename);
 
-      // Create filename with timestamp to avoid conflicts
+      // Create safe filename with timestamp to avoid conflicts
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final extension = path.extension(filename);
       final baseName =
           customFileName ?? path.basenameWithoutExtension(filename);
-      final localFileName = '${baseName}_$timestamp$extension';
-      final localFilePath = path.join(downloadDir.path, localFileName);
+      final safeBaseName = _createSafeFileName(baseName);
+      final localFileName = '${safeBaseName}_$timestamp$extension';
 
-      // Download file metadata
-      final response = await _apiService.downloadFile(folder, filename);
+      // Create subdirectory for organized downloads
+      final subPath = 'MegaPDF/$folder';
 
-      // Fetch the file from the URL in FileDownloadResult
-      final dio = Dio(); // Use a new Dio instance or inject one
-      final fileResponse = await dio.get(
-        response.url, // Assuming FileDownloadResult has a 'url' field
-        options: Options(responseType: ResponseType.bytes),
-        onReceiveProgress: (received, total) {
-          if (total != -1 && onProgress != null) {
-            onProgress(received / total);
-          }
+      // Track download progress
+      double currentProgress = 0.0;
+
+      // Download file using flutter_file_downloader
+      final File? downloadedFile = await FileDownloader.downloadFile(
+        url: response.url,
+        name: localFileName,
+        subPath: subPath,
+        downloadDestination: DownloadDestinations.publicDownloads,
+        notificationType: NotificationType.progressOnly,
+        onProgress: (String? fileName, double progress) {
+          currentProgress = progress;
+          onProgress?.call(progress);
+        },
+        onDownloadCompleted: (String filePath) {
+          print('Download completed: $filePath');
+        },
+        onDownloadError: (String error) {
+          print('Download error: $error');
+          throw ApiException.unknown('Download failed: $error');
         },
       );
 
-      // Collect bytes from the response
-      final bytes = fileResponse.data as Uint8List;
+      if (downloadedFile == null || !await downloadedFile.exists()) {
+        throw ApiException.unknown('Failed to download file');
+      }
 
-      // Save file to local storage
-      final file = File(localFilePath);
-      await file.writeAsBytes(bytes);
-
-      return localFilePath;
+      return downloadedFile.path;
     } catch (e) {
+      if (e is ApiException) {
+        rethrow;
+      }
+      throw ApiException.unknown('Failed to download file: ${e.toString()}');
+    }
+  }
+
+  /// Download multiple files in bulk
+  Future<List<String?>> downloadMultipleFiles({
+    required List<DownloadRequest> requests,
+    bool isParallel = true,
+    Function(int completed, int total)? onBatchProgress,
+    Function()? onAllDownloaded,
+  }) async {
+    try {
+      await _requestStoragePermissions();
+
+      // Prepare download URLs
+      final List<String> urls = [];
+      final List<String> fileNames = [];
+
+      for (final request in requests) {
+        final response =
+            await _apiService.downloadFile(request.folder, request.filename);
+        urls.add(response.url);
+
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final extension = path.extension(request.filename);
+        final baseName = request.customFileName ??
+            path.basenameWithoutExtension(request.filename);
+        final safeBaseName = _createSafeFileName(baseName);
+        final localFileName = '${safeBaseName}_$timestamp$extension';
+        fileNames.add(localFileName);
+      }
+
+      // Download all files
+      final List<File?> downloadedFiles = await FileDownloader.downloadFiles(
+        urls: urls,
+        isParallel: isParallel,
+        onAllDownloaded: onAllDownloaded,
+      );
+
+      // Convert to paths
+      return downloadedFiles.map((file) => file?.path).toList();
+    } catch (e) {
+      throw ApiException.unknown('Failed to download files: ${e.toString()}');
+    }
+  }
+
+  /// Download file to app's private directory (not visible in file manager)
+  Future<String> downloadToAppDirectory({
+    required String folder,
+    required String filename,
+    String? customFileName,
+    Function(double progress)? onProgress,
+  }) async {
+    try {
+      final response = await _apiService.downloadFile(folder, filename);
+
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final extension = path.extension(filename);
+      final baseName =
+          customFileName ?? path.basenameWithoutExtension(filename);
+      final safeBaseName = _createSafeFileName(baseName);
+      final localFileName = '${safeBaseName}_$timestamp$extension';
+
+      final File? downloadedFile = await FileDownloader.downloadFile(
+        url: response.url,
+        name: localFileName,
+        subPath: 'MegaPDF/$folder',
+        downloadDestination: DownloadDestinations.appFiles,
+        notificationType: NotificationType.disabled,
+        onProgress: (String? fileName, double progress) {
+          onProgress?.call(progress);
+        },
+        onDownloadError: (String error) {
+          throw ApiException.unknown('Download failed: $error');
+        },
+      );
+
+      if (downloadedFile == null || !await downloadedFile.exists()) {
+        throw ApiException.unknown('Failed to download file');
+      }
+
+      return downloadedFile.path;
+    } catch (e) {
+      if (e is ApiException) {
+        rethrow;
+      }
       throw ApiException.unknown('Failed to download file: ${e.toString()}');
     }
   }
@@ -126,43 +230,76 @@ class FileService {
     }
   }
 
-  /// Get all downloaded PDF files
+  /// Get all downloaded PDF files from public downloads
   Future<List<File>> getDownloadedFiles() async {
     try {
-      final downloadDir = await _getDownloadDirectory();
-      if (!await downloadDir.exists()) {
-        return [];
+      // For public downloads, we need to scan the Downloads/MegaPDF directory
+      if (Platform.isAndroid) {
+        final downloadDir = Directory('/storage/emulated/0/Download/MegaPDF');
+        return await _scanDirectoryForPDFs(downloadDir);
+      } else if (Platform.isIOS) {
+        // For iOS, files are in app directory
+        final appDocDir = await getApplicationDocumentsDirectory();
+        final downloadDir = Directory(path.join(appDocDir.path, 'Downloads'));
+        return await _scanDirectoryForPDFs(downloadDir);
       }
 
-      final files = downloadDir
-          .listSync()
-          .whereType<File>()
-          .where((file) => file.path.toLowerCase().endsWith('.pdf'))
-          .toList();
-
-      // Sort by modification date (newest first)
-      files.sort((a, b) {
-        final aStat = a.statSync();
-        final bStat = b.statSync();
-        return bStat.modified.compareTo(aStat.modified);
-      });
-
-      return files;
+      return [];
     } catch (e) {
       return [];
     }
   }
 
+  /// Get files downloaded to app directory
+  Future<List<File>> getAppDirectoryFiles() async {
+    try {
+      final appDocDir = await getApplicationDocumentsDirectory();
+      final downloadDir = Directory(path.join(appDocDir.path, 'MegaPDF'));
+      return await _scanDirectoryForPDFs(downloadDir);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<List<File>> _scanDirectoryForPDFs(Directory directory) async {
+    if (!await directory.exists()) {
+      return [];
+    }
+
+    final files = <File>[];
+    await for (final entity in directory.list(recursive: true)) {
+      if (entity is File && entity.path.toLowerCase().endsWith('.pdf')) {
+        files.add(entity);
+      }
+    }
+
+    // Sort by modification date (newest first)
+    files.sort((a, b) {
+      final aStat = a.statSync();
+      final bStat = b.statSync();
+      return bStat.modified.compareTo(aStat.modified);
+    });
+
+    return files;
+  }
+
   /// Clean up old downloaded files (older than specified days)
   Future<void> cleanupOldFiles({int olderThanDays = 30}) async {
     try {
-      final downloadDir = await _getDownloadDirectory();
-      if (!await downloadDir.exists()) return;
-
       final cutoffDate = DateTime.now().subtract(Duration(days: olderThanDays));
-      final files = downloadDir.listSync().whereType<File>();
 
-      for (final file in files) {
+      // Clean public downloads
+      final publicFiles = await getDownloadedFiles();
+      for (final file in publicFiles) {
+        final stat = file.statSync();
+        if (stat.modified.isBefore(cutoffDate)) {
+          await file.delete();
+        }
+      }
+
+      // Clean app directory files
+      final appFiles = await getAppDirectoryFiles();
+      for (final file in appFiles) {
         final stat = file.statSync();
         if (stat.modified.isBefore(cutoffDate)) {
           await file.delete();
@@ -170,6 +307,16 @@ class FileService {
       }
     } catch (e) {
       // Silently fail cleanup
+      print('Cleanup failed: $e');
+    }
+  }
+
+  /// Cancel an ongoing download
+  Future<bool> cancelDownload(int downloadId) async {
+    try {
+      return await FileDownloader.cancelDownload(downloadId);
+    } catch (e) {
+      return false;
     }
   }
 
@@ -223,54 +370,39 @@ class FileService {
 
   Future<void> _requestStoragePermissions() async {
     if (Platform.isAndroid) {
-      final status = await Permission.storage.status;
-      if (!status.isGranted) {
-        final result = await Permission.storage.request();
-        if (!result.isGranted) {
-          throw ApiException.forbidden(
-              'Storage permission is required to download files');
-        }
-      }
+      final permissionManager = PermissionManager();
 
-      // For Android 11+ (API 30+), also request manage external storage
-      if (await Permission.manageExternalStorage.isDenied) {
-        await Permission.manageExternalStorage.request();
-      }
+      // Check if permissions are already granted
+      final hasPermissions = await permissionManager.hasDownloadPermissions();
+      if (hasPermissions) return;
+
+      // Request permissions (this will handle different Android versions)
+      throw ApiException.forbidden(
+        'Storage permission is required to download files. Please grant storage permission in app settings.',
+      );
     }
   }
 
-  Future<Directory> _getDownloadDirectory() async {
-    Directory directory;
-
-    if (Platform.isAndroid) {
-      // Try to get external storage directory
-      directory = Directory('/storage/emulated/0/Download/MegaPDF');
-    } else if (Platform.isIOS) {
-      // For iOS, use documents directory
-      final appDocDir = await getApplicationDocumentsDirectory();
-      directory = Directory(path.join(appDocDir.path, 'Downloads'));
-    } else {
-      // Fallback to application documents directory
-      final appDocDir = await getApplicationDocumentsDirectory();
-      directory = Directory(path.join(appDocDir.path, 'Downloads'));
-    }
-
-    // Create directory if it doesn't exist
-    if (!await directory.exists()) {
-      await directory.create(recursive: true);
-    }
-
-    return directory;
+  String _createSafeFileName(String fileName) {
+    // Remove or replace invalid characters
+    return fileName
+        .replaceAll(RegExp(r'[<>:"/\\|?*]'), '_')
+        .replaceAll(RegExp(r'\s+'), '_')
+        .replaceAll(
+            RegExp(r'_{2,}'), '_') // Replace multiple underscores with single
+        .trim();
   }
 }
 
-// Extension to convert ResponseBody stream to bytes
-extension ResponseBodyExtension on ResponseBody {
-  Future<Uint8List> toBytes() async {
-    final chunks = <int>[];
-    await for (final chunk in stream) {
-      chunks.addAll(chunk);
-    }
-    return Uint8List.fromList(chunks);
-  }
+// Helper class for bulk downloads
+class DownloadRequest {
+  final String folder;
+  final String filename;
+  final String? customFileName;
+
+  const DownloadRequest({
+    required this.folder,
+    required this.filename,
+    this.customFileName,
+  });
 }
