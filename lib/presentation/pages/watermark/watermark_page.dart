@@ -1,3 +1,4 @@
+// lib/presentation/pages/watermark/watermark_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,7 +13,7 @@ import '../../widgets/common/download_button.dart';
 import 'widgets/watermark_type_tabs.dart';
 import 'widgets/text_watermark_form.dart';
 import 'widgets/image_watermark_form.dart';
-//import 'widgets/watermark_options.dart';
+import 'widgets/watermark_options.dart' as w;
 import 'widgets/watermark_result_widget.dart';
 
 class WatermarkPage extends ConsumerWidget {
@@ -45,37 +46,37 @@ class WatermarkPage extends ConsumerWidget {
                 const SizedBox(height: 24),
                 _buildWatermarkContentSection(context, ref, state),
                 const SizedBox(height: 24),
-                // WatermarkOptions(
-                //   position: state.position,
-                //   rotation: state.rotation,
-                //   opacity: state.opacity,
-                //   scale: state.scale,
-                //   pages: state.pages,
-                //   customPages: state.customPages,
-                //   customX: state.customX,
-                //   customY: state.customY,
-                //   onPositionChanged: (position) => ref
-                //       .read(watermarkNotifierProvider.notifier)
-                //       .updatePositionOptions(position: position),
-                //   onRotationChanged: (rotation) => ref
-                //       .read(watermarkNotifierProvider.notifier)
-                //       .updatePositionOptions(rotation: rotation),
-                //   onOpacityChanged: (opacity) => ref
-                //       .read(watermarkNotifierProvider.notifier)
-                //       .updatePositionOptions(opacity: opacity),
-                //   onScaleChanged: (scale) => ref
-                //       .read(watermarkNotifierProvider.notifier)
-                //       .updatePositionOptions(scale: scale),
-                //   onPagesChanged: (pages) => ref
-                //       .read(watermarkNotifierProvider.notifier)
-                //       .updatePageOptions(pages: pages),
-                //   onCustomPagesChanged: (customPages) => ref
-                //       .read(watermarkNotifierProvider.notifier)
-                //       .updatePageOptions(customPages: customPages),
-                //   onCustomPositionChanged: (x, y) => ref
-                //       .read(watermarkNotifierProvider.notifier)
-                //       .updatePositionOptions(customX: x, customY: y),
-                // ),
+                w.WatermarkOptions(
+                  position: state.position,
+                  rotation: state.rotation,
+                  opacity: state.opacity,
+                  scale: state.scale,
+                  pages: state.pages,
+                  customPages: state.customPages,
+                  customX: state.customX,
+                  customY: state.customY,
+                  onPositionChanged: (position) => ref
+                      .read(watermarkNotifierProvider.notifier)
+                      .updatePositionOptions(position: position),
+                  onRotationChanged: (rotation) => ref
+                      .read(watermarkNotifierProvider.notifier)
+                      .updatePositionOptions(rotation: rotation),
+                  onOpacityChanged: (opacity) => ref
+                      .read(watermarkNotifierProvider.notifier)
+                      .updatePositionOptions(opacity: opacity),
+                  onScaleChanged: (scale) => ref
+                      .read(watermarkNotifierProvider.notifier)
+                      .updatePositionOptions(scale: scale),
+                  onPagesChanged: (pages) => ref
+                      .read(watermarkNotifierProvider.notifier)
+                      .updatePageOptions(pages: pages),
+                  onCustomPagesChanged: (customPages) => ref
+                      .read(watermarkNotifierProvider.notifier)
+                      .updatePageOptions(customPages: customPages),
+                  onCustomPositionChanged: (x, y) => ref
+                      .read(watermarkNotifierProvider.notifier)
+                      .updatePositionOptions(customX: x, customY: y),
+                ),
               ],
 
               if (state.hasResult) ...[
@@ -110,6 +111,7 @@ class WatermarkPage extends ConsumerWidget {
   Widget _buildFileSelectionSection(
       BuildContext context, WidgetRef ref, WatermarkState state) {
     return Card(
+      elevation: 0.1,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -151,6 +153,7 @@ class WatermarkPage extends ConsumerWidget {
     final file = state.selectedFile!;
 
     return Card(
+      elevation: 0.1,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -209,6 +212,7 @@ class WatermarkPage extends ConsumerWidget {
   Widget _buildWatermarkTypeSection(
       BuildContext context, WidgetRef ref, WatermarkState state) {
     return Card(
+      elevation: 0.1,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -335,6 +339,7 @@ class WatermarkPage extends ConsumerWidget {
 
   Widget _buildInfoSection(BuildContext context) {
     return Card(
+      elevation: 0.1,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(

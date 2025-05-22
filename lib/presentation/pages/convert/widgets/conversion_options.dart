@@ -23,6 +23,7 @@ class ConversionOptions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      elevation: 0.1,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(

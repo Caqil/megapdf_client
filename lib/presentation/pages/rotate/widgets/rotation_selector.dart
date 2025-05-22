@@ -15,6 +15,7 @@ class RotationSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      elevation: 0.1,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -42,7 +43,8 @@ class RotationSelector extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: _buildRotationOption(context, 90, Icons.rotate_90_degrees_ccw),
+                  child: _buildRotationOption(
+                      context, 90, Icons.rotate_90_degrees_ccw),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -50,7 +52,8 @@ class RotationSelector extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _buildRotationOption(context, 270, Icons.rotate_90_degrees_cw),
+                  child: _buildRotationOption(
+                      context, 270, Icons.rotate_90_degrees_cw),
                 ),
               ],
             ),
@@ -64,7 +67,8 @@ class RotationSelector extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.rotateColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.rotateColor.withOpacity(0.3)),
+                border:
+                    Border.all(color: AppColors.rotateColor.withOpacity(0.3)),
               ),
               child: Column(
                 children: [
@@ -93,20 +97,18 @@ class RotationSelector extends StatelessWidget {
 
   Widget _buildRotationOption(BuildContext context, int angle, IconData icon) {
     final isSelected = selectedAngle == angle;
-    
+
     return GestureDetector(
       onTap: () => onAngleChanged(angle),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected 
-            ? AppColors.rotateColor.withOpacity(0.15)
-            : AppColors.surfaceVariant,
+          color: isSelected
+              ? AppColors.rotateColor.withOpacity(0.15)
+              : AppColors.surfaceVariant,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isSelected 
-              ? AppColors.rotateColor 
-              : AppColors.border,
+            color: isSelected ? AppColors.rotateColor : AppColors.border,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -114,22 +116,25 @@ class RotationSelector extends StatelessWidget {
           children: [
             Icon(
               icon,
-              color: isSelected ? AppColors.rotateColor : AppColors.textSecondary,
+              color:
+                  isSelected ? AppColors.rotateColor : AppColors.textSecondary,
               size: 32,
             ),
             const SizedBox(height: 8),
             Text(
               '${angle}°',
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: isSelected ? AppColors.rotateColor : AppColors.textSecondary,
-              ),
+                    fontWeight: FontWeight.w600,
+                    color: isSelected
+                        ? AppColors.rotateColor
+                        : AppColors.textSecondary,
+                  ),
             ),
             Text(
               _getShortDescription(angle),
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.textSecondary,
-              ),
+                    color: AppColors.textSecondary,
+                  ),
               textAlign: TextAlign.center,
             ),
           ],

@@ -19,6 +19,7 @@ class FormatSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      elevation: 0.1,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -106,7 +107,8 @@ class FormatSelector extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.convertColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.convertColor.withOpacity(0.3)),
+                border:
+                    Border.all(color: AppColors.convertColor.withOpacity(0.3)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,

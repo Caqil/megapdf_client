@@ -15,6 +15,7 @@ class PositionSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      elevation: 0.1,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -51,22 +52,34 @@ class PositionSelector extends StatelessWidget {
                   // Top Row
                   Row(
                     children: [
-                      Expanded(child: _buildPositionOption('top-left', Icons.north_west)),
+                      Expanded(
+                          child: _buildPositionOption(
+                              'top-left', Icons.north_west)),
                       const SizedBox(width: 8),
-                      Expanded(child: _buildPositionOption('top-center', Icons.north)),
+                      Expanded(
+                          child:
+                              _buildPositionOption('top-center', Icons.north)),
                       const SizedBox(width: 8),
-                      Expanded(child: _buildPositionOption('top-right', Icons.north_east)),
+                      Expanded(
+                          child: _buildPositionOption(
+                              'top-right', Icons.north_east)),
                     ],
                   ),
                   const SizedBox(height: 8),
                   // Bottom Row
                   Row(
                     children: [
-                      Expanded(child: _buildPositionOption('bottom-left', Icons.south_west)),
+                      Expanded(
+                          child: _buildPositionOption(
+                              'bottom-left', Icons.south_west)),
                       const SizedBox(width: 8),
-                      Expanded(child: _buildPositionOption('bottom-center', Icons.south)),
+                      Expanded(
+                          child: _buildPositionOption(
+                              'bottom-center', Icons.south)),
                       const SizedBox(width: 8),
-                      Expanded(child: _buildPositionOption('bottom-right', Icons.south_east)),
+                      Expanded(
+                          child: _buildPositionOption(
+                              'bottom-right', Icons.south_east)),
                     ],
                   ),
                 ],
@@ -82,7 +95,8 @@ class PositionSelector extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.pageNumbersColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.pageNumbersColor.withOpacity(0.3)),
+                border: Border.all(
+                    color: AppColors.pageNumbersColor.withOpacity(0.3)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -111,20 +125,18 @@ class PositionSelector extends StatelessWidget {
 
   Widget _buildPositionOption(String position, IconData icon) {
     final isSelected = selectedPosition == position;
-    
+
     return GestureDetector(
       onTap: () => onPositionChanged(position),
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isSelected 
-            ? AppColors.pageNumbersColor.withOpacity(0.15)
-            : Colors.white,
+          color: isSelected
+              ? AppColors.pageNumbersColor.withOpacity(0.15)
+              : Colors.white,
           borderRadius: BorderRadius.circular(6),
           border: Border.all(
-            color: isSelected 
-              ? AppColors.pageNumbersColor 
-              : AppColors.border,
+            color: isSelected ? AppColors.pageNumbersColor : AppColors.border,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -133,7 +145,8 @@ class PositionSelector extends StatelessWidget {
           children: [
             Icon(
               icon,
-              color: isSelected ? AppColors.pageNumbersColor : AppColors.textMuted,
+              color:
+                  isSelected ? AppColors.pageNumbersColor : AppColors.textMuted,
               size: 20,
             ),
             const SizedBox(height: 4),
@@ -142,7 +155,9 @@ class PositionSelector extends StatelessWidget {
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w500,
-                color: isSelected ? AppColors.pageNumbersColor : AppColors.textMuted,
+                color: isSelected
+                    ? AppColors.pageNumbersColor
+                    : AppColors.textMuted,
               ),
               textAlign: TextAlign.center,
             ),
@@ -162,7 +177,7 @@ class PositionSelector extends StatelessWidget {
         return Icons.north_east;
       case 'bottom-left':
         return Icons.south_west;
-      case 'bottom-center': 
+      case 'bottom-center':
         return Icons.south;
       case 'bottom-right':
         return Icons.south_east;

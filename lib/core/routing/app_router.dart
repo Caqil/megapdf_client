@@ -3,7 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../presentation/pages/main/main_navigation_page.dart';
 import '../../presentation/pages/home/home_page.dart';
+import '../../presentation/pages/tools/tools_page.dart';
+import '../../presentation/pages/recent/recent_page.dart';
+import '../../presentation/pages/profile/profile_page.dart';
 import '../../presentation/pages/compress/compress_page.dart';
 import '../../presentation/pages/split/split_page.dart';
 import '../../presentation/pages/merge/merge_page.dart';
@@ -21,11 +25,33 @@ GoRouter router(Ref ref) {
   return GoRouter(
     initialLocation: '/',
     routes: [
-      // Home route
+      // Main navigation route (with bottom navigation)
       GoRoute(
         path: '/',
-        name: 'home',
+        name: 'main',
+        builder: (context, state) => const MainNavigationPage(),
+      ),
+
+      // Direct access to individual tabs (optional)
+      GoRoute(
+        path: '/files',
+        name: 'files',
         builder: (context, state) => const HomePage(),
+      ),
+      GoRoute(
+        path: '/tools',
+        name: 'tools',
+        builder: (context, state) => const ToolsPage(),
+      ),
+      GoRoute(
+        path: '/recent',
+        name: 'recent',
+        builder: (context, state) => const RecentPage(),
+      ),
+      GoRoute(
+        path: '/profile',
+        name: 'profile',
+        builder: (context, state) => const ProfilePage(),
       ),
 
       // PDF Operations
@@ -78,31 +104,47 @@ GoRouter router(Ref ref) {
     errorBuilder: (context, state) => Scaffold(
       appBar: AppBar(
         title: const Text('Error'),
+        backgroundColor: Colors.red.shade50,
+        foregroundColor: Colors.red.shade700,
       ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
+            Icon(
               Icons.error_outline,
               size: 64,
-              color: Colors.red,
+              color: Colors.red.shade400,
             ),
             const SizedBox(height: 16),
             Text(
               'Page not found',
-              style: Theme.of(context).textTheme.headlineSmall,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    color: Colors.red.shade700,
+                  ),
             ),
             const SizedBox(height: 8),
-            Text(
-              state.error.toString(),
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Text(
+                'The page you\'re looking for doesn\'t exist.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey.shade600,
+                    ),
+              ),
             ),
-            const SizedBox(height: 16),
-            ElevatedButton(
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
               onPressed: () => context.go('/'),
-              child: const Text('Go Home'),
+              icon: const Icon(Icons.home),
+              label: const Text('Go Home'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+              ),
             ),
           ],
         ),

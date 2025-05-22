@@ -1,4 +1,3 @@
-
 // lib/presentation/pages/protect/widgets/permission_settings.dart
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -28,6 +27,7 @@ class PermissionSettings extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      elevation: 0.1,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(

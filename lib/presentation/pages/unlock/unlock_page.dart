@@ -56,9 +56,8 @@ class UnlockPage extends ConsumerWidget {
                 CustomErrorWidget(
                   message: state.error!,
                   onRetry: state.canUnlock
-                      ? () => ref
-                          .read(unlockNotifierProvider.notifier)
-                          .unlockPdf()
+                      ? () =>
+                          ref.read(unlockNotifierProvider.notifier).unlockPdf()
                       : null,
                 ),
               ],
@@ -78,6 +77,7 @@ class UnlockPage extends ConsumerWidget {
   Widget _buildFileSelectionSection(
       BuildContext context, WidgetRef ref, UnlockState state) {
     return Card(
+      elevation: 0.1,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -119,6 +119,7 @@ class UnlockPage extends ConsumerWidget {
     final file = state.selectedFile!;
 
     return Card(
+      elevation: 0.1,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -201,9 +202,7 @@ class UnlockPage extends ConsumerWidget {
         if (!state.hasResult) ...[
           ElevatedButton.icon(
             onPressed: state.canUnlock
-                ? () => ref
-                    .read(unlockNotifierProvider.notifier)
-                    .unlockPdf()
+                ? () => ref.read(unlockNotifierProvider.notifier).unlockPdf()
                 : null,
             icon: state.isLoading
                 ? const SizedBox(
@@ -237,9 +236,8 @@ class UnlockPage extends ConsumerWidget {
         if (state.hasResult) ...[
           DownloadButton(
             onPressed: state.canDownload
-                ? () => ref
-                    .read(unlockNotifierProvider.notifier)
-                    .downloadResult()
+                ? () =>
+                    ref.read(unlockNotifierProvider.notifier).downloadResult()
                 : null,
             isLoading: state.isDownloading,
             downloadedPath: state.downloadedPath,
@@ -262,6 +260,7 @@ class UnlockPage extends ConsumerWidget {
 
   Widget _buildInfoSection(BuildContext context) {
     return Card(
+      elevation: 0.1,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(

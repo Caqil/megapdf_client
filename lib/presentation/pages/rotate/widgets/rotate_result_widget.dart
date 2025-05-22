@@ -1,4 +1,3 @@
-
 // lib/presentation/pages/rotate/widgets/rotate_result_widget.dart
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -15,6 +14,7 @@ class RotateResultWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      elevation: 0.1,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -68,8 +68,8 @@ class RotateResultWidget extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.rotateColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                    color: AppColors.rotateColor.withOpacity(0.3)),
+                border:
+                    Border.all(color: AppColors.rotateColor.withOpacity(0.3)),
               ),
               child: Column(
                 children: [

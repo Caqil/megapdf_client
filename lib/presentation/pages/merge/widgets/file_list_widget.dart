@@ -19,6 +19,7 @@ class FileListWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      elevation: 0.1,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -35,20 +36,20 @@ class FileListWidget extends StatelessWidget {
                 Text(
                   'Files to Merge',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
                 const Spacer(),
                 Text(
                   '${files.length} files',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+                        color: AppColors.textSecondary,
+                      ),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            
+
             // Instructions
             Container(
               padding: const EdgeInsets.all(12),
@@ -69,16 +70,16 @@ class FileListWidget extends StatelessWidget {
                     child: Text(
                       'Drag to reorder files. Files will be merged in this order.',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.info,
-                      ),
+                            color: AppColors.info,
+                          ),
                     ),
                   ),
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // File List
             ReorderableListView.builder(
               shrinkWrap: true,
@@ -120,24 +121,24 @@ class FileListWidget extends StatelessWidget {
               child: Text(
                 '${index + 1}',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
             ),
           ),
-          
+
           const SizedBox(width: 12),
-          
+
           // File Icon
           Icon(
             Icons.picture_as_pdf,
             color: AppColors.mergeColor,
             size: 24,
           ),
-          
+
           const SizedBox(width: 12),
-          
+
           // File Info
           Expanded(
             child: Column(
@@ -146,8 +147,8 @@ class FileListWidget extends StatelessWidget {
                 Text(
                   file.baseName,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                        fontWeight: FontWeight.w600,
+                      ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -155,21 +156,21 @@ class FileListWidget extends StatelessWidget {
                 Text(
                   'Size: ${file.formattedSize}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+                        color: AppColors.textSecondary,
+                      ),
                 ),
               ],
             ),
           ),
-          
+
           // Drag Handle
           Icon(
             Icons.drag_handle,
             color: AppColors.textMuted,
           ),
-          
+
           const SizedBox(width: 8),
-          
+
           // Remove Button
           IconButton(
             onPressed: () => onRemoveFile(index),

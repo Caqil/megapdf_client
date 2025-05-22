@@ -85,6 +85,7 @@ class RotatePage extends ConsumerWidget {
   Widget _buildFileSelectionSection(
       BuildContext context, WidgetRef ref, RotateState state) {
     return Card(
+      elevation: 0.1,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -126,6 +127,7 @@ class RotatePage extends ConsumerWidget {
     final file = state.selectedFile!;
 
     return Card(
+      elevation: 0.1,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -238,6 +240,7 @@ class RotatePage extends ConsumerWidget {
 
   Widget _buildInfoSection(BuildContext context) {
     return Card(
+      elevation: 0.1,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
