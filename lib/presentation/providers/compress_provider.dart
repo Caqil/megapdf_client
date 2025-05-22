@@ -1,8 +1,6 @@
 import 'dart:io';
 import 'package:megapdf_client/data/repositories/pdf_repository_impl.dart';
 import 'package:megapdf_client/data/services/recent_files_service.dart';
-import 'package:megapdf_client/data/services/file_service.dart';
-import 'package:flutter_file_downloader/flutter_file_downloader.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../data/models/compress_result.dart';
@@ -46,32 +44,20 @@ class CompressNotifier extends _$CompressNotifier {
     }
   }
 
-  Future<void> downloadResult() async {
+  Future<void> saveResult() async {
     final result = state.result;
     if (result?.fileUrl == null || result?.filename == null) return;
 
-    state = state.copyWith(
-      isDownloading: true,
-      downloadProgress: 0.0,
-    );
+    state = state.copyWith(isSaving: true);
 
     try {
-      final fileService = ref.read(fileServiceProvider);
+      final repository = ref.read(pdfRepositoryProvider);
 
-      // Extract folder and filename from fileUrl
-      final uri = Uri.parse(result!.fileUrl!);
-      final folder = uri.queryParameters['folder'] ?? 'compressions';
-      final filename = uri.queryParameters['filename'] ?? result.filename!;
-
-      String? downloadId;
-
-      final localPath = await fileService.downloadAndSaveFile(
-        folder: folder,
-        filename: filename,
+      final localPath = await repository.saveProcessedFile(
+        fileUrl: result!.fileUrl!,
+        filename: result.filename!,
         customFileName: 'compressed_${result.originalName ?? 'document'}',
-        onProgress: (progress) {
-          state = state.copyWith(downloadProgress: progress);
-        },
+        subfolder: 'compressed',
       );
 
       // Track in recent files
@@ -88,44 +74,18 @@ class CompressNotifier extends _$CompressNotifier {
       }
 
       state = state.copyWith(
-        isDownloading: false,
-        downloadedPath: localPath,
-        downloadProgress: 1.0,
-        downloadId: null,
+        isSaving: false,
+        savedPath: localPath,
       );
     } on ApiException catch (e) {
       state = state.copyWith(
-        isDownloading: false,
+        isSaving: false,
         error: e.userFriendlyMessage,
-        downloadProgress: null,
       );
     } catch (e) {
       state = state.copyWith(
-        isDownloading: false,
-        error: 'Failed to download file: ${e.toString()}',
-        downloadProgress: null,
-      );
-    }
-  }
-
-  Future<void> cancelDownload() async {
-    if (state.downloadId == null) return;
-
-    try {
-      final fileService = ref.read(fileServiceProvider);
-      final cancelled = await fileService.cancelDownload(state.downloadId!);
-
-      if (cancelled) {
-        state = state.copyWith(
-          isDownloading: false,
-          downloadProgress: null,
-          downloadId: null,
-          error: 'Download cancelled',
-        );
-      }
-    } catch (e) {
-      state = state.copyWith(
-        error: 'Failed to cancel download: ${e.toString()}',
+        isSaving: false,
+        error: 'Failed to save file: ${e.toString()}',
       );
     }
   }
@@ -135,9 +95,7 @@ class CompressNotifier extends _$CompressNotifier {
       selectedFile: file,
       result: null,
       error: null,
-      downloadedPath: null,
-      downloadProgress: null,
-      downloadId: null,
+      savedPath: null,
     );
   }
 
@@ -153,51 +111,43 @@ class CompressNotifier extends _$CompressNotifier {
 class CompressState {
   final File? selectedFile;
   final bool isLoading;
-  final bool isDownloading;
+  final bool isSaving;
   final CompressResult? result;
   final String? error;
-  final String? downloadedPath;
-  final double? downloadProgress;
-  final int? downloadId;
+  final String? savedPath;
 
   const CompressState({
     this.selectedFile,
     this.isLoading = false,
-    this.isDownloading = false,
+    this.isSaving = false,
     this.result,
     this.error,
-    this.downloadedPath,
-    this.downloadProgress,
-    this.downloadId,
+    this.savedPath,
   });
 
   CompressState copyWith({
     File? selectedFile,
     bool? isLoading,
-    bool? isDownloading,
+    bool? isSaving,
     CompressResult? result,
     String? error,
-    String? downloadedPath,
-    double? downloadProgress,
-    int? downloadId,
+    String? savedPath,
   }) {
     return CompressState(
       selectedFile: selectedFile ?? this.selectedFile,
       isLoading: isLoading ?? this.isLoading,
-      isDownloading: isDownloading ?? this.isDownloading,
+      isSaving: isSaving ?? this.isSaving,
       result: result ?? this.result,
       error: error,
-      downloadedPath: downloadedPath,
-      downloadProgress: downloadProgress,
-      downloadId: downloadId,
+      savedPath: savedPath,
     );
   }
 
   bool get hasFile => selectedFile != null;
   bool get hasResult => result != null;
   bool get hasError => error != null;
-  bool get isProcessing => isLoading || isDownloading;
+  bool get isProcessing => isLoading || isSaving;
   bool get canCompress => hasFile && !isProcessing;
-  bool get canDownload => hasResult && !isDownloading;
-  bool get canCancelDownload => isDownloading && downloadId != null;
+  bool get canSave => hasResult && !isSaving;
+  bool get hasSavedFile => savedPath != null;
 }

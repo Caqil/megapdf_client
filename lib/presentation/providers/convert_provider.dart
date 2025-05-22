@@ -1,6 +1,7 @@
 // lib/presentation/providers/convert_provider.dart
 import 'dart:io';
 import 'package:megapdf_client/data/repositories/pdf_repository_impl.dart';
+import 'package:megapdf_client/data/services/recent_files_service.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../data/models/convert_result.dart';
@@ -73,7 +74,7 @@ class ConvertNotifier extends _$ConvertNotifier {
         quality: state.quality,
         password: state.password?.isNotEmpty == true ? state.password : null,
       );
-      
+
       state = state.copyWith(
         isLoading: false,
         result: result,
@@ -91,38 +92,49 @@ class ConvertNotifier extends _$ConvertNotifier {
     }
   }
 
-  Future<void> downloadResult() async {
+  Future<void> saveResult() async {
     final result = state.result;
     if (result?.fileUrl == null || result?.filename == null) return;
 
-    state = state.copyWith(isDownloading: true);
+    state = state.copyWith(isSaving: true);
 
     try {
       final repository = ref.read(pdfRepositoryProvider);
-      
-      final uri = Uri.parse(result!.fileUrl!);
-      final folder = uri.queryParameters['folder'] ?? 'conversions';
-      final filename = uri.queryParameters['filename'] ?? result.filename!;
-      
-      final localPath = await repository.downloadFile(
-        folder: folder,
-        filename: filename,
+
+      final localPath = await repository.saveProcessedFile(
+        fileUrl: result!.fileUrl!,
+        filename: result.filename!,
         customFileName: 'converted_${result.originalName ?? 'document'}',
+        subfolder: 'converted',
       );
-      
+
+      // Track in recent files
+      if (state.selectedFile != null) {
+        final recentFilesService = ref.read(recentFilesServiceProvider);
+        await recentFilesService.trackConvert(
+          originalFile: state.selectedFile!,
+          resultFileName: result.filename!,
+          resultFilePath: localPath,
+          inputFormat: state.inputFormat,
+          outputFormat: state.outputFormat,
+          ocrEnabled: state.enableOcr,
+          quality: state.quality,
+        );
+      }
+
       state = state.copyWith(
-        isDownloading: false,
-        downloadedPath: localPath,
+        isSaving: false,
+        savedPath: localPath,
       );
     } on ApiException catch (e) {
       state = state.copyWith(
-        isDownloading: false,
+        isSaving: false,
         error: e.userFriendlyMessage,
       );
     } catch (e) {
       state = state.copyWith(
-        isDownloading: false,
-        error: 'Failed to download file: ${e.toString()}',
+        isSaving: false,
+        error: 'Failed to save file: ${e.toString()}',
       );
     }
   }
@@ -144,10 +156,10 @@ class ConvertState {
   final int quality;
   final String? password;
   final bool isLoading;
-  final bool isDownloading;
+  final bool isSaving;
   final ConvertResult? result;
   final String? error;
-  final String? downloadedPath;
+  final String? savedPath;
 
   const ConvertState({
     this.selectedFile,
@@ -157,10 +169,10 @@ class ConvertState {
     this.quality = 90,
     this.password,
     this.isLoading = false,
-    this.isDownloading = false,
+    this.isSaving = false,
     this.result,
     this.error,
-    this.downloadedPath,
+    this.savedPath,
   });
 
   ConvertState copyWith({
@@ -171,10 +183,10 @@ class ConvertState {
     int? quality,
     String? password,
     bool? isLoading,
-    bool? isDownloading,
+    bool? isSaving,
     ConvertResult? result,
     String? error,
-    String? downloadedPath,
+    String? savedPath,
   }) {
     return ConvertState(
       selectedFile: selectedFile ?? this.selectedFile,
@@ -184,17 +196,19 @@ class ConvertState {
       quality: quality ?? this.quality,
       password: password,
       isLoading: isLoading ?? this.isLoading,
-      isDownloading: isDownloading ?? this.isDownloading,
+      isSaving: isSaving ?? this.isSaving,
       result: result ?? this.result,
       error: error,
-      downloadedPath: downloadedPath,
+      savedPath: savedPath,
     );
   }
 
   bool get hasFile => selectedFile != null;
   bool get hasResult => result != null;
   bool get hasError => error != null;
-  bool get isProcessing => isLoading || isDownloading;
-  bool get canConvert => hasFile && !isProcessing && inputFormat != outputFormat;
-  bool get canDownload => hasResult && !isDownloading;
+  bool get isProcessing => isLoading || isSaving;
+  bool get canConvert =>
+      hasFile && !isProcessing && inputFormat != outputFormat;
+  bool get canSave => hasResult && !isSaving;
+  bool get hasSavedFile => savedPath != null;
 }

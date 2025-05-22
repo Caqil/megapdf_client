@@ -241,13 +241,13 @@ class ConvertPage extends ConsumerWidget {
 
         // Download Button
         if (state.hasResult) ...[
-          DownloadButton(
-            onPressed: state.canDownload
-                ? () =>
-                    ref.read(convertNotifierProvider.notifier).downloadResult()
+          SaveButton(
+            onPressed: state.canSave
+                ? () => ref.read(convertNotifierProvider.notifier).saveResult()
                 : null,
-            isLoading: state.isDownloading,
-            downloadedPath: state.downloadedPath,
+            isLoading: state.isSaving,
+            savedPath: state.savedPath,
+            buttonText: 'Save Converted PDF',
           ),
           const SizedBox(height: 12),
 

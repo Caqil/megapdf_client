@@ -200,13 +200,13 @@ class CompressPage extends ConsumerWidget {
 
         // Download Button
         if (state.hasResult) ...[
-          DownloadButton(
-            onPressed: state.canDownload
-                ? () =>
-                    ref.read(compressNotifierProvider.notifier).downloadResult()
+          SaveButton(
+            onPressed: state.canSave
+                ? () => ref.read(compressNotifierProvider.notifier).saveResult()
                 : null,
-            isLoading: state.isDownloading,
-            downloadedPath: state.downloadedPath,
+            isLoading: state.isSaving,
+            savedPath: state.savedPath,
+            buttonText: 'Save Compressed PDF',
           ),
           const SizedBox(height: 12),
 

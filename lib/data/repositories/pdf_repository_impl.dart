@@ -1,6 +1,7 @@
 // lib/data/repositories/pdf_repository_impl.dart
 import 'dart:io';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:megapdf_client/data/models/compress_result.dart';
 import 'package:megapdf_client/data/models/convert_result.dart';
 import 'package:megapdf_client/data/models/job_status.dart';
@@ -19,7 +20,7 @@ import 'pdf_repository.dart';
 part 'pdf_repository_impl.g.dart';
 
 @riverpod
-PdfRepository pdfRepository(PdfRepositoryRef ref) {
+PdfRepository pdfRepository(Ref ref) {
   final apiService = ref.watch(pdfApiServiceProvider);
   final fileService = ref.watch(fileServiceProvider);
   return PdfRepositoryImpl(apiService, fileService);
@@ -216,17 +217,18 @@ class PdfRepositoryImpl implements PdfRepository {
   }
 
   @override
-  Future<String> downloadFile({
-    required String folder,
+  Future<String> saveProcessedFile({
+    required String fileUrl,
     required String filename,
     String? customFileName,
-    Function(double progress)? onProgress,
+    String? subfolder,
   }) async {
-    return await _fileService.downloadAndSaveFile(
-      folder: folder,
+    return await _fileService.saveFileToLocal(
+      fileUrl: fileUrl,
       filename: filename,
       customFileName: customFileName,
-      onProgress: onProgress,
+      subfolder: subfolder,
     );
   }
+  
 }

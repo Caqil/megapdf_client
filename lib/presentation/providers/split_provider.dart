@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:async';
 import 'package:megapdf_client/data/repositories/pdf_repository_impl.dart';
+import 'package:megapdf_client/data/services/recent_files_service.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../data/models/split_result.dart';
@@ -89,56 +90,62 @@ class SplitNotifier extends _$SplitNotifier {
     }
   }
 
-  Future<void> downloadSplitPart(SplitPart part) async {
-    state = state.copyWith(isDownloading: true);
+  Future<void> saveSplitPart(SplitPart part) async {
+    state = state.copyWith(isSaving: true);
 
     try {
       final repository = ref.read(pdfRepositoryProvider);
 
-      // Extract folder and filename from fileUrl
-      final uri = Uri.parse(part.fileUrl);
-      final folder = uri.queryParameters['folder'] ?? 'splits';
-      final filename = uri.queryParameters['filename'] ?? part.filename;
-
-      final localPath = await repository.downloadFile(
-        folder: folder,
-        filename: filename,
+      final localPath = await repository.saveProcessedFile(
+        fileUrl: part.fileUrl,
+        filename: part.filename,
         customFileName: part.filename,
+        subfolder: 'split',
       );
 
-      // Add to downloaded parts
-      final downloadedParts = Map<String, String>.from(state.downloadedParts);
-      downloadedParts[part.filename] = localPath;
+      // Add to saved parts
+      final savedParts = Map<String, String>.from(state.savedParts);
+      savedParts[part.filename] = localPath;
 
       state = state.copyWith(
-        isDownloading: false,
-        downloadedParts: downloadedParts,
+        isSaving: false,
+        savedParts: savedParts,
       );
     } on ApiException catch (e) {
       state = state.copyWith(
-        isDownloading: false,
+        isSaving: false,
         error: e.userFriendlyMessage,
       );
     } catch (e) {
       state = state.copyWith(
-        isDownloading: false,
-        error: 'Failed to download file: ${e.toString()}',
+        isSaving: false,
+        error: 'Failed to save file: ${e.toString()}',
       );
     }
   }
 
-  Future<void> downloadAllParts() async {
+  Future<void> saveAllParts() async {
     final splitParts = state.finalSplitParts;
     if (splitParts.isEmpty) return;
 
-    state = state.copyWith(isDownloading: true);
+    state = state.copyWith(isSaving: true);
 
     try {
       for (final part in splitParts) {
-        await downloadSplitPart(part);
+        await saveSplitPart(part);
+      }
+
+      // Track in recent files
+      if (state.selectedFile != null) {
+        final recentFilesService = ref.read(recentFilesServiceProvider);
+        await recentFilesService.trackSplit(
+          originalFile: state.selectedFile!,
+          splitCount: splitParts.length,
+          splitFileNames: splitParts.map((p) => p.filename).toList(),
+        );
       }
     } finally {
-      state = state.copyWith(isDownloading: false);
+      state = state.copyWith(isSaving: false);
     }
   }
 
@@ -157,7 +164,7 @@ class SplitNotifier extends _$SplitNotifier {
       result: null,
       jobStatus: null,
       error: null,
-      downloadedParts: {},
+      savedParts: {},
     );
   }
 
@@ -180,42 +187,42 @@ class SplitState {
   final File? selectedFile;
   final SplitOptions? splitOptions;
   final bool isLoading;
-  final bool isDownloading;
+  final bool isSaving;
   final SplitResult? result;
   final JobStatus? jobStatus;
   final String? error;
-  final Map<String, String> downloadedParts;
+  final Map<String, String> savedParts;
 
   const SplitState({
     this.selectedFile,
     this.splitOptions,
     this.isLoading = false,
-    this.isDownloading = false,
+    this.isSaving = false,
     this.result,
     this.jobStatus,
     this.error,
-    this.downloadedParts = const {},
+    this.savedParts = const {},
   });
 
   SplitState copyWith({
     File? selectedFile,
     SplitOptions? splitOptions,
     bool? isLoading,
-    bool? isDownloading,
+    bool? isSaving,
     SplitResult? result,
     JobStatus? jobStatus,
     String? error,
-    Map<String, String>? downloadedParts,
+    Map<String, String>? savedParts,
   }) {
     return SplitState(
       selectedFile: selectedFile ?? this.selectedFile,
       splitOptions: splitOptions ?? this.splitOptions,
       isLoading: isLoading ?? this.isLoading,
-      isDownloading: isDownloading ?? this.isDownloading,
+      isSaving: isSaving ?? this.isSaving,
       result: result ?? this.result,
       jobStatus: jobStatus,
       error: error,
-      downloadedParts: downloadedParts ?? this.downloadedParts,
+      savedParts: savedParts ?? this.savedParts,
     );
   }
 
@@ -223,7 +230,7 @@ class SplitState {
   bool get hasOptions => splitOptions != null;
   bool get hasResult => result != null;
   bool get hasError => error != null;
-  bool get isProcessing => isLoading || isDownloading;
+  bool get isProcessing => isLoading || isSaving;
   bool get canSplit => hasFile && hasOptions && !isProcessing;
   bool get isAsyncJob => result?.isAsyncJob == true;
   bool get isJobCompleted => jobStatus?.isCompleted == true;

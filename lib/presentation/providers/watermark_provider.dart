@@ -1,6 +1,7 @@
 // lib/presentation/providers/watermark_provider.dart
 import 'dart:io';
 import 'package:megapdf_client/data/repositories/pdf_repository_impl.dart';
+import 'package:megapdf_client/data/services/recent_files_service.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../data/models/watermark_result.dart';
@@ -152,38 +153,49 @@ class WatermarkNotifier extends _$WatermarkNotifier {
     }
   }
 
-  Future<void> downloadResult() async {
+  Future<void> saveResult() async {
     final result = state.result;
     if (result?.fileUrl == null || result?.filename == null) return;
 
-    state = state.copyWith(isDownloading: true);
+    state = state.copyWith(isSaving: true);
 
     try {
       final repository = ref.read(pdfRepositoryProvider);
 
-      final uri = Uri.parse(result!.fileUrl!);
-      final folder = uri.queryParameters['folder'] ?? 'watermarked';
-      final filename = uri.queryParameters['filename'] ?? result.filename!;
-
-      final localPath = await repository.downloadFile(
-        folder: folder,
-        filename: filename,
+      final localPath = await repository.saveProcessedFile(
+        fileUrl: result!.fileUrl!,
+        filename: result.filename!,
         customFileName: 'watermarked_${result.originalName ?? 'document'}',
+        subfolder: 'watermarked',
       );
 
+      // Track in recent files
+      if (state.selectedFile != null) {
+        final recentFilesService = ref.read(recentFilesServiceProvider);
+        await recentFilesService.trackWatermark(
+          originalFile: state.selectedFile!,
+          resultFileName: result.filename!,
+          resultFilePath: localPath,
+          watermarkType: state.watermarkType.name,
+          watermarkText:
+              state.watermarkType == WatermarkType.text ? state.text : null,
+          position: state.position.name,
+        );
+      }
+
       state = state.copyWith(
-        isDownloading: false,
-        downloadedPath: localPath,
+        isSaving: false,
+        savedPath: localPath,
       );
     } on ApiException catch (e) {
       state = state.copyWith(
-        isDownloading: false,
+        isSaving: false,
         error: e.userFriendlyMessage,
       );
     } catch (e) {
       state = state.copyWith(
-        isDownloading: false,
-        error: 'Failed to download file: ${e.toString()}',
+        isSaving: false,
+        error: 'Failed to save file: ${e.toString()}',
       );
     }
   }
@@ -214,10 +226,10 @@ class WatermarkState {
   final int? customX;
   final int? customY;
   final bool isLoading;
-  final bool isDownloading;
+  final bool isSaving;
   final WatermarkResult? result;
   final String? error;
-  final String? downloadedPath;
+  final String? savedPath;
 
   const WatermarkState({
     this.selectedFile,
@@ -236,10 +248,10 @@ class WatermarkState {
     this.customX,
     this.customY,
     this.isLoading = false,
-    this.isDownloading = false,
+    this.isSaving = false,
     this.result,
     this.error,
-    this.downloadedPath,
+    this.savedPath,
   });
 
   WatermarkState copyWith({
@@ -259,10 +271,10 @@ class WatermarkState {
     int? customX,
     int? customY,
     bool? isLoading,
-    bool? isDownloading,
+    bool? isSaving,
     WatermarkResult? result,
     String? error,
-    String? downloadedPath,
+    String? savedPath,
   }) {
     return WatermarkState(
       selectedFile: selectedFile ?? this.selectedFile,
@@ -281,10 +293,10 @@ class WatermarkState {
       customX: customX,
       customY: customY,
       isLoading: isLoading ?? this.isLoading,
-      isDownloading: isDownloading ?? this.isDownloading,
+      isSaving: isSaving ?? this.isSaving,
       result: result ?? this.result,
       error: error,
-      downloadedPath: downloadedPath,
+      savedPath: savedPath,
     );
   }
 
@@ -293,7 +305,7 @@ class WatermarkState {
   bool get hasText => text.isNotEmpty;
   bool get hasResult => result != null;
   bool get hasError => error != null;
-  bool get isProcessing => isLoading || isDownloading;
+  bool get isProcessing => isLoading || isSaving;
 
   bool get canAddWatermark {
     if (!hasFile || isProcessing) return false;
@@ -302,5 +314,6 @@ class WatermarkState {
     return false;
   }
 
-  bool get canDownload => hasResult && !isDownloading;
+  bool get canSave => hasResult && !isSaving;
+  bool get hasSavedFile => savedPath != null;
 }

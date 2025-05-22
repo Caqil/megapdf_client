@@ -232,13 +232,13 @@ class MergePage extends ConsumerWidget {
 
         // Download Button
         if (state.hasResult) ...[
-          DownloadButton(
-            onPressed: state.canDownload
-                ? () =>
-                    ref.read(mergeNotifierProvider.notifier).downloadResult()
+          SaveButton(
+            onPressed: state.canSave
+                ? () => ref.read(mergeNotifierProvider.notifier).saveResult()
                 : null,
-            isLoading: state.isDownloading,
-            downloadedPath: state.downloadedPath,
+            isLoading: state.isSaving,
+            savedPath: state.savedPath,
+            buttonText: 'Save Merged PDF',
           ),
           const SizedBox(height: 12),
 

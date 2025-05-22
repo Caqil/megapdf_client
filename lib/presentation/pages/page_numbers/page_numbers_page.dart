@@ -279,14 +279,13 @@ class PageNumbersPage extends ConsumerWidget {
 
         // Download Button
         if (state.hasResult) ...[
-          DownloadButton(
-            onPressed: state.canDownload
-                ? () => ref
-                    .read(pageNumbersNotifierProvider.notifier)
-                    .downloadResult()
+          SaveButton(
+            onPressed: state.canSave
+                ? () => ref.read(pageNumbersNotifierProvider.notifier).saveResult()
                 : null,
-            isLoading: state.isDownloading,
-            downloadedPath: state.downloadedPath,
+            isLoading: state.isSaving,
+            savedPath: state.savedPath,
+            buttonText: 'Save Unlocked PDF',
           ),
           const SizedBox(height: 12),
 

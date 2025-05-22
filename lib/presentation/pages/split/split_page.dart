@@ -47,21 +47,6 @@ class SplitPage extends ConsumerWidget {
                 _buildJobStatusSection(context, state),
               ],
 
-              // Split Results Section
-              if (state.finalSplitParts.isNotEmpty) ...[
-                const SizedBox(height: 24),
-                SplitResults(
-                  parts: state.finalSplitParts,
-                  onDownloadPart: (part) => ref
-                      .read(splitNotifierProvider.notifier)
-                      .downloadSplitPart(part),
-                  onDownloadAll: () => ref
-                      .read(splitNotifierProvider.notifier)
-                      .downloadAllParts(),
-                  isDownloading: state.isDownloading,
-                ),
-              ],
-
               if (state.hasError) ...[
                 const SizedBox(height: 24),
                 CustomErrorWidget(

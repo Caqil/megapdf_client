@@ -311,14 +311,14 @@ class WatermarkPage extends ConsumerWidget {
 
         // Download Button
         if (state.hasResult) ...[
-          DownloadButton(
-            onPressed: state.canDownload
-                ? () => ref
-                    .read(watermarkNotifierProvider.notifier)
-                    .downloadResult()
+          SaveButton(
+            onPressed: state.canSave
+                ? () =>
+                    ref.read(watermarkNotifierProvider.notifier).saveResult()
                 : null,
-            isLoading: state.isDownloading,
-            downloadedPath: state.downloadedPath,
+            isLoading: state.isSaving,
+            savedPath: state.savedPath,
+            buttonText: 'Save Watermarked PDF',
           ),
           const SizedBox(height: 12),
 

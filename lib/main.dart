@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 import 'app.dart';
 
@@ -13,9 +12,6 @@ void main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-
-  // Request necessary permissions
-  await _requestPermissions();
 
   // Set system UI overlay style
   SystemChrome.setSystemUIOverlayStyle(
@@ -32,16 +28,4 @@ void main() async {
       child: MegaPDFApp(),
     ),
   );
-}
-
-Future<void> _requestPermissions() async {
-  // Request storage permissions for file operations
-  await Permission.storage.request();
-  await Permission.manageExternalStorage.request();
-
-  // Request camera permission for image watermarks
-  await Permission.camera.request();
-
-  // Request photos permission for image selection
-  await Permission.photos.request();
 }

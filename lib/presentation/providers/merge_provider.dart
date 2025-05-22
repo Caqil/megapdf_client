@@ -1,6 +1,7 @@
 // lib/presentation/providers/merge_provider.dart
 import 'dart:io';
 import 'package:megapdf_client/data/repositories/pdf_repository_impl.dart';
+import 'package:megapdf_client/data/services/recent_files_service.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../data/models/merge_result.dart';
@@ -61,7 +62,7 @@ class MergeNotifier extends _$MergeNotifier {
     try {
       final repository = ref.read(pdfRepositoryProvider);
       final result = await repository.mergePdfs(state.selectedFiles);
-      
+
       state = state.copyWith(
         isLoading: false,
         result: result,
@@ -79,38 +80,47 @@ class MergeNotifier extends _$MergeNotifier {
     }
   }
 
-  Future<void> downloadResult() async {
+  Future<void> saveResult() async {
     final result = state.result;
     if (result?.fileUrl == null || result?.filename == null) return;
 
-    state = state.copyWith(isDownloading: true);
+    state = state.copyWith(isSaving: true);
 
     try {
       final repository = ref.read(pdfRepositoryProvider);
-      
-      final uri = Uri.parse(result!.fileUrl!);
-      final folder = uri.queryParameters['folder'] ?? 'merges';
-      final filename = uri.queryParameters['filename'] ?? result.filename!;
-      
-      final localPath = await repository.downloadFile(
-        folder: folder,
-        filename: filename,
+
+      final localPath = await repository.saveProcessedFile(
+        fileUrl: result!.fileUrl!,
+        filename: result.filename!,
         customFileName: 'merged_${DateTime.now().millisecondsSinceEpoch}.pdf',
+        subfolder: 'merged',
       );
-      
+
+      // Track in recent files
+      if (state.selectedFiles.isNotEmpty) {
+        final recentFilesService = ref.read(recentFilesServiceProvider);
+        await recentFilesService.trackMerge(
+          originalFiles: state.selectedFiles,
+          resultFileName: result.filename!,
+          resultFilePath: localPath,
+          mergedSizeBytes: result.mergedSize,
+          totalInputSizeBytes: result.totalInputSize,
+        );
+      }
+
       state = state.copyWith(
-        isDownloading: false,
-        downloadedPath: localPath,
+        isSaving: false,
+        savedPath: localPath,
       );
     } on ApiException catch (e) {
       state = state.copyWith(
-        isDownloading: false,
+        isSaving: false,
         error: e.userFriendlyMessage,
       );
     } catch (e) {
       state = state.copyWith(
-        isDownloading: false,
-        error: 'Failed to download file: ${e.toString()}',
+        isSaving: false,
+        error: 'Failed to save file: ${e.toString()}',
       );
     }
   }
@@ -127,35 +137,35 @@ class MergeNotifier extends _$MergeNotifier {
 class MergeState {
   final List<File> selectedFiles;
   final bool isLoading;
-  final bool isDownloading;
+  final bool isSaving;
   final MergeResult? result;
   final String? error;
-  final String? downloadedPath;
+  final String? savedPath;
 
   const MergeState({
     this.selectedFiles = const [],
     this.isLoading = false,
-    this.isDownloading = false,
+    this.isSaving = false,
     this.result,
     this.error,
-    this.downloadedPath,
+    this.savedPath,
   });
 
   MergeState copyWith({
     List<File>? selectedFiles,
     bool? isLoading,
-    bool? isDownloading,
+    bool? isSaving,
     MergeResult? result,
     String? error,
-    String? downloadedPath,
+    String? savedPath,
   }) {
     return MergeState(
       selectedFiles: selectedFiles ?? this.selectedFiles,
       isLoading: isLoading ?? this.isLoading,
-      isDownloading: isDownloading ?? this.isDownloading,
+      isSaving: isSaving ?? this.isSaving,
       result: result ?? this.result,
       error: error,
-      downloadedPath: downloadedPath,
+      savedPath: savedPath,
     );
   }
 
@@ -163,7 +173,8 @@ class MergeState {
   bool get hasEnoughFiles => selectedFiles.length >= 2;
   bool get hasResult => result != null;
   bool get hasError => error != null;
-  bool get isProcessing => isLoading || isDownloading;
+  bool get isProcessing => isLoading || isSaving;
   bool get canMerge => hasEnoughFiles && !isProcessing;
-  bool get canDownload => hasResult && !isDownloading;
+  bool get canSave => hasResult && !isSaving;
+  bool get hasSavedFile => savedPath != null;
 }

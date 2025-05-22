@@ -1,6 +1,7 @@
 // lib/presentation/providers/rotate_provider.dart
 import 'dart:io';
 import 'package:megapdf_client/data/repositories/pdf_repository_impl.dart';
+import 'package:megapdf_client/data/services/recent_files_service.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../data/models/rotate_result.dart';
@@ -58,7 +59,7 @@ class RotateNotifier extends _$RotateNotifier {
         state.angle,
         pages: state.pages == 'all' ? null : state.pages,
       );
-      
+
       state = state.copyWith(
         isLoading: false,
         result: result,
@@ -76,38 +77,47 @@ class RotateNotifier extends _$RotateNotifier {
     }
   }
 
-  Future<void> downloadResult() async {
+  Future<void> saveResult() async {
     final result = state.result;
     if (result?.fileUrl == null || result?.filename == null) return;
 
-    state = state.copyWith(isDownloading: true);
+    state = state.copyWith(isSaving: true);
 
     try {
       final repository = ref.read(pdfRepositoryProvider);
-      
-      final uri = Uri.parse(result!.fileUrl!);
-      final folder = uri.queryParameters['folder'] ?? 'rotations';
-      final filename = uri.queryParameters['filename'] ?? result.filename!;
-      
-      final localPath = await repository.downloadFile(
-        folder: folder,
-        filename: filename,
+
+      final localPath = await repository.saveProcessedFile(
+        fileUrl: result!.fileUrl!,
+        filename: result.filename!,
         customFileName: 'rotated_${result.originalName ?? 'document'}',
+        subfolder: 'rotated',
       );
-      
+
+      // Track in recent files
+      if (state.selectedFile != null) {
+        final recentFilesService = ref.read(recentFilesServiceProvider);
+        await recentFilesService.trackRotate(
+          originalFile: state.selectedFile!,
+          resultFileName: result.filename!,
+          resultFilePath: localPath,
+          angle: state.angle,
+          pagesRotated: state.pages == 'all' ? null : state.pages,
+        );
+      }
+
       state = state.copyWith(
-        isDownloading: false,
-        downloadedPath: localPath,
+        isSaving: false,
+        savedPath: localPath,
       );
     } on ApiException catch (e) {
       state = state.copyWith(
-        isDownloading: false,
+        isSaving: false,
         error: e.userFriendlyMessage,
       );
     } catch (e) {
       state = state.copyWith(
-        isDownloading: false,
-        error: 'Failed to download file: ${e.toString()}',
+        isSaving: false,
+        error: 'Failed to save file: ${e.toString()}',
       );
     }
   }
@@ -126,20 +136,20 @@ class RotateState {
   final int angle;
   final String pages;
   final bool isLoading;
-  final bool isDownloading;
+  final bool isSaving;
   final RotateResult? result;
   final String? error;
-  final String? downloadedPath;
+  final String? savedPath;
 
   const RotateState({
     this.selectedFile,
     this.angle = 90,
     this.pages = 'all',
     this.isLoading = false,
-    this.isDownloading = false,
+    this.isSaving = false,
     this.result,
     this.error,
-    this.downloadedPath,
+    this.savedPath,
   });
 
   RotateState copyWith({
@@ -147,30 +157,32 @@ class RotateState {
     int? angle,
     String? pages,
     bool? isLoading,
-    bool? isDownloading,
+    bool? isSaving,
     RotateResult? result,
     String? error,
-    String? downloadedPath,
+    String? savedPath,
   }) {
     return RotateState(
       selectedFile: selectedFile ?? this.selectedFile,
       angle: angle ?? this.angle,
       pages: pages ?? this.pages,
       isLoading: isLoading ?? this.isLoading,
-      isDownloading: isDownloading ?? this.isDownloading,
+      isSaving: isSaving ?? this.isSaving,
       result: result ?? this.result,
       error: error,
-      downloadedPath: downloadedPath,
+      savedPath: savedPath,
     );
   }
 
   bool get hasFile => selectedFile != null;
   bool get hasResult => result != null;
   bool get hasError => error != null;
-  bool get isProcessing => isLoading || isDownloading;
-  bool get canRotate => hasFile && !isProcessing && [90, 180, 270].contains(angle);
-  bool get canDownload => hasResult && !isDownloading;
-  
+  bool get isProcessing => isLoading || isSaving;
+  bool get canRotate =>
+      hasFile && !isProcessing && [90, 180, 270].contains(angle);
+  bool get canSave => hasResult && !isSaving;
+  bool get hasSavedFile => savedPath != null;
+
   String get angleDescription {
     switch (angle) {
       case 90:

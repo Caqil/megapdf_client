@@ -214,13 +214,13 @@ class RotatePage extends ConsumerWidget {
 
         // Download Button
         if (state.hasResult) ...[
-          DownloadButton(
-            onPressed: state.canDownload
-                ? () =>
-                    ref.read(rotateNotifierProvider.notifier).downloadResult()
+          SaveButton(
+            onPressed: state.canSave
+                ? () => ref.read(rotateNotifierProvider.notifier).saveResult()
                 : null,
-            isLoading: state.isDownloading,
-            downloadedPath: state.downloadedPath,
+            isLoading: state.isSaving,
+            savedPath: state.savedPath,
+            buttonText: 'Save Rotate PDF',
           ),
           const SizedBox(height: 12),
 

@@ -99,10 +99,10 @@ abstract class PdfRepository {
   });
 
   // File operations
-  Future<String> downloadFile({
-    required String folder,
+  Future<String> saveProcessedFile({
+    required String fileUrl,
     required String filename,
     String? customFileName,
-    Function(double progress)? onProgress,
+    String? subfolder,
   });
 }

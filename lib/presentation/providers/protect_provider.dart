@@ -1,6 +1,7 @@
 // lib/presentation/providers/protect_provider.dart
 import 'dart:io';
 import 'package:megapdf_client/data/repositories/pdf_repository_impl.dart';
+import 'package:megapdf_client/data/services/recent_files_service.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../data/models/protect_result.dart';
@@ -88,38 +89,46 @@ class ProtectNotifier extends _$ProtectNotifier {
     }
   }
 
-  Future<void> downloadResult() async {
+  Future<void> saveResult() async {
     final result = state.result;
     if (result?.fileUrl == null || result?.filename == null) return;
 
-    state = state.copyWith(isDownloading: true);
+    state = state.copyWith(isSaving: true);
 
     try {
       final repository = ref.read(pdfRepositoryProvider);
 
-      final uri = Uri.parse(result!.fileUrl!);
-      final folder = uri.queryParameters['folder'] ?? 'protected';
-      final filename = uri.queryParameters['filename'] ?? result.filename!;
-
-      final localPath = await repository.downloadFile(
-        folder: folder,
-        filename: filename,
+      final localPath = await repository.saveProcessedFile(
+        fileUrl: result!.fileUrl!,
+        filename: result.filename!,
         customFileName: 'protected_${result.originalName ?? 'document'}',
+        subfolder: 'protected',
       );
 
+      // Track in recent files
+      if (state.selectedFile != null) {
+        final recentFilesService = ref.read(recentFilesServiceProvider);
+        await recentFilesService.trackProtect(
+          originalFile: state.selectedFile!,
+          resultFileName: result.filename!,
+          resultFilePath: localPath,
+          permissionLevel: state.permission,
+        );
+      }
+
       state = state.copyWith(
-        isDownloading: false,
-        downloadedPath: localPath,
+        isSaving: false,
+        savedPath: localPath,
       );
     } on ApiException catch (e) {
       state = state.copyWith(
-        isDownloading: false,
+        isSaving: false,
         error: e.userFriendlyMessage,
       );
     } catch (e) {
       state = state.copyWith(
-        isDownloading: false,
-        error: 'Failed to download file: ${e.toString()}',
+        isSaving: false,
+        error: 'Failed to save file: ${e.toString()}',
       );
     }
   }
@@ -141,10 +150,10 @@ class ProtectState {
   final bool allowCopying;
   final bool allowEditing;
   final bool isLoading;
-  final bool isDownloading;
+  final bool isSaving;
   final ProtectResult? result;
   final String? error;
-  final String? downloadedPath;
+  final String? savedPath;
 
   const ProtectState({
     this.selectedFile,
@@ -154,10 +163,10 @@ class ProtectState {
     this.allowCopying = false,
     this.allowEditing = false,
     this.isLoading = false,
-    this.isDownloading = false,
+    this.isSaving = false,
     this.result,
     this.error,
-    this.downloadedPath,
+    this.savedPath,
   });
 
   ProtectState copyWith({
@@ -168,10 +177,10 @@ class ProtectState {
     bool? allowCopying,
     bool? allowEditing,
     bool? isLoading,
-    bool? isDownloading,
+    bool? isSaving,
     ProtectResult? result,
     String? error,
-    String? downloadedPath,
+    String? savedPath,
   }) {
     return ProtectState(
       selectedFile: selectedFile ?? this.selectedFile,
@@ -181,10 +190,10 @@ class ProtectState {
       allowCopying: allowCopying ?? this.allowCopying,
       allowEditing: allowEditing ?? this.allowEditing,
       isLoading: isLoading ?? this.isLoading,
-      isDownloading: isDownloading ?? this.isDownloading,
+      isSaving: isSaving ?? this.isSaving,
       result: result ?? this.result,
       error: error,
-      downloadedPath: downloadedPath,
+      savedPath: savedPath,
     );
   }
 
@@ -192,7 +201,8 @@ class ProtectState {
   bool get hasPassword => password.length >= 4;
   bool get hasResult => result != null;
   bool get hasError => error != null;
-  bool get isProcessing => isLoading || isDownloading;
+  bool get isProcessing => isLoading || isSaving;
   bool get canProtect => hasFile && hasPassword && !isProcessing;
-  bool get canDownload => hasResult && !isDownloading;
+  bool get canSave => hasResult && !isSaving;
+  bool get hasSavedFile => savedPath != null;
 }

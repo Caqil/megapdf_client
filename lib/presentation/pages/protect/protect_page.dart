@@ -237,13 +237,13 @@ class ProtectPage extends ConsumerWidget {
 
         // Download Button
         if (state.hasResult) ...[
-          DownloadButton(
-            onPressed: state.canDownload
-                ? () =>
-                    ref.read(protectNotifierProvider.notifier).downloadResult()
+          SaveButton(
+            onPressed: state.canSave
+                ? () => ref.read(protectNotifierProvider.notifier).saveResult()
                 : null,
-            isLoading: state.isDownloading,
-            downloadedPath: state.downloadedPath,
+            isLoading: state.isSaving,
+            savedPath: state.savedPath,
+            buttonText: 'Save Protect PDF',
           ),
           const SizedBox(height: 12),
 
