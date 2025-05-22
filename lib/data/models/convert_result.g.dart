@@ -1,0 +1,51 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
+
+part of 'convert_result.dart';
+
+// **************************************************************************
+// JsonSerializableGenerator
+// **************************************************************************
+
+ConvertResult _$ConvertResultFromJson(Map<String, dynamic> json) =>
+    ConvertResult(
+      success: json['success'] as bool,
+      message: json['message'] as String,
+      fileUrl: json['fileUrl'] as String?,
+      filename: json['filename'] as String?,
+      originalName: json['originalName'] as String?,
+      inputFormat: json['inputFormat'] as String?,
+      outputFormat: json['outputFormat'] as String?,
+      billing: json['billing'] == null
+          ? null
+          : BillingInfo.fromJson(json['billing'] as Map<String, dynamic>),
+    );
+
+Map<String, dynamic> _$ConvertResultToJson(ConvertResult instance) =>
+    <String, dynamic>{
+      'success': instance.success,
+      'message': instance.message,
+      'fileUrl': instance.fileUrl,
+      'filename': instance.filename,
+      'originalName': instance.originalName,
+      'inputFormat': instance.inputFormat,
+      'outputFormat': instance.outputFormat,
+      'billing': instance.billing,
+    };
+
+ConvertOptions _$ConvertOptionsFromJson(Map<String, dynamic> json) =>
+    ConvertOptions(
+      inputFormat: json['inputFormat'] as String,
+      outputFormat: json['outputFormat'] as String,
+      ocr: json['ocr'] as bool? ?? false,
+      quality: (json['quality'] as num?)?.toInt() ?? 90,
+      password: json['password'] as String?,
+    );
+
+Map<String, dynamic> _$ConvertOptionsToJson(ConvertOptions instance) =>
+    <String, dynamic>{
+      'inputFormat': instance.inputFormat,
+      'outputFormat': instance.outputFormat,
+      'ocr': instance.ocr,
+      'quality': instance.quality,
+      'password': instance.password,
+    };

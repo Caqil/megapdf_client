@@ -1,0 +1,22 @@
+// **************************************************************************
+// RiverpodGenerator
+// **************************************************************************
+
+String _$protectNotifierHash() => r'91dfe2b12e053d2e92833a74881aac0ad5b6d952';
+
+/// See also [ProtectNotifier].
+@ProviderFor(ProtectNotifier)
+final protectNotifierProvider =
+    AutoDisposeNotifierProvider<ProtectNotifier, ProtectState>.internal(
+  ProtectNotifier.new,
+  name: r'protectNotifierProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$protectNotifierHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+typedef _$ProtectNotifier = AutoDisposeNotifier<ProtectState>;
+// ignore_for_file: type=lint
+// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

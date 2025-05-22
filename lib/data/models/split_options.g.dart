@@ -1,0 +1,26 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
+
+part of 'split_options.dart';
+
+// **************************************************************************
+// JsonSerializableGenerator
+// **************************************************************************
+
+SplitOptions _$SplitOptionsFromJson(Map<String, dynamic> json) => SplitOptions(
+      splitMethod: $enumDecode(_$SplitMethodEnumMap, json['splitMethod']),
+      pageRanges: json['pageRanges'] as String?,
+      everyNPages: (json['everyNPages'] as num?)?.toInt(),
+    );
+
+Map<String, dynamic> _$SplitOptionsToJson(SplitOptions instance) =>
+    <String, dynamic>{
+      'splitMethod': _$SplitMethodEnumMap[instance.splitMethod]!,
+      'pageRanges': instance.pageRanges,
+      'everyNPages': instance.everyNPages,
+    };
+
+const _$SplitMethodEnumMap = {
+  SplitMethod.range: 'range',
+  SplitMethod.extract: 'extract',
+  SplitMethod.every: 'every',
+};

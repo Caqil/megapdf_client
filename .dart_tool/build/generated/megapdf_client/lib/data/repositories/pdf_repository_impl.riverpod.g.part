@@ -1,0 +1,23 @@
+// **************************************************************************
+// RiverpodGenerator
+// **************************************************************************
+
+String _$pdfRepositoryHash() => r'4fc2d264d301c35ff2538e7e5e2685555608a8b5';
+
+/// See also [pdfRepository].
+@ProviderFor(pdfRepository)
+final pdfRepositoryProvider = AutoDisposeProvider<PdfRepository>.internal(
+  pdfRepository,
+  name: r'pdfRepositoryProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$pdfRepositoryHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef PdfRepositoryRef = AutoDisposeProviderRef<PdfRepository>;
+// ignore_for_file: type=lint
+// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

@@ -1,0 +1,22 @@
+// **************************************************************************
+// RiverpodGenerator
+// **************************************************************************
+
+String _$unlockNotifierHash() => r'9283d27ee44380bcbb1d9857e2424e83566bca72';
+
+/// See also [UnlockNotifier].
+@ProviderFor(UnlockNotifier)
+final unlockNotifierProvider =
+    AutoDisposeNotifierProvider<UnlockNotifier, UnlockState>.internal(
+  UnlockNotifier.new,
+  name: r'unlockNotifierProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$unlockNotifierHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+typedef _$UnlockNotifier = AutoDisposeNotifier<UnlockState>;
+// ignore_for_file: type=lint
+// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
