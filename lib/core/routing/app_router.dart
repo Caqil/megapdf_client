@@ -49,31 +49,31 @@ GoRouter router(Ref ref) {
         name: 'watermark',
         builder: (context, state) => const WatermarkPage(),
       ),
-      // GoRoute(
-      //   path: '/convert',
-      //   name: 'convert',
-      //   builder: (context, state) => const ConvertPage(),
-      // ),
-      // GoRoute(
-      //   path: '/protect',
-      //   name: 'protect',
-      //   builder: (context, state) => const ProtectPage(),
-      // ),
-      // GoRoute(
-      //   path: '/unlock',
-      //   name: 'unlock',
-      //   builder: (context, state) => const UnlockPage(),
-      // ),
-      // GoRoute(
-      //   path: '/rotate',
-      //   name: 'rotate',
-      //   builder: (context, state) => const RotatePage(),
-      // ),
-      // GoRoute(
-      //   path: '/page-numbers',
-      //   name: 'page-numbers',
-      //   builder: (context, state) => const PageNumbersPage(),
-      // ),
+      GoRoute(
+        path: '/convert',
+        name: 'convert',
+        builder: (context, state) => const ConvertPage(),
+      ),
+      GoRoute(
+        path: '/protect',
+        name: 'protect',
+        builder: (context, state) => const ProtectPage(),
+      ),
+      GoRoute(
+        path: '/unlock',
+        name: 'unlock',
+        builder: (context, state) => const UnlockPage(),
+      ),
+      GoRoute(
+        path: '/rotate',
+        name: 'rotate',
+        builder: (context, state) => const RotatePage(),
+      ),
+      GoRoute(
+        path: '/page-numbers',
+        name: 'page-numbers',
+        builder: (context, state) => const PageNumbersPage(),
+      ),
     ],
     errorBuilder: (context, state) => Scaffold(
       appBar: AppBar(

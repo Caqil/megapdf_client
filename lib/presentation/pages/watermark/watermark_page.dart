@@ -12,7 +12,7 @@ import '../../widgets/common/download_button.dart';
 import 'widgets/watermark_type_tabs.dart';
 import 'widgets/text_watermark_form.dart';
 import 'widgets/image_watermark_form.dart';
-import 'widgets/watermark_options.dart';
+//import 'widgets/watermark_options.dart';
 import 'widgets/watermark_result_widget.dart';
 
 class WatermarkPage extends ConsumerWidget {
@@ -45,37 +45,37 @@ class WatermarkPage extends ConsumerWidget {
                 const SizedBox(height: 24),
                 _buildWatermarkContentSection(context, ref, state),
                 const SizedBox(height: 24),
-                WatermarkOptions(
-                  position: state.position,
-                  rotation: state.rotation,
-                  opacity: state.opacity,
-                  scale: state.scale,
-                  pages: state.pages,
-                  customPages: state.customPages,
-                  customX: state.customX,
-                  customY: state.customY,
-                  onPositionChanged: (position) => ref
-                      .read(watermarkNotifierProvider.notifier)
-                      .updatePositionOptions(position: position),
-                  onRotationChanged: (rotation) => ref
-                      .read(watermarkNotifierProvider.notifier)
-                      .updatePositionOptions(rotation: rotation),
-                  onOpacityChanged: (opacity) => ref
-                      .read(watermarkNotifierProvider.notifier)
-                      .updatePositionOptions(opacity: opacity),
-                  onScaleChanged: (scale) => ref
-                      .read(watermarkNotifierProvider.notifier)
-                      .updatePositionOptions(scale: scale),
-                  onPagesChanged: (pages) => ref
-                      .read(watermarkNotifierProvider.notifier)
-                      .updatePageOptions(pages: pages),
-                  onCustomPagesChanged: (customPages) => ref
-                      .read(watermarkNotifierProvider.notifier)
-                      .updatePageOptions(customPages: customPages),
-                  onCustomPositionChanged: (x, y) => ref
-                      .read(watermarkNotifierProvider.notifier)
-                      .updatePositionOptions(customX: x, customY: y),
-                ),
+                // WatermarkOptions(
+                //   position: state.position,
+                //   rotation: state.rotation,
+                //   opacity: state.opacity,
+                //   scale: state.scale,
+                //   pages: state.pages,
+                //   customPages: state.customPages,
+                //   customX: state.customX,
+                //   customY: state.customY,
+                //   onPositionChanged: (position) => ref
+                //       .read(watermarkNotifierProvider.notifier)
+                //       .updatePositionOptions(position: position),
+                //   onRotationChanged: (rotation) => ref
+                //       .read(watermarkNotifierProvider.notifier)
+                //       .updatePositionOptions(rotation: rotation),
+                //   onOpacityChanged: (opacity) => ref
+                //       .read(watermarkNotifierProvider.notifier)
+                //       .updatePositionOptions(opacity: opacity),
+                //   onScaleChanged: (scale) => ref
+                //       .read(watermarkNotifierProvider.notifier)
+                //       .updatePositionOptions(scale: scale),
+                //   onPagesChanged: (pages) => ref
+                //       .read(watermarkNotifierProvider.notifier)
+                //       .updatePageOptions(pages: pages),
+                //   onCustomPagesChanged: (customPages) => ref
+                //       .read(watermarkNotifierProvider.notifier)
+                //       .updatePageOptions(customPages: customPages),
+                //   onCustomPositionChanged: (x, y) => ref
+                //       .read(watermarkNotifierProvider.notifier)
+                //       .updatePositionOptions(customX: x, customY: y),
+                // ),
               ],
 
               if (state.hasResult) ...[
