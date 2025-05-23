@@ -21,6 +21,7 @@ import '../../presentation/pages/page_numbers/page_numbers_page.dart';
 import '../../presentation/pages/storage/storage_browser_page.dart';
 import '../../presentation/pages/storage/storage_management_page.dart';
 import '../../presentation/pages/common/file_operation_success_page.dart';
+import '../../presentation/pages/pdf_viewer/pdf_viewer_page.dart';
 
 part 'app_router.g.dart';
 
@@ -155,6 +156,21 @@ GoRouter router(Ref ref) {
             operationType: operationType,
             operationName: operationName,
             details: details,
+          );
+        },
+      ),
+
+      // PDF Viewer page
+      GoRoute(
+        path: '/pdfViewer',
+        name: 'pdfViewer',
+        builder: (context, state) {
+          final filePath = state.uri.queryParameters['filePath'] ?? '';
+          final title = state.uri.queryParameters['title'];
+
+          return PDFViewerPage(
+            filePath: filePath,
+            fileName: title,
           );
         },
       ),

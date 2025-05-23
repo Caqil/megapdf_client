@@ -5,6 +5,8 @@ import 'package:megapdf_client/data/models/file_item.dart';
 import 'package:megapdf_client/presentation/pages/pdf_viewer/pdf_viewer_page.dart';
 import 'package:megapdf_client/presentation/providers/file_manager_provider.dart';
 
+import '../../../widgets/common/custom_snackbar.dart';
+
 class FileListItem extends ConsumerWidget {
   final FileItem file;
 
@@ -252,12 +254,11 @@ class FileListItem extends ConsumerWidget {
 
   void _showSnackBar(BuildContext context, String message,
       {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? AppColors.error(context) : null,
-        behavior: SnackBarBehavior.floating,
-      ),
+    CustomSnackbar.show(
+      context: context,
+      message: message,
+      type: isError ? SnackbarType.failure : SnackbarType.info,
+      duration: const Duration(seconds: 4),
     );
   }
 }

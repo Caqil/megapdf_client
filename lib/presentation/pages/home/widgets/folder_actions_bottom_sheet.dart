@@ -113,6 +113,8 @@ class CreateFolderDialog extends StatefulWidget {
 class _CreateFolderDialogState extends State<CreateFolderDialog> {
   final _controller = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  bool _isCreating = false;
+  String? _errorText;
 
   @override
   void dispose() {
@@ -123,36 +125,97 @@ class _CreateFolderDialogState extends State<CreateFolderDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Create Folder'),
+      title: Row(
+        children: [
+          Icon(
+            Icons.create_new_folder,
+            color: AppColors.primary(context),
+          ),
+          const SizedBox(width: 12),
+          const Text('Create Folder'),
+        ],
+      ),
       content: Form(
         key: _formKey,
-        child: TextFormField(
-          controller: _controller,
-          decoration: const InputDecoration(
-            labelText: 'Folder Name',
-            hintText: 'Enter folder name...',
-          ),
-          validator: (value) {
-            if (value == null || value.trim().isEmpty) {
-              return 'Please enter a folder name';
-            }
-            if (value.contains('/') || value.contains('\\')) {
-              return 'Folder name cannot contain / or \\';
-            }
-            return null;
-          },
-          autofocus: true,
-          onFieldSubmitted: (_) => _createFolder(),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextFormField(
+              controller: _controller,
+              decoration: InputDecoration(
+                labelText: 'Folder Name',
+                hintText: 'Enter folder name...',
+                prefixIcon: const Icon(Icons.folder),
+                errorText: _errorText,
+                border: const OutlineInputBorder(),
+              ),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Please enter a folder name';
+                }
+                if (value.contains('/') || value.contains('\\')) {
+                  return 'Folder name cannot contain / or \\';
+                }
+                return null;
+              },
+              autofocus: true,
+              enabled: !_isCreating,
+              onFieldSubmitted: (_) => _createFolder(),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.info(context).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: AppColors.info(context).withOpacity(0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    color: AppColors.info(context),
+                    size: 16,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Folder names cannot contain special characters like / \\ : * ? " < > |',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppColors.info(context),
+                          ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.pop(context),
+          onPressed: _isCreating ? null : () => Navigator.pop(context),
           child: const Text('Cancel'),
         ),
         ElevatedButton(
-          onPressed: _createFolder,
-          child: const Text('Create'),
+          onPressed: _isCreating ? null : _createFolder,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primary(context),
+          ),
+          child: _isCreating
+              ? SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                        Theme.of(context).colorScheme.onPrimary),
+                  ),
+                )
+              : const Text('Create'),
         ),
       ],
     );
@@ -160,8 +223,24 @@ class _CreateFolderDialogState extends State<CreateFolderDialog> {
 
   void _createFolder() {
     if (_formKey.currentState!.validate()) {
-      widget.onCreateFolder(_controller.text.trim());
-      Navigator.pop(context);
+      setState(() {
+        _isCreating = true;
+        _errorText = null;
+      });
+
+      try {
+        // Close the dialog and invoke the callback
+        Navigator.pop(context);
+        widget.onCreateFolder(_controller.text.trim());
+      } catch (e) {
+        // If there's an error and the dialog is still visible
+        if (mounted) {
+          setState(() {
+            _isCreating = false;
+            _errorText = 'Error creating folder: $e';
+          });
+        }
+      }
     }
   }
 }

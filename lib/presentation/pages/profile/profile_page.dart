@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:megapdf_client/data/services/storage_service.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../widgets/common/custom_snackbar.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({Key? key}) : super(key: key);
@@ -522,12 +523,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   }
 
   void _showSnackBar(String message, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? AppColors.error(context) : null,
-        behavior: SnackBarBehavior.floating,
-      ),
+    CustomSnackbar.show(
+      context: context,
+      message: message,
+      type: isError ? SnackbarType.failure : SnackbarType.success,
+      duration: const Duration(seconds: 4),
     );
   }
 }

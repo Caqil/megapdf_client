@@ -29,21 +29,6 @@ extension ContextExtensions on BuildContext {
   /// Check if device is phone
   bool get isPhone => !isTablet;
 
-  /// Show snackbar
-  void showSnackBar(String message, {bool isError = false}) {
-    ScaffoldMessenger.of(this).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? colorScheme.error : null,
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.all(16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-      ),
-    );
-  }
-
   /// Show loading dialog
   void showLoadingDialog({String? message}) {
     showDialog(

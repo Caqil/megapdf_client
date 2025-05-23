@@ -11,6 +11,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/recent_file_model.dart';
 import '../../providers/file_manager_provider.dart';
+import '../common/custom_snackbar.dart';
 import '../dialogs/folder_selection_dialog.dart';
 
 class FileOperationsBottomSheet extends ConsumerStatefulWidget {
@@ -38,8 +39,8 @@ class _FileOperationsBottomSheetState
       maxChildSize: 0.9,
       builder: (context, scrollController) {
         return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: AppColors.background(context),
             borderRadius: BorderRadius.only(
               topLeft: Radius.circular(20),
               topRight: Radius.circular(20),
@@ -488,8 +489,10 @@ class _FileOperationsBottomSheetState
       child: InkWell(
         onTap: enabled
             ? () {
-                Navigator.pop(context);
-                context.go(route);
+                if (mounted) {
+                  Navigator.pop(context);
+                  context.go(route);
+                }
               }
             : null,
         borderRadius: BorderRadius.circular(8),
@@ -530,7 +533,7 @@ class _FileOperationsBottomSheetState
     );
   }
 
-  // Action methods
+  // Action methods with proper mounted checks
   Future<void> _openFile() async {
     if (widget.file.resultFilePath == null) {
       _showSnackBar('File not available on device', isError: true);
@@ -540,13 +543,20 @@ class _FileOperationsBottomSheetState
     setState(() => _isLoading = true);
     try {
       final result = await OpenFile.open(widget.file.resultFilePath!);
-      if (result.type != ResultType.done) {
-        _showSnackBar('Could not open file: ${result.message}', isError: true);
+      if (mounted) {
+        if (result.type != ResultType.done) {
+          _showSnackBar('Could not open file: ${result.message}',
+              isError: true);
+        }
       }
     } catch (e) {
-      _showSnackBar('Error opening file: $e', isError: true);
+      if (mounted) {
+        _showSnackBar('Error opening file: $e', isError: true);
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -561,9 +571,13 @@ class _FileOperationsBottomSheetState
       await Share.shareXFiles([XFile(widget.file.resultFilePath!)],
           text: 'Sharing ${widget.file.originalFileName}');
     } catch (e) {
-      _showSnackBar('Error sharing file: $e', isError: true);
+      if (mounted) {
+        _showSnackBar('Error sharing file: $e', isError: true);
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -573,33 +587,46 @@ class _FileOperationsBottomSheetState
       return;
     }
 
-    Navigator.pop(context);
+    if (mounted) {
+      Navigator.pop(context);
+    }
 
-    showDialog(
-      context: context,
-      builder: (context) => FolderSelectionDialog(
-        title: 'Move File',
-        subtitle:
-            'Select the destination folder for "${widget.file.originalFileName}"',
-        onFolderSelected: (folder) async {
-          try {
-            await ref
-                .read(fileManagerNotifierProvider.notifier)
-                .addFileToCurrentFolder(widget.file.resultFilePath!);
-            _showSnackBar('File moved successfully');
-          } catch (e) {
-            _showSnackBar('Failed to move file: $e', isError: true);
-          }
-        },
-      ),
-    );
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    if (mounted) {
+      showDialog(
+        context: context,
+        builder: (dialogContext) => FolderSelectionDialog(
+          title: 'Move File',
+          subtitle:
+              'Select the destination folder for "${widget.file.originalFileName}"',
+          onFolderSelected: (folder) async {
+            try {
+              await ref
+                  .read(fileManagerNotifierProvider.notifier)
+                  .addFileToCurrentFolder(widget.file.resultFilePath!);
+
+              if (mounted) {
+                _showSnackBar('File moved successfully');
+              }
+            } catch (e) {
+              if (mounted) {
+                _showSnackBar('Failed to move file: $e', isError: true);
+              }
+            }
+          },
+        ),
+      );
+    }
   }
 
   void _showFileInfo() {
-    showDialog(
-      context: context,
-      builder: (context) => _FileInfoDialog(file: widget.file),
-    );
+    if (mounted) {
+      showDialog(
+        context: context,
+        builder: (context) => _FileInfoDialog(file: widget.file),
+      );
+    }
   }
 
   void _showInFolder() {
@@ -611,9 +638,11 @@ class _FileOperationsBottomSheetState
   }
 
   void _deleteFile() {
+    if (!mounted) return;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
@@ -621,7 +650,7 @@ class _FileOperationsBottomSheetState
           children: [
             Icon(
               Icons.warning,
-              color: AppColors.error(context),
+              color: AppColors.error(dialogContext),
               size: 24,
             ),
             const SizedBox(width: 12),
@@ -634,31 +663,32 @@ class _FileOperationsBottomSheetState
           children: [
             Text(
               'Are you sure you want to delete "${widget.file.originalFileName}"?',
-              style: Theme.of(context).textTheme.bodyMedium,
+              style: Theme.of(dialogContext).textTheme.bodyMedium,
             ),
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.error(context).withOpacity(0.1),
+                color: AppColors.error(dialogContext).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                    color: AppColors.error(context).withOpacity(0.3)),
+                    color: AppColors.error(dialogContext).withOpacity(0.3)),
               ),
               child: Row(
                 children: [
                   Icon(
                     Icons.info_outline,
-                    color: AppColors.error(context),
+                    color: AppColors.error(dialogContext),
                     size: 16,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'This action cannot be undone. The file will be permanently removed from your device.',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.error(context),
-                          ),
+                      style:
+                          Theme.of(dialogContext).textTheme.bodySmall?.copyWith(
+                                color: AppColors.error(dialogContext),
+                              ),
                     ),
                   ),
                 ],
@@ -668,15 +698,15 @@ class _FileOperationsBottomSheetState
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           ElevatedButton.icon(
-            onPressed: () => _performDelete(context),
+            onPressed: () => _performDelete(dialogContext),
             icon: const Icon(Icons.delete_forever, size: 18),
             label: const Text('Delete'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error(context),
+              backgroundColor: AppColors.error(dialogContext),
               foregroundColor: Colors.white,
             ),
           ),
@@ -686,22 +716,34 @@ class _FileOperationsBottomSheetState
   }
 
   Future<void> _performDelete(BuildContext dialogContext) async {
+    // Close the confirmation dialog
     Navigator.pop(dialogContext);
-    Navigator.pop(context);
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const AlertDialog(
-        content: Row(
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(width: 16),
-            Text('Deleting file...'),
-          ],
-        ),
-      ),
-    );
+    // Close the bottom sheet if still mounted
+    if (mounted) {
+      Navigator.pop(context);
+    }
+
+    // Show loading dialog with proper context management
+    BuildContext? loadingContext;
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) {
+          loadingContext = context;
+          return const AlertDialog(
+            content: Row(
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(width: 16),
+                Text('Deleting file...'),
+              ],
+            ),
+          );
+        },
+      );
+    }
 
     try {
       bool fileDeleted = false;
@@ -737,9 +779,12 @@ class _FileOperationsBottomSheetState
         print('Warning: Could not update database: $e');
       }
 
-      if (context.mounted) {
-        Navigator.pop(context);
+      // Close loading dialog if still mounted
+      if (loadingContext != null && mounted) {
+        Navigator.pop(loadingContext!);
+      }
 
+      if (mounted) {
         ref.read(recentFilesNotifierProvider.notifier).refreshRecentFiles();
         ref.read(fileManagerNotifierProvider.notifier).loadRootFolder();
 
@@ -750,8 +795,12 @@ class _FileOperationsBottomSheetState
         );
       }
     } catch (e) {
-      if (context.mounted) {
-        Navigator.pop(context);
+      // Close loading dialog if still mounted
+      if (loadingContext != null && mounted) {
+        Navigator.pop(loadingContext!);
+      }
+
+      if (mounted) {
         _showSnackBar('Failed to delete file: $e', isError: true);
       }
       print('Error during file deletion: $e');
@@ -759,40 +808,13 @@ class _FileOperationsBottomSheetState
   }
 
   void _showSnackBar(String message, {bool isError = false}) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(
-                isError ? Icons.error : Icons.check_circle,
-                color: isError
-                    ? AppColors.error(context)
-                    : AppColors.success(context),
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Expanded(child: Text(message)),
-            ],
-          ),
-          backgroundColor: isError
-              ? AppColors.error(context).withOpacity(0.1)
-              : AppColors.success(context).withOpacity(0.1),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-          action: SnackBarAction(
-            label: 'OK',
-            textColor:
-                isError ? AppColors.error(context) : AppColors.success(context),
-            onPressed: () {
-              ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            },
-          ),
-        ),
-      );
-    }
+    if (!mounted) return;
+    CustomSnackbar.show(
+      context: context,
+      message: message,
+      type: isError ? SnackbarType.failure : SnackbarType.info,
+      duration: const Duration(seconds: 4),
+    );
   }
 
   // Helper methods
@@ -837,7 +859,7 @@ class _FileOperationsBottomSheetState
   }
 }
 
-// File info dialog
+// File info dialog with mounted checks
 class _FileInfoDialog extends StatelessWidget {
   final RecentFileModel file;
 

@@ -8,6 +8,7 @@ import 'package:path/path.dart' as path;
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/file_utils.dart';
+import '../../widgets/common/custom_snackbar.dart';
 import '../../widgets/storage/storage_info_widget.dart';
 import 'storage_browser_page.dart';
 
@@ -195,13 +196,13 @@ class _StorageManagementPageState extends ConsumerState<StorageManagementPage>
   }
 
   void _showSnackBar(String message, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? AppColors.error(context) : null,
-        behavior: SnackBarBehavior.floating,
-      ),
+    CustomSnackbar.show(
+      context: context,
+      message: message,
+      type: isError ? SnackbarType.failure : SnackbarType.info,
+      duration: const Duration(seconds: 4),
     );
+   
   }
 
   @override

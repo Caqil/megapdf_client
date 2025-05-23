@@ -9,6 +9,7 @@ import 'package:lottie/lottie.dart';
 import 'package:path/path.dart' as path;
 
 import '../../../core/theme/app_colors.dart';
+import '../../widgets/common/custom_snackbar.dart';
 import '../pdf_viewer/pdf_viewer_page.dart';
 import '../storage/storage_browser_page.dart';
 
@@ -306,12 +307,13 @@ class FileOperationSuccessPage extends ConsumerWidget {
   void _openFile(BuildContext context) {
     final file = File(filePath);
     if (!file.existsSync()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('File not found: $filePath'),
-          backgroundColor: AppColors.error(context),
-        ),
+      CustomSnackbar.show(
+        context: context,
+        message: 'File not found.',
+        type: SnackbarType.failure,
+        duration: const Duration(seconds: 4),
       );
+
       return;
     }
 
@@ -335,12 +337,13 @@ class FileOperationSuccessPage extends ConsumerWidget {
   void _shareFile(BuildContext context) {
     final file = File(filePath);
     if (!file.existsSync()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('File not found: $filePath'),
-          backgroundColor: AppColors.error(context),
-        ),
+      CustomSnackbar.show(
+        context: context,
+        message: 'File not found.',
+        type: SnackbarType.failure,
+        duration: const Duration(seconds: 4),
       );
+     
       return;
     }
 

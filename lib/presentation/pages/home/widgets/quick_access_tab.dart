@@ -1,9 +1,11 @@
+// lib/presentation/pages/home/widgets/quick_access_tab.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:megapdf_client/core/theme/app_colors.dart';
-import 'package:megapdf_client/presentation/pages/home/widgets/folder_actions_bottom_sheet.dart';
 import 'package:megapdf_client/presentation/pages/home/widgets/tips_section.dart';
 import 'package:megapdf_client/presentation/providers/file_manager_provider.dart';
+import '../../../widgets/common/custom_snackbar.dart';
+import 'folder_actions_bottom_sheet.dart';
 import 'quick_action_card.dart';
 import 'section_header.dart';
 import 'feature_grid.dart';
@@ -69,20 +71,66 @@ class QuickAccessTab extends ConsumerWidget {
       context: context,
       builder: (context) => CreateFolderDialog(
         onCreateFolder: (name) {
-          ref.read(fileManagerNotifierProvider.notifier).createFolder(name);
+          // Show a loading indicator while the folder is being created
+          _showLoadingDialog(context, 'Creating folder "$name"...');
+
+          // Create the folder
+          ref
+              .read(fileManagerNotifierProvider.notifier)
+              .createFolder(name)
+              .then((_) {
+            // Hide the loading indicator
+            Navigator.of(context, rootNavigator: true).pop();
+
+            // Show success message
+            _showSnackBar(
+              context,
+              'Folder "$name" created successfully',
+              isSuccess: true,
+            );
+          }).catchError((error) {
+            // Hide the loading indicator
+            Navigator.of(context, rootNavigator: true).pop();
+
+            // Show an error message
+            _showSnackBar(
+              context,
+              'Failed to create folder: $error',
+              isError: true,
+            );
+          });
         },
       ),
     );
   }
 
-  void _showSnackBar(BuildContext context, String message,
-      {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? AppColors.error(context) : null,
-        behavior: SnackBarBehavior.floating,
+  void _showLoadingDialog(BuildContext context, String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(
+                AppColors.primary(context),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(child: Text(message)),
+          ],
+        ),
       ),
+    );
+  }
+
+  void _showSnackBar(BuildContext context, String message,
+      {bool isError = false, bool isSuccess = false}) {
+    CustomSnackbar.show(
+      context: context,
+      message: message,
+      type: isError ? SnackbarType.failure : SnackbarType.success,
+      duration: const Duration(seconds: 4),
     );
   }
 }

@@ -1,17 +1,20 @@
+// lib/presentation/pages/home/home_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:megapdf_client/presentation/pages/home/widgets/folder_actions_bottom_sheet.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../providers/file_manager_provider.dart';
 import '../../providers/recent_files_provider.dart';
+import '../../widgets/common/custom_snackbar.dart';
+import '../../widgets/dialogs/folder_creation_dialog.dart'; // Import the improved dialog
 import 'widgets/home_app_bar.dart';
 import 'widgets/welcome_header.dart';
 import 'widgets/home_tab_bar.dart';
 import 'widgets/quick_access_tab.dart';
 import 'widgets/files_tab.dart';
 import 'widgets/recent_tab.dart';
+import 'widgets/folder_actions_bottom_sheet.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -38,7 +41,7 @@ class _HomePageState extends ConsumerState<HomePage>
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(fileManagerNotifierProvider.notifier).loadRootFolder();
+      // The file manager provider will auto-load the root folder in its build method
       ref.read(recentFilesNotifierProvider.notifier).loadRecentFiles();
     });
   }
@@ -117,66 +120,55 @@ class _HomePageState extends ConsumerState<HomePage>
   void _showCreateOptionsBottomSheet() {
     showModalBottomSheet(
       context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Create New',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleLarge
-                  ?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            ListTile(
-              leading: const Icon(Icons.create_new_folder),
-              title: const Text('New Folder'),
-              onTap: () {
-                Navigator.pop(context);
-                _showCreateFolderDialog();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.upload_file),
-              title: const Text('Import File'),
-              onTap: () {
-                Navigator.pop(context);
-                _showSnackBar('Import file coming soon!');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.document_scanner),
-              title: const Text('Scan Document'),
-              onTap: () {
-                Navigator.pop(context);
-                _showSnackBar('Scan document coming soon!');
-              },
-            ),
-          ],
-        ),
+      builder: (context) => FolderActionsBottomSheet(
+        onCreateFolder: _showCreateFolderDialog,
+        onImportFiles: () {},
+        onSettings: () => context.go('/settings'),
       ),
     );
   }
 
   void _showCreateFolderDialog() {
+    // Use our improved folder creation dialog
     showDialog(
       context: context,
       builder: (context) => CreateFolderDialog(
         onCreateFolder: (name) {
-          ref.read(fileManagerNotifierProvider.notifier).createFolder(name);
+          // Show a loading indicator while the folder is being created
+          _showLoadingDialog('Creating folder "$name"...');
+
+          // Create the folder
+          ref
+              .read(fileManagerNotifierProvider.notifier)
+              .createFolder(name)
+              .then((_) {
+            // Hide the loading indicator
+            Navigator.of(context, rootNavigator: true).pop();
+          }).catchError((error) {
+            // Hide the loading indicator
+            Navigator.of(context, rootNavigator: true).pop();
+          });
         },
       ),
     );
   }
 
-  void _showSnackBar(String message, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? AppColors.error(context) : null,
-        behavior: SnackBarBehavior.floating,
+  void _showLoadingDialog(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(
+                AppColors.primary(context),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(child: Text(message)),
+          ],
+        ),
       ),
     );
   }

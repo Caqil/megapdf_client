@@ -229,34 +229,6 @@ class DatabaseHelper {
     return folder != null;
   }
 
-  // File-Folder Link operations
-  Future<int> addFileToFolder({
-    required String filePath,
-    required String fileName,
-    required int folderId,
-    Map<String, dynamic>? metadata,
-  }) async {
-    final db = await database;
-    final link = FileFolderLink(
-      filePath: filePath,
-      fileName: fileName,
-      folderId: folderId,
-      addedAt: DateTime.now(),
-      metadata: metadata,
-    );
-
-    final map = link.toMap();
-    if (map['metadata'] != null) {
-      map['metadata'] = jsonEncode(map['metadata']);
-    }
-
-    return await db.insert(
-      'file_folder_links',
-      map,
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
-  }
-
   Future<List<FileFolderLink>> getFilesInFolder(int folderId) async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
@@ -306,15 +278,231 @@ class DatabaseHelper {
     required int newFolderId,
   }) async {
     final db = await database;
-    return await db.update(
-      'file_folder_links',
-      {
-        'folder_id': newFolderId,
-        'added_at': DateTime.now().millisecondsSinceEpoch,
-      },
-      where: 'file_path = ?',
-      whereArgs: [filePath],
-    );
+
+    try {
+      print('🔧 DB: Moving file $filePath to folder $newFolderId');
+
+      // First check if the file-folder link exists
+      final existingLinks = await db.query(
+        'file_folder_links',
+        where: 'file_path = ?',
+        whereArgs: [filePath],
+      );
+
+      print('🔧 DB: Found ${existingLinks.length} existing links');
+
+      if (existingLinks.isEmpty) {
+        // No existing link, create a new one
+        print('🔧 DB: No existing link found, creating new one');
+        return await addFileToFolder(
+          filePath: filePath,
+          fileName: filePath.split('/').last,
+          folderId: newFolderId,
+        );
+      } else {
+        // Update existing link
+        print('🔧 DB: Updating existing link');
+        final result = await db.update(
+          'file_folder_links',
+          {
+            'folder_id': newFolderId,
+            'added_at': DateTime.now().millisecondsSinceEpoch,
+          },
+          where: 'file_path = ?',
+          whereArgs: [filePath],
+        );
+
+        print('🔧 DB: Update result: $result rows affected');
+        return result;
+      }
+    } catch (e) {
+      print('🔧 DB: Error moving file: $e');
+      rethrow;
+    }
+  }
+
+// Improved addFileToFolder with conflict resolution
+  Future<int> addFileToFolder({
+    required String filePath,
+    required String fileName,
+    required int folderId,
+    Map<String, dynamic>? metadata,
+  }) async {
+    final db = await database;
+
+    try {
+      print('🔧 DB: Adding file $fileName to folder $folderId');
+
+      final link = FileFolderLink(
+        filePath: filePath,
+        fileName: fileName,
+        folderId: folderId,
+        addedAt: DateTime.now(),
+        metadata: metadata,
+      );
+
+      final map = link.toMap();
+      if (map['metadata'] != null) {
+        map['metadata'] = jsonEncode(map['metadata']);
+      }
+
+      // Use INSERT OR REPLACE to handle conflicts
+      final result = await db.insert(
+        'file_folder_links',
+        map,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+
+      print('🔧 DB: Insert result: $result');
+      return result;
+    } catch (e) {
+      print('🔧 DB: Error adding file to folder: $e');
+      rethrow;
+    }
+  }
+
+// Method to verify folder exists before operations
+  Future<bool> verifyFolderExists(int folderId) async {
+    final db = await database;
+
+    try {
+      final result = await db.query(
+        'folders',
+        where: 'id = ?',
+        whereArgs: [folderId],
+      );
+
+      return result.isNotEmpty;
+    } catch (e) {
+      print('🔧 DB: Error verifying folder exists: $e');
+      return false;
+    }
+  }
+
+// Method to get detailed folder information for debugging
+  Future<Map<String, dynamic>?> getFolderDetails(int folderId) async {
+    final db = await database;
+
+    try {
+      final result = await db.query(
+        'folders',
+        where: 'id = ?',
+        whereArgs: [folderId],
+      );
+
+      if (result.isNotEmpty) {
+        final folder = result.first;
+
+        // Get file count in this folder
+        final fileCount = await db.rawQuery(
+          'SELECT COUNT(*) as count FROM file_folder_links WHERE folder_id = ?',
+          [folderId],
+        );
+
+        // Get subfolder count
+        final subfolderCount = await db.rawQuery(
+          'SELECT COUNT(*) as count FROM folders WHERE parent_id = ?',
+          [folderId],
+        );
+
+        return {
+          ...folder,
+          'file_count': fileCount.first['count'],
+          'subfolder_count': subfolderCount.first['count'],
+        };
+      }
+
+      return null;
+    } catch (e) {
+      print('🔧 DB: Error getting folder details: $e');
+      return null;
+    }
+  }
+
+// Method to check for circular folder references
+  Future<bool> wouldCreateCircularReference(
+      int sourceFolderId, int targetFolderId) async {
+    if (sourceFolderId == targetFolderId) {
+      return true;
+    }
+
+    final db = await database;
+
+    try {
+      // Get the path from target folder to root
+      int? currentId = targetFolderId;
+      final visitedIds = <int>{};
+
+      while (currentId != null) {
+        if (visitedIds.contains(currentId)) {
+          // Already visited this folder, circular reference detected
+          return true;
+        }
+
+        if (currentId == sourceFolderId) {
+          // Target folder is a descendant of source folder
+          return true;
+        }
+
+        visitedIds.add(currentId);
+
+        final result = await db.query(
+          'folders',
+          columns: ['parent_id'],
+          where: 'id = ?',
+          whereArgs: [currentId],
+        );
+
+        if (result.isEmpty) {
+          break;
+        }
+
+        currentId = result.first['parent_id'] as int?;
+      }
+
+      return false;
+    } catch (e) {
+      print('🔧 DB: Error checking circular reference: $e');
+      return true; // Assume circular reference to be safe
+    }
+  }
+
+// Method to cleanup orphaned file links
+  Future<int> cleanupOrphanedFileLinks() async {
+    final db = await database;
+
+    try {
+      // Delete file links that point to non-existent folders
+      final result = await db.delete(
+        'file_folder_links',
+        where: 'folder_id NOT IN (SELECT id FROM folders)',
+      );
+
+      print('🔧 DB: Cleaned up $result orphaned file links');
+      return result;
+    } catch (e) {
+      print('🔧 DB: Error cleaning up orphaned file links: $e');
+      return 0;
+    }
+  }
+
+// Method to get all file paths in a folder (for debugging)
+  Future<List<String>> getFilePathsInFolder(int folderId) async {
+    final db = await database;
+
+    try {
+      final result = await db.query(
+        'file_folder_links',
+        columns: ['file_path'],
+        where: 'folder_id = ?',
+        whereArgs: [folderId],
+      );
+
+      return result.map((row) => row['file_path'] as String).toList();
+    } catch (e) {
+      print('🔧 DB: Error getting file paths: $e');
+      return [];
+    }
   }
 
   Future<int> removeFileFromFolder(String filePath) async {

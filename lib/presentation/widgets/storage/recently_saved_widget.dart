@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../presentation/providers/file_path_provider.dart';
 import '../../pages/pdf_viewer/pdf_viewer_page.dart';
+import '../common/custom_snackbar.dart';
 
 class RecentlySavedWidget extends ConsumerWidget {
   final VoidCallback? onViewAll;
@@ -265,13 +266,13 @@ class RecentlySavedWidget extends ConsumerWidget {
 
   void _showSnackBar(BuildContext context, String message,
       {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? AppColors.error(context) : null,
-        behavior: SnackBarBehavior.floating,
-      ),
+    CustomSnackbar.show(
+      context: context,
+      message: message,
+      type: isError ? SnackbarType.failure : SnackbarType.success,
+      duration: const Duration(seconds: 4),
     );
+   
   }
 
   Color _getOperationColor(BuildContext context, String operationType) {

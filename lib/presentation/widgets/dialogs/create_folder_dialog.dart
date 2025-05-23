@@ -1,6 +1,7 @@
 // lib/presentation/widgets/dialogs/create_folder_dialog.dart
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
+import '../common/custom_snackbar.dart';
 
 class CreateFolderDialog extends StatefulWidget {
   final Function(String) onCreateFolder;
@@ -193,27 +194,11 @@ class _CreateFolderDialogState extends State<CreateFolderDialog> {
 
       if (mounted) {
         Navigator.pop(context);
-
-        // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(
-                  Icons.check_circle,
-                  color: AppColors.success(context),
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                Text('Folder "$folderName" created successfully'),
-              ],
-            ),
-            backgroundColor: AppColors.success(context).withOpacity(0.1),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
+        CustomSnackbar.show(
+          context: context,
+          message: 'Folder "$folderName" created successfully',
+          type: SnackbarType.success,
+          duration: const Duration(seconds: 4),
         );
       }
     } catch (e) {
@@ -222,26 +207,13 @@ class _CreateFolderDialogState extends State<CreateFolderDialog> {
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(
-                  Icons.error,
-                  color: AppColors.error(context),
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                Text('Failed to create folder: $e'),
-              ],
-            ),
-            backgroundColor: AppColors.error(context).withOpacity(0.1),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
+        CustomSnackbar.show(
+          context: context,
+          message: 'Failed to create folder',
+          type: SnackbarType.failure,
+          duration: const Duration(seconds: 4),
         );
+       
       }
     }
   }

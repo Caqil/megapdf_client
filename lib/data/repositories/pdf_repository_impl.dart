@@ -260,19 +260,4 @@ class PdfRepositoryImpl implements PdfRepository {
     }
   }
 
-  // New method to directly save a file from URL to public storage
-  Future<String?> saveFileFromUrl({
-    required String fileUrl,
-    required String filename,
-    String? customFileName,
-    String? subfolder,
-    Function(double)? onProgress,
-  }) async {
-    return await _storageService.saveFileFromUrl(
-      url: fileUrl,
-      fileName: customFileName ?? filename,
-      subfolder: subfolder,
-      onProgress: onProgress,
-    );
-  }
 }

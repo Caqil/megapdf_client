@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:megapdf_client/data/services/storage_service.dart';
 import 'package:path/path.dart' as path;
 import '../../../core/theme/app_colors.dart';
+import '../../widgets/common/custom_snackbar.dart';
 import '../pdf_viewer/pdf_viewer_page.dart';
 
 class StorageBrowserPage extends ConsumerStatefulWidget {
@@ -407,11 +408,11 @@ class _StorageBrowserPageState extends ConsumerState<StorageBrowserPage> {
         ),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Cannot open ${extension.toUpperCase()} files'),
-          behavior: SnackBarBehavior.floating,
-        ),
+      CustomSnackbar.show(
+        context: context,
+        message: 'Cannot open ${extension.toUpperCase()} files',
+        type: SnackbarType.info,
+        duration: const Duration(seconds: 4),
       );
     }
   }

@@ -5,17 +5,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/folder_model.dart';
 import '../../../data/repositories/folder_repository.dart';
+import '../../providers/file_manager_provider.dart';
 
 class FolderSelectionDialog extends ConsumerStatefulWidget {
   final String title;
-  final String? subtitle;
-  final int? excludeFolderId; // Exclude current folder from selection
+  final String subtitle;
+  final int? excludeFolderId;
   final Function(FolderModel) onFolderSelected;
 
   const FolderSelectionDialog({
     super.key,
     required this.title,
-    this.subtitle,
+    required this.subtitle,
     this.excludeFolderId,
     required this.onFolderSelected,
   });
@@ -26,90 +27,115 @@ class FolderSelectionDialog extends ConsumerStatefulWidget {
 }
 
 class _FolderSelectionDialogState extends ConsumerState<FolderSelectionDialog> {
-  List<FolderModel> _folders = [];
-  List<FolderModel> _folderPath = [];
   FolderModel? _currentFolder;
+  List<FolderModel> _subfolders = [];
+  List<FolderModel> _folderPath = [];
   bool _isLoading = true;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    _loadRootFolders();
+    _loadRootFolder();
   }
 
-  Future<void> _loadRootFolders() async {
-    setState(() => _isLoading = true);
-
+  Future<void> _loadRootFolder() async {
     try {
       final folderRepo = ref.read(folderRepositoryProvider);
       final rootFolder = await folderRepo.getRootFolder();
 
       if (rootFolder != null) {
-        await _loadFolder(rootFolder.id!);
+        await _loadFolder(rootFolder);
+      } else {
+        setState(() {
+          _error = 'Root folder not found';
+          _isLoading = false;
+        });
       }
     } catch (e) {
-      print('Error loading folders: $e');
-    } finally {
-      setState(() => _isLoading = false);
+      setState(() {
+        _error = 'Failed to load folders: $e';
+        _isLoading = false;
+      });
     }
   }
 
-  Future<void> _loadFolder(int folderId) async {
-    setState(() => _isLoading = true);
+  Future<void> _loadFolder(FolderModel folder) async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
 
     try {
       final folderRepo = ref.read(folderRepositoryProvider);
-      final currentFolder = await folderRepo.getFolderById(folderId);
-      final subfolders = await folderRepo.getFolders(parentId: folderId);
-      final folderPath = await folderRepo.getFolderPath(folderId);
+
+      // Get subfolders, excluding the folder being moved (if any)
+      final allSubfolders = await folderRepo.getFolders(parentId: folder.id);
+      final filteredSubfolders = allSubfolders
+          .where((subfolder) => subfolder.id != widget.excludeFolderId)
+          .toList();
+
+      // Get folder path for breadcrumb
+      final folderPath = await folderRepo.getFolderPath(folder.id!);
 
       setState(() {
-        _currentFolder = currentFolder;
-        _folders = subfolders
-            .where((folder) => folder.id != widget.excludeFolderId)
-            .toList();
+        _currentFolder = folder;
+        _subfolders = filteredSubfolders;
         _folderPath = folderPath;
         _isLoading = false;
       });
     } catch (e) {
-      print('Error loading folder: $e');
-      setState(() => _isLoading = false);
+      setState(() {
+        _error = 'Failed to load folder: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _navigateToFolder(FolderModel folder) async {
+    await _loadFolder(folder);
+  }
+
+  Future<void> _navigateUp() async {
+    if (_currentFolder?.parentId != null) {
+      final folderRepo = ref.read(folderRepositoryProvider);
+      final parentFolder =
+          await folderRepo.getFolderById(_currentFolder!.parentId!);
+      if (parentFolder != null) {
+        await _loadFolder(parentFolder);
+      }
+    }
+  }
+
+  void _selectCurrentFolder() {
+    if (_currentFolder != null) {
+      widget.onFolderSelected(_currentFolder!);
+      Navigator.pop(context);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(
-                Icons.folder_outlined,
-                color: AppColors.primary(context),
-                size: 24,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  widget.title,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+          Text(
+            widget.title,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
                 ),
-              ),
-            ],
           ),
-          if (widget.subtitle != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              widget.subtitle!,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary(context),
-                  ),
-            ),
-          ],
+          const SizedBox(height: 4),
+          Text(
+            widget.subtitle,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textSecondary(context),
+                ),
+          ),
         ],
       ),
       content: SizedBox(
@@ -117,49 +143,33 @@ class _FolderSelectionDialogState extends ConsumerState<FolderSelectionDialog> {
         height: 400,
         child: Column(
           children: [
-            // Breadcrumb
-            if (_folderPath.isNotEmpty) ...[
+            // Breadcrumb navigation
+            if (_folderPath.isNotEmpty) _buildBreadcrumb(),
+
+            const SizedBox(height: 8),
+
+            // Current folder selection button
+            if (_currentFolder != null)
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.background(context),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.border(context)),
-                ),
-                child: Row(
-                  children: [
-                    if (_currentFolder?.parentId != null)
-                      IconButton(
-                        onPressed: () => _loadFolder(_currentFolder!.parentId!),
-                        icon: const Icon(Icons.arrow_back, size: 20),
-                        iconSize: 20,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(
-                          minWidth: 24,
-                          minHeight: 24,
-                        ),
-                      ),
-                    Expanded(
-                      child: Text(
-                        _folderPath.map((f) => f.name).join(' / '),
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.textSecondary(context),
-                            ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
+                margin: const EdgeInsets.only(bottom: 8),
+                child: ElevatedButton.icon(
+                  onPressed: _selectCurrentFolder,
+                  icon: const Icon(Icons.check),
+                  label: Text('Select "${_currentFolder!.name}"'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary(context),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
                 ),
               ),
-              const SizedBox(height: 16),
-            ],
 
-            // Folder List
+            const Divider(),
+
+            // Folder list
             Expanded(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _buildFolderList(),
+              child: _buildFolderList(),
             ),
           ],
         ),
@@ -169,24 +179,112 @@ class _FolderSelectionDialogState extends ConsumerState<FolderSelectionDialog> {
           onPressed: () => Navigator.pop(context),
           child: const Text('Cancel'),
         ),
-        if (_currentFolder != null)
-          ElevatedButton.icon(
-            onPressed: () {
-              widget.onFolderSelected(_currentFolder!);
-              Navigator.pop(context);
-            },
-            icon: const Icon(Icons.check),
-            label: const Text('Select This Folder'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary(context),
-            ),
-          ),
       ],
     );
   }
 
+  Widget _buildBreadcrumb() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.surface(context),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.border(context)),
+      ),
+      child: Row(
+        children: [
+          if (_currentFolder?.parentId != null)
+            IconButton(
+              onPressed: _navigateUp,
+              icon: const Icon(Icons.arrow_back),
+              iconSize: 20,
+              color: AppColors.primary(context),
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              padding: EdgeInsets.zero,
+            ),
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: _folderPath.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final folder = entry.value;
+                  final isLast = index == _folderPath.length - 1;
+
+                  return Row(
+                    children: [
+                      GestureDetector(
+                        onTap: isLast ? null : () => _navigateToFolder(folder),
+                        child: Text(
+                          folder.name,
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: isLast
+                                        ? AppColors.textPrimary(context)
+                                        : AppColors.primary(context),
+                                    fontWeight: isLast
+                                        ? FontWeight.w600
+                                        : FontWeight.normal,
+                                  ),
+                        ),
+                      ),
+                      if (!isLast) ...[
+                        const SizedBox(width: 8),
+                        Icon(
+                          Icons.chevron_right,
+                          size: 16,
+                          color: AppColors.textSecondary(context),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                    ],
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildFolderList() {
-    if (_folders.isEmpty) {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 48,
+              color: AppColors.error(context),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _error!,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.error(context),
+                  ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadRootFolder,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_subfolders.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -203,34 +301,28 @@ class _FolderSelectionDialogState extends ConsumerState<FolderSelectionDialog> {
                     color: AppColors.textSecondary(context),
                   ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              'You can select the current folder or go back',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary(context),
-                  ),
-              textAlign: TextAlign.center,
-            ),
           ],
         ),
       );
     }
 
     return ListView.separated(
-      itemCount: _folders.length,
+      itemCount: _subfolders.length,
       separatorBuilder: (context, index) => const Divider(height: 1),
       itemBuilder: (context, index) {
-        final folder = _folders[index];
+        final folder = _subfolders[index];
         return ListTile(
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           leading: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppColors.primary(context).withOpacity(0.1),
+              color: Colors.blue.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(
+            child: const Icon(
               Icons.folder,
-              color: AppColors.primary(context),
+              color: Colors.blue,
               size: 20,
             ),
           ),
@@ -241,51 +333,15 @@ class _FolderSelectionDialogState extends ConsumerState<FolderSelectionDialog> {
                 ),
           ),
           subtitle: Text(
-            'Created ${_formatDate(folder.createdAt)}',
+            '${folder.createdAt.day}/${folder.createdAt.month}/${folder.createdAt.year}',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: AppColors.textSecondary(context),
                 ),
           ),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Select folder button
-              IconButton(
-                onPressed: () {
-                  widget.onFolderSelected(folder);
-                  Navigator.pop(context);
-                },
-                icon: const Icon(Icons.check_circle_outline),
-                color: AppColors.success(context),
-                tooltip: 'Select this folder',
-              ),
-              // Navigate into folder button
-              IconButton(
-                onPressed: () => _loadFolder(folder.id!),
-                icon: const Icon(Icons.chevron_right),
-                color: AppColors.textSecondary(context),
-                tooltip: 'Open folder',
-              ),
-            ],
-          ),
-          onTap: () => _loadFolder(folder.id!),
+          trailing: const Icon(Icons.chevron_right, size: 20),
+          onTap: () => _navigateToFolder(folder),
         );
       },
     );
-  }
-
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
-
-    if (difference.inDays == 0) {
-      return 'today';
-    } else if (difference.inDays == 1) {
-      return 'yesterday';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays} days ago';
-    } else {
-      return '${date.day}/${date.month}/${date.year}';
-    }
   }
 }

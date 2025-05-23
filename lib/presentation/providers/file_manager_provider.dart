@@ -1,5 +1,6 @@
 // lib/presentation/providers/file_manager_provider.dart
 import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -90,6 +91,16 @@ class FileManagerNotifier extends _$FileManagerNotifier {
             lastModified: stat.modified,
             extension: path.extension(fileLink.filePath).toLowerCase(),
           ));
+        } else {
+          // File doesn't exist physically, but keep the record
+          fileItems.add(FileItem(
+            name: fileLink.fileName + ' (missing)',
+            path: fileLink.filePath,
+            isDirectory: false,
+            size: 0,
+            lastModified: fileLink.addedAt,
+            extension: path.extension(fileLink.filePath).toLowerCase(),
+          ));
         }
       }
 
@@ -111,8 +122,17 @@ class FileManagerNotifier extends _$FileManagerNotifier {
   }
 
   Future<void> createFolder(String folderName) async {
+    debugPrint('🔧 FILE_MANAGER: Creating folder: "$folderName"');
+
+    // Validate folder name
     if (folderName.trim().isEmpty) {
       state = state.copyWith(error: 'Folder name cannot be empty');
+      return;
+    }
+
+    // Check for invalid characters
+    if (folderName.contains(RegExp(r'[<>:"/\\|?*]'))) {
+      state = state.copyWith(error: 'Folder name contains invalid characters');
       return;
     }
 
@@ -122,7 +142,12 @@ class FileManagerNotifier extends _$FileManagerNotifier {
       return;
     }
 
+    debugPrint(
+        '🔧 FILE_MANAGER: Current folder: ${currentFolder.name} (${currentFolder.path})');
+
     try {
+      state = state.copyWith(isLoading: true, error: null);
+
       final folderRepo = ref.read(folderRepositoryProvider);
 
       // Generate unique folder path
@@ -131,80 +156,177 @@ class FileManagerNotifier extends _$FileManagerNotifier {
         folderName.trim(),
       );
 
+      debugPrint('🔧 FILE_MANAGER: Generated path: $newPath');
+
       final pathParts = newPath.split('/');
       final uniqueName = pathParts.last;
 
-      await folderRepo.createFolder(
+      debugPrint('🔧 FILE_MANAGER: Creating folder with name: "$uniqueName"');
+
+      final folderId = await folderRepo.createFolder(
         name: uniqueName,
         path: newPath,
         parentId: currentFolder.id,
       );
 
-      // Reload current folder
+      debugPrint('🔧 FILE_MANAGER: Folder created with ID: $folderId');
+
+      // Reload current folder to show the new folder
       await loadFolder(currentFolder.id!);
+
+      state = state.copyWith(
+        isLoading: false,
+        successMessage: 'Folder "$uniqueName" created successfully',
+        error: null,
+      );
+
+      debugPrint('🔧 FILE_MANAGER: Folder creation completed successfully');
     } catch (e) {
-      state = state.copyWith(error: 'Failed to create folder: $e');
+      debugPrint('🔧 FILE_MANAGER: Folder creation failed: $e');
+
+      String errorMessage = 'Failed to create folder';
+
+      // Provide more specific error messages
+      if (e.toString().contains('Operation not permitted')) {
+        errorMessage =
+            'Permission denied. Cannot create folder in this location.';
+      } else if (e.toString().contains('PathAccessException')) {
+        errorMessage = 'Invalid folder path. Please try a different name.';
+      } else if (e.toString().contains('already exists')) {
+        errorMessage = 'A folder with this name already exists.';
+      } else {
+        errorMessage = 'Failed to create folder: ${e.toString()}';
+      }
+
+      state = state.copyWith(
+        isLoading: false,
+        error: errorMessage,
+        successMessage: null,
+      );
     }
   }
 
   Future<void> moveFileToFolder(FileItem file, FolderModel targetFolder) async {
+    print('🔧 MOVE: Starting move operation');
+    print('🔧 MOVE: File: ${file.name} (isDirectory: ${file.isDirectory})');
+    print(
+        '🔧 MOVE: Target folder: ${targetFolder.name} (ID: ${targetFolder.id})');
+
     try {
       final dbHelper = DatabaseHelper();
+      final folderRepo = ref.read(folderRepositoryProvider);
 
       if (file.isDirectory) {
+        print('🔧 MOVE: Moving folder');
+
         // Moving folder - update parent_id
-        final folderRepo = ref.read(folderRepositoryProvider);
-        final folderToMove = await folderRepo.getFolderById(file.folderId!);
-
-        if (folderToMove != null) {
-          final updatedFolder = folderToMove.copyWith(
-            parentId: targetFolder.id,
-            updatedAt: DateTime.now(),
-          );
-
-          // Actually update the folder in database
-          final updateResult = await folderRepo.updateFolder(updatedFolder);
-          if (!updateResult) {
-            throw Exception('Failed to update folder in database');
-          }
+        if (file.folderId == null) {
+          throw Exception('Folder ID is null');
         }
+
+        final folderToMove = await folderRepo.getFolderById(file.folderId!);
+        if (folderToMove == null) {
+          throw Exception('Folder to move not found');
+        }
+
+        // Check if we're trying to move a folder into itself or its descendant
+        if (await _isDescendantFolder(folderToMove.id!, targetFolder.id!)) {
+          throw Exception('Cannot move folder into itself or its descendant');
+        }
+
+        // Update the folder's parent
+        final updatedFolder = folderToMove.copyWith(
+          parentId: targetFolder.id,
+          updatedAt: DateTime.now(),
+        );
+
+        print(
+            '🔧 MOVE: Updating folder parent from ${folderToMove.parentId} to ${targetFolder.id}');
+
+        final updateResult = await folderRepo.updateFolder(updatedFolder);
+        if (!updateResult) {
+          throw Exception('Failed to update folder in database');
+        }
+
+        print('🔧 MOVE: Folder parent updated successfully');
       } else {
+        print('🔧 MOVE: Moving file');
+
         // Moving file - update the file-folder link
         final existingLink = await dbHelper.getFileLocation(file.path);
+        print('🔧 MOVE: Existing link found: ${existingLink != null}');
 
         if (existingLink != null) {
+          print(
+              '🔧 MOVE: Updating existing link from folder ${existingLink.folderId} to ${targetFolder.id}');
+
           // Update existing link to new folder
           final updateResult = await dbHelper.moveFileToFolder(
             filePath: file.path,
             newFolderId: targetFolder.id!,
           );
 
+          print('🔧 MOVE: Update result: $updateResult');
+
           if (updateResult == 0) {
-            throw Exception('Failed to update file location in database');
+            throw Exception(
+                'Failed to update file location in database - no rows affected');
           }
         } else {
+          print('🔧 MOVE: Creating new file-folder link');
+
           // Create new link
-          await dbHelper.addFileToFolder(
+          final linkId = await dbHelper.addFileToFolder(
             filePath: file.path,
             fileName: file.name,
             folderId: targetFolder.id!,
           );
+
+          print('🔧 MOVE: New link created with ID: $linkId');
+
+          if (linkId <= 0) {
+            throw Exception('Failed to create file-folder link');
+          }
         }
       }
 
       // Reload current folder to reflect changes
       if (state.currentFolder != null) {
+        print('🔧 MOVE: Reloading current folder');
         await loadFolder(state.currentFolder!.id!);
       }
 
       state = state.copyWith(
         successMessage:
-            '${file.isDirectory ? 'Folder' : 'File'} moved to "${targetFolder.name}" successfully',
+            '${file.isDirectory ? 'Folder' : 'File'} "${file.name}" moved to "${targetFolder.name}" successfully',
+        error: null,
       );
+
+      print('🔧 MOVE: Move operation completed successfully');
     } catch (e) {
+      print('🔧 MOVE: Move operation failed: $e');
       state = state.copyWith(
-          error: 'Failed to move ${file.isDirectory ? 'folder' : 'file'}: $e');
+        error: 'Failed to move ${file.isDirectory ? 'folder' : 'file'}: $e',
+        successMessage: null,
+      );
     }
+  }
+
+  // Helper method to check if targetFolder is a descendant of sourceFolder
+  Future<bool> _isDescendantFolder(
+      int sourceFolderId, int targetFolderId) async {
+    if (sourceFolderId == targetFolderId) {
+      return true;
+    }
+
+    final folderRepo = ref.read(folderRepositoryProvider);
+    final targetFolder = await folderRepo.getFolderById(targetFolderId);
+
+    if (targetFolder?.parentId == null) {
+      return false;
+    }
+
+    return await _isDescendantFolder(sourceFolderId, targetFolder!.parentId!);
   }
 
   Future<void> deleteItem(FileItem item) async {
@@ -285,7 +407,6 @@ class FileManagerNotifier extends _$FileManagerNotifier {
     }
   }
 
-
   Future<void> renameItem(FileItem item, String newName) async {
     if (newName.trim().isEmpty) {
       state = state.copyWith(error: 'Name cannot be empty');
@@ -327,6 +448,11 @@ class FileManagerNotifier extends _$FileManagerNotifier {
       if (state.currentFolder != null) {
         await loadFolder(state.currentFolder!.id!);
       }
+
+      state = state.copyWith(
+        successMessage:
+            '${item.isDirectory ? 'Folder' : 'File'} renamed successfully',
+      );
     } catch (e) {
       state = state.copyWith(error: 'Failed to rename item: $e');
     }

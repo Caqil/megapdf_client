@@ -1,10 +1,15 @@
+// lib/presentation/pages/home/widgets/files_tab.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:megapdf_client/core/theme/app_colors.dart';
 import 'package:megapdf_client/data/models/file_item.dart';
+import 'package:megapdf_client/presentation/pages/home/widgets/folder_actions_bottom_sheet.dart';
 import 'package:megapdf_client/presentation/providers/file_manager_provider.dart';
+import '../../../widgets/common/custom_snackbar.dart';
 import 'file_list_item.dart';
 import 'file_grid_item.dart';
+import '../../../widgets/common/loading_widget.dart';
+import '../../../widgets/common/error_widget.dart';
 
 class FilesTab extends ConsumerWidget {
   final FileManagerState fileState;
@@ -38,18 +43,51 @@ class FilesTab extends ConsumerWidget {
         Expanded(
           child: RefreshIndicator(
             onRefresh: () async {
-              await ref
-                  .read(fileManagerNotifierProvider.notifier)
-                  .loadRootFolder();
+              if (fileState.currentFolder != null) {
+                await ref
+                    .read(fileManagerNotifierProvider.notifier)
+                    .loadFolder(fileState.currentFolder!.id!);
+              } else {
+                await ref
+                    .read(fileManagerNotifierProvider.notifier)
+                    .loadRootFolder();
+              }
             },
-            child: filteredFiles.isEmpty
-                ? _buildEmptyFilesState(context)
-                : isGridView
-                    ? _buildFilesGrid(filteredFiles)
-                    : _buildFilesList(filteredFiles),
+            child: fileState.isLoading
+                ? _buildLoadingState()
+                : fileState.error != null
+                    ? _buildErrorState(context, ref)
+                    : filteredFiles.isEmpty
+                        ? _buildEmptyFilesState(context, ref)
+                        : isGridView
+                            ? _buildFilesGrid(filteredFiles)
+                            : _buildFilesList(filteredFiles),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return const Center(
+      child: LoadingWidget(message: 'Loading files...'),
+    );
+  }
+
+  Widget _buildErrorState(BuildContext context, WidgetRef ref) {
+    return Center(
+      child: CustomErrorWidget(
+        message: fileState.error!,
+        onRetry: () {
+          if (fileState.currentFolder != null) {
+            ref
+                .read(fileManagerNotifierProvider.notifier)
+                .loadFolder(fileState.currentFolder!.id!);
+          } else {
+            ref.read(fileManagerNotifierProvider.notifier).loadRootFolder();
+          }
+        },
+      ),
     );
   }
 
@@ -112,6 +150,14 @@ class FilesTab extends ConsumerWidget {
                 }).toList(),
               ),
             ),
+          ),
+          // Add a create folder button in the breadcrumb bar
+          IconButton(
+            onPressed: () => _showCreateFolderDialog(context, ref),
+            icon: const Icon(Icons.create_new_folder),
+            iconSize: 20,
+            tooltip: 'Create Folder',
+            color: AppColors.primary(context),
           ),
         ],
       ),
@@ -179,11 +225,7 @@ class FilesTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyFilesState(BuildContext context) {
-    if (fileState.isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
+  Widget _buildEmptyFilesState(BuildContext context, WidgetRef ref) {
     if (searchQuery.isNotEmpty) {
       return Center(
         child: Column(
@@ -238,16 +280,93 @@ class FilesTab extends ConsumerWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: () {
-              // This should ideally trigger a callback to show create options
-            },
-            icon: const Icon(Icons.add),
-            label: const Text('Add Files'),
-            style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary(context)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ElevatedButton.icon(
+                onPressed: () => _showCreateFolderDialog(context, ref),
+                icon: const Icon(Icons.create_new_folder),
+                label: const Text('Create Folder'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary(context),
+                ),
+              ),
+              const SizedBox(width: 16),
+              ElevatedButton.icon(
+                onPressed: () {
+                  CustomSnackbar.show(
+                    context: context,
+                    message: 'Import files coming soon!',
+                    type: SnackbarType.success,
+                    duration: const Duration(seconds: 4),
+                  );
+                },
+                icon: const Icon(Icons.upload_file),
+                label: const Text('Add Files'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.secondary(context),
+                ),
+              ),
+            ],
           ),
         ],
+      ),
+    );
+  }
+
+  void _showCreateFolderDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) => CreateFolderDialog(
+        onCreateFolder: (name) {
+          // Show loading indicator
+          _showLoadingDialog(context, 'Creating folder "$name"...');
+
+          // Create the folder
+          ref
+              .read(fileManagerNotifierProvider.notifier)
+              .createFolder(name)
+              .then((_) {
+            // Hide loading indicator
+            Navigator.of(context, rootNavigator: true).pop();
+            CustomSnackbar.show(
+              context: context,
+              message: 'Folder "$name" created successfully',
+              type: SnackbarType.success,
+              duration: const Duration(seconds: 4),
+            );
+          }).catchError((error) {
+            // Hide loading indicator
+            Navigator.of(context, rootNavigator: true).pop();
+            CustomSnackbar.show(
+              context: context,
+              message: 'Failed to create folder: $error',
+              type: SnackbarType.failure,
+              duration: const Duration(seconds: 4),
+            );
+          
+          });
+        },
+      ),
+    );
+  }
+
+  void _showLoadingDialog(BuildContext context, String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(
+                AppColors.primary(context),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(child: Text(message)),
+          ],
+        ),
       ),
     );
   }

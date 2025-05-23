@@ -1,4 +1,3 @@
-// lib/presentation/pages/compress/compress_page.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,8 +8,8 @@ import 'package:megapdf_client/data/services/storage_service.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/compress_result.dart';
-import '../../../data/repositories/pdf_repository.dart';
 import '../../../data/services/recent_files_service.dart';
+import '../../widgets/common/file_selection_card.dart';
 import '../../widgets/storage/storage_info_widget.dart';
 import '../../widgets/storage/recently_saved_widget.dart';
 
@@ -44,7 +43,7 @@ class _CompressPageState extends ConsumerState<CompressPage> {
     });
   }
 
-  Future<void> _pickFile() async {
+  Future<File?> _pickFile() async {
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
@@ -59,19 +58,18 @@ class _CompressPageState extends ConsumerState<CompressPage> {
           _errorMessage = null;
           _savedFilePath = null;
         });
+        return file;
       }
+      return null;
     } catch (e) {
       setState(() {
         _errorMessage = 'Error picking file: $e';
       });
+      return null;
     }
   }
 
-  Future<void> _compressPdf() async {
-    if (_selectedFile == null) {
-      return;
-    }
-
+  Future<void> _compressPdf(File file) async {
     setState(() {
       _isProcessing = true;
       _errorMessage = null;
@@ -98,7 +96,7 @@ class _CompressPageState extends ConsumerState<CompressPage> {
 
       // Compress the PDF
       final repository = ref.read(pdfRepositoryProvider);
-      final result = await repository.compressPdf(_selectedFile!);
+      final result = await repository.compressPdf(file);
 
       // Save the file to local storage (if operation succeeded)
       if (result.success && result.fileUrl != null) {
@@ -109,7 +107,7 @@ class _CompressPageState extends ConsumerState<CompressPage> {
         final savedPath = await repository.saveProcessedFile(
           fileUrl: result.fileUrl!,
           filename: result.filename ?? 'compressed.pdf',
-          customFileName: 'Compressed_${_selectedFile!.path.split('/').last}',
+          customFileName: 'Compressed_${file.path.split('/').last}',
           subfolder: subfolder,
         );
 
@@ -117,7 +115,7 @@ class _CompressPageState extends ConsumerState<CompressPage> {
         if (savedPath.isNotEmpty) {
           final recentFilesService = ref.read(recentFilesServiceProvider);
           await recentFilesService.trackCompress(
-            originalFile: _selectedFile!,
+            originalFile: file,
             resultFileName: result.filename ?? 'compressed.pdf',
             resultFilePath: savedPath,
             compressionRatio: result.compressionRatio,
@@ -127,11 +125,17 @@ class _CompressPageState extends ConsumerState<CompressPage> {
 
           setState(() {
             _savedFilePath = savedPath;
+            _result = result;
+            _compressionProgress = 1.0;
           });
 
           // Navigate to success page
-          _navigateToSuccessPage(savedPath, result.originalSize ?? 0,
-              result.compressedSize ?? 0, result.compressionRatio ?? '0%');
+          _navigateToSuccessPage(
+            savedPath,
+            result.originalSize ?? 0,
+            result.compressedSize ?? 0,
+            result.compressionRatio ?? '0%',
+          );
           return;
         }
       }
@@ -151,8 +155,6 @@ class _CompressPageState extends ConsumerState<CompressPage> {
 
   void _navigateToSuccessPage(String filePath, int originalSize,
       int compressedSize, String compressionRatio) {
-    // Create details string for success page
-    // Format: key1:value1|key2:value2|...
     final details = [
       'Original Size:${_formatFileSize(originalSize)}',
       'Compressed Size:${_formatFileSize(compressedSize)}',
@@ -199,16 +201,24 @@ class _CompressPageState extends ConsumerState<CompressPage> {
             const RecentlySavedWidget(),
 
             // Storage info card
-            const StorageInfoWidget(
-                // This will be populated once implemented
-                ),
+            const StorageInfoWidget(),
 
             const SizedBox(height: 16),
 
-            // File selection card
-            _buildFileSelectionCard(),
+            // File action card for compression
+            FileActionCard(
+              title: 'Select PDF to Compress',
+              subtitle:
+                  'Choose a PDF file to reduce its size while maintaining quality',
+              selectButtonText: 'Select PDF File',
+              actionButtonText: 'Compress PDF',
+              selectIcon: Icons.upload_file,
+              actionIcon: Icons.compress,
+              onPickFile: _pickFile,
+              onAction: _compressPdf(_selectedFile!),
+            ),
 
-            if (_selectedFile != null) ...[
+            if (_selectedFile != null && _isProcessing) ...[
               const SizedBox(height: 16),
               _buildProcessingCard(),
             ],
@@ -218,103 +228,10 @@ class _CompressPageState extends ConsumerState<CompressPage> {
               _buildResultCard(),
             ],
 
-            if (_errorMessage != null) ...[
+            if (_errorMessage != null && !_isProcessing) ...[
               const SizedBox(height: 16),
               _buildErrorCard(),
             ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFileSelectionCard() {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Select PDF to Compress',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Choose a PDF file to reduce its size while maintaining quality',
-            ),
-            const SizedBox(height: 16),
-            if (_selectedFile == null)
-              OutlinedButton.icon(
-                onPressed: _pickFile,
-                icon: const Icon(Icons.upload_file),
-                label: const Text('Select PDF File'),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 48),
-                ),
-              )
-            else
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary(context).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      Icons.picture_as_pdf,
-                      color: AppColors.primary(context),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _selectedFile!.path.split('/').last,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
-                          '${(File(_selectedFile!.path).lengthSync() / 1024 / 1024).toStringAsFixed(2)} MB',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () {
-                      setState(() {
-                        _selectedFile = null;
-                        _result = null;
-                        _errorMessage = null;
-                      });
-                    },
-                  ),
-                ],
-              ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed:
-                  _selectedFile != null && !_isProcessing ? _compressPdf : null,
-              icon: const Icon(Icons.compress),
-              label: const Text('Compress PDF'),
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size(double.infinity, 48),
-                backgroundColor: AppColors.primary(context),
-                foregroundColor: Colors.white,
-              ),
-            ),
           ],
         ),
       ),
@@ -553,7 +470,6 @@ class _CompressPageState extends ConsumerState<CompressPage> {
   }
 
   String _getShortenedPath(String fullPath) {
-    // Find "MegaPDF" in the path and return everything after it
     final parts = fullPath.split('/');
     final megaPdfIndex = parts.indexOf('MegaPDF');
 
@@ -561,7 +477,6 @@ class _CompressPageState extends ConsumerState<CompressPage> {
       return '/MegaPDF/${parts.sublist(megaPdfIndex + 1).join('/')}';
     }
 
-    // If MegaPDF not found, return the last 3 directories
     if (parts.length > 3) {
       return '.../${parts.sublist(parts.length - 3).join('/')}';
     }

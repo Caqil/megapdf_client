@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../data/models/file_item.dart';
 import '../../../providers/file_manager_provider.dart';
+import '../../../widgets/common/custom_snackbar.dart';
 import '../../../widgets/common/loading_widget.dart';
 import '../../../widgets/common/error_widget.dart';
 import '../../../widgets/dialogs/folder_selection_dialog.dart';
@@ -29,13 +30,13 @@ class FileManagerView extends ConsumerWidget {
     // Show success message
     if (fileManagerState.successMessage != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(fileManagerState.successMessage!),
-            backgroundColor: AppColors.success(context),
-            behavior: SnackBarBehavior.floating,
-          ),
+        CustomSnackbar.show(
+          context: context,
+          message: fileManagerState.successMessage!,
+          type: SnackbarType.success,
+          duration: const Duration(seconds: 4),
         );
+
         fileManagerNotifier.clearSuccessMessage();
       });
     }

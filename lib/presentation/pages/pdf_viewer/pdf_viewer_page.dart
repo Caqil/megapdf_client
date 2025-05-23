@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../widgets/common/custom_snackbar.dart';
 
 class PDFViewerPage extends ConsumerStatefulWidget {
   final String filePath;
@@ -290,13 +291,13 @@ class _PDFViewerPageState extends ConsumerState<PDFViewerPage> {
   }
 
   void _showSnackBar(String message, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? AppColors.error(context) : null,
-        behavior: SnackBarBehavior.floating,
-      ),
+    CustomSnackbar.show(
+      context: context,
+      message: message,
+      type: isError ? SnackbarType.failure : SnackbarType.success,
+      duration: const Duration(seconds: 4),
     );
+    
   }
 
   @override
