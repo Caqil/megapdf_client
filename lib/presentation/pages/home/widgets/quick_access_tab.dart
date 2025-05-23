@@ -61,7 +61,7 @@ class QuickAccessTab extends ConsumerWidget {
 
 
   void _showSnackBar(BuildContext context, String message,
-      {bool isError = false, bool isSuccess = false}) {
+      {bool isError = false}) {
     CustomSnackbar.show(
       context: context,
       message: message,

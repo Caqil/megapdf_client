@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../constants/api_constants.dart';
@@ -10,7 +11,7 @@ import '../../data/services/interceptors/error_interceptor.dart';
 part 'dio_config.g.dart';
 
 @riverpod
-Dio dio(DioRef ref) {
+Dio dio(Ref ref) {
   final dio = Dio();
 
   // Base configuration
@@ -43,7 +44,7 @@ Dio dio(DioRef ref) {
 }
 
 @riverpod
-Dio multipartDio(MultipartDioRef ref) {
+Dio multipartDio(Ref ref) {
   final dio = Dio();
 
   // Configuration for multipart/form-data requests

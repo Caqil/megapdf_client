@@ -7,7 +7,6 @@ import 'package:megapdf_client/presentation/providers/recent_files_provider.dart
 import 'package:share_plus/share_plus.dart';
 import 'package:open_file/open_file.dart';
 import 'package:go_router/go_router.dart';
-
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/recent_file_model.dart';
 import '../common/custom_snackbar.dart';
