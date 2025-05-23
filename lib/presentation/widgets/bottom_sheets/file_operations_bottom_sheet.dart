@@ -10,9 +10,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/recent_file_model.dart';
-import '../../providers/file_manager_provider.dart';
 import '../common/custom_snackbar.dart';
-import '../dialogs/folder_selection_dialog.dart';
 
 class FileOperationsBottomSheet extends ConsumerStatefulWidget {
   final RecentFileModel file;
@@ -243,14 +241,7 @@ class _FileOperationsBottomSheetState
             ),
           ),
           const SizedBox(width: 8),
-          Expanded(
-            child: _buildQuickActionButton(
-              icon: Icons.drive_file_move,
-              label: 'Move',
-              color: AppColors.warning(context),
-              onTap: _moveToFolder,
-            ),
-          ),
+         
         ],
       ),
     );
@@ -581,45 +572,6 @@ class _FileOperationsBottomSheetState
     }
   }
 
-  Future<void> _moveToFolder() async {
-    if (widget.file.resultFilePath == null) {
-      _showSnackBar('File not available on device', isError: true);
-      return;
-    }
-
-    if (mounted) {
-      Navigator.pop(context);
-    }
-
-    await Future.delayed(const Duration(milliseconds: 100));
-
-    if (mounted) {
-      showDialog(
-        context: context,
-        builder: (dialogContext) => FolderSelectionDialog(
-          title: 'Move File',
-          subtitle:
-              'Select the destination folder for "${widget.file.originalFileName}"',
-          onFolderSelected: (folder) async {
-            try {
-              await ref
-                  .read(fileManagerNotifierProvider.notifier)
-                  .addFileToCurrentFolder(widget.file.resultFilePath!);
-
-              if (mounted) {
-                _showSnackBar('File moved successfully');
-              }
-            } catch (e) {
-              if (mounted) {
-                _showSnackBar('Failed to move file: $e', isError: true);
-              }
-            }
-          },
-        ),
-      );
-    }
-  }
-
   void _showFileInfo() {
     if (mounted) {
       showDialog(
@@ -769,10 +721,6 @@ class _FileOperationsBottomSheetState
           );
         });
 
-        if (widget.file.resultFilePath != null) {
-          await dbHelper.removeFileFromFolder(widget.file.resultFilePath!);
-        }
-
         databaseUpdated = true;
         print('Database records removed');
       } catch (e) {
@@ -786,7 +734,6 @@ class _FileOperationsBottomSheetState
 
       if (mounted) {
         ref.read(recentFilesNotifierProvider.notifier).refreshRecentFiles();
-        ref.read(fileManagerNotifierProvider.notifier).loadRootFolder();
 
         _showSnackBar(
           fileDeleted

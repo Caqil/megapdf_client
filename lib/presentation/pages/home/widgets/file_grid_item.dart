@@ -5,7 +5,7 @@ import 'package:megapdf_client/core/theme/app_colors.dart';
 import 'package:megapdf_client/data/models/file_item.dart';
 import 'package:megapdf_client/presentation/pages/pdf_viewer/pdf_viewer_page.dart';
 import 'package:megapdf_client/presentation/providers/file_manager_provider.dart';
-import 'package:megapdf_client/presentation/widgets/dialogs/folder_selection_dialog.dart';
+import 'package:megapdf_client/presentation/widgets/common/custom_snackbar.dart';
 
 class FileGridItem extends ConsumerWidget {
   final FileItem file;
@@ -17,7 +17,7 @@ class FileGridItem extends ConsumerWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => _handleFileTap(context, ref),
+        onTap: () => _handleFileTap(context),
         onLongPress: () => _showFileContextMenu(context, ref),
         borderRadius: BorderRadius.circular(16),
         child: Container(
@@ -64,20 +64,20 @@ class FileGridItem extends ConsumerWidget {
                         ),
                       ],
                       PopupMenuItem(
-                        value: 'move',
-                        child: ListTile(
-                          leading: Icon(Icons.drive_file_move,
-                              size: 20, color: AppColors.warning(context)),
-                          title: const Text('Move'),
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                      ),
-                      PopupMenuItem(
                         value: 'rename',
                         child: ListTile(
                           leading: Icon(Icons.edit,
                               size: 20, color: AppColors.info(context)),
                           title: const Text('Rename'),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'share',
+                        child: ListTile(
+                          leading: Icon(Icons.share,
+                              size: 20, color: AppColors.secondary(context)),
+                          title: const Text('Share'),
                           contentPadding: EdgeInsets.zero,
                         ),
                       ),
@@ -118,13 +118,12 @@ class FileGridItem extends ConsumerWidget {
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 4),
-              if (!file.isDirectory)
-                Text(
-                  file.formattedSize,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary(context),
-                      ),
-                ),
+              Text(
+                file.formattedSize,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondary(context),
+                    ),
+              ),
               Text(
                 file.formattedDate,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -138,14 +137,8 @@ class FileGridItem extends ConsumerWidget {
     );
   }
 
-  void _handleFileTap(BuildContext context, WidgetRef ref) {
-    if (file.isDirectory) {
-      if (file.folderId != null) {
-        ref
-            .read(fileManagerNotifierProvider.notifier)
-            .navigateToFolder(file.folderId!);
-      }
-    } else if (file.isPdf) {
+  void _handleFileTap(BuildContext context) {
+    if (file.isPdf) {
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -175,32 +168,16 @@ class FileGridItem extends ConsumerWidget {
           );
         }
         break;
-      case 'move':
-        _showMoveDialog(context, ref);
-        break;
       case 'rename':
         _showRenameDialog(context, ref);
+        break;
+      case 'share':
+        _showSnackBar(context, 'Share functionality coming soon!');
         break;
       case 'delete':
         _showDeleteDialog(context, ref);
         break;
     }
-  }
-
-  void _showMoveDialog(BuildContext context, WidgetRef ref) {
-    showDialog(
-      context: context,
-      builder: (context) => FolderSelectionDialog(
-        title: 'Move ${file.isDirectory ? 'Folder' : 'File'}',
-        subtitle: 'Select the destination folder for "${file.name}"',
-        excludeFolderId: file.isDirectory ? file.folderId : null,
-        onFolderSelected: (targetFolder) {
-          ref
-              .read(fileManagerNotifierProvider.notifier)
-              .moveFileToFolder(file, targetFolder);
-        },
-      ),
-    );
   }
 
   void _showRenameDialog(BuildContext context, WidgetRef ref) {
@@ -227,7 +204,7 @@ class FileGridItem extends ConsumerWidget {
               if (newName.isNotEmpty && newName != file.name) {
                 ref
                     .read(fileManagerNotifierProvider.notifier)
-                    .renameItem(file, newName);
+                    .renameFile(file, newName);
               }
               Navigator.pop(context);
             },
@@ -242,10 +219,9 @@ class FileGridItem extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Delete ${file.isDirectory ? 'Folder' : 'File'}'),
+        title: const Text('Delete File'),
         content: Text(
-          'Are you sure you want to delete "${file.name}"?'
-          '${file.isDirectory ? ' This will also delete all contents inside.' : ''}',
+          'Are you sure you want to delete "${file.name}"?',
         ),
         actions: [
           TextButton(
@@ -254,7 +230,9 @@ class FileGridItem extends ConsumerWidget {
           ),
           ElevatedButton(
             onPressed: () {
-              ref.read(fileManagerNotifierProvider.notifier).deleteItem(file);
+              ref
+                  .read(fileManagerNotifierProvider.notifier)
+                  .deleteFile(file, context: context);
               Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(
@@ -290,24 +268,23 @@ class FileGridItem extends ConsumerWidget {
                 title: const Text('Open'),
                 onTap: () {
                   Navigator.pop(context);
-                  _handleFileAction(context, ref, 'open');
+                  _handleFileTap(context);
                 },
               ),
-            ListTile(
-              leading: Icon(Icons.drive_file_move,
-                  color: AppColors.warning(context)),
-              title: const Text('Move'),
-              onTap: () {
-                Navigator.pop(context);
-                _handleFileAction(context, ref, 'move');
-              },
-            ),
             ListTile(
               leading: Icon(Icons.edit, color: AppColors.info(context)),
               title: const Text('Rename'),
               onTap: () {
                 Navigator.pop(context);
-                _handleFileAction(context, ref, 'rename');
+                _showRenameDialog(context, ref);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.share, color: AppColors.secondary(context)),
+              title: const Text('Share'),
+              onTap: () {
+                Navigator.pop(context);
+                _showSnackBar(context, 'Share functionality coming soon!');
               },
             ),
             ListTile(
@@ -316,7 +293,7 @@ class FileGridItem extends ConsumerWidget {
                   style: TextStyle(color: AppColors.error(context))),
               onTap: () {
                 Navigator.pop(context);
-                _handleFileAction(context, ref, 'delete');
+                _showDeleteDialog(context, ref);
               },
             ),
             SizedBox(height: MediaQuery.of(context).padding.bottom),
@@ -328,12 +305,11 @@ class FileGridItem extends ConsumerWidget {
 
   void _showSnackBar(BuildContext context, String message,
       {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? AppColors.error(context) : null,
-        behavior: SnackBarBehavior.floating,
-      ),
+    CustomSnackbar.show(
+      context: context,
+      message: message,
+      type: isError ? SnackbarType.failure : SnackbarType.info,
+      duration: const Duration(seconds: 3),
     );
   }
 }

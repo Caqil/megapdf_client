@@ -3,9 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:megapdf_client/core/theme/app_colors.dart';
 import 'package:megapdf_client/presentation/pages/home/widgets/tips_section.dart';
-import 'package:megapdf_client/presentation/providers/file_manager_provider.dart';
 import '../../../widgets/common/custom_snackbar.dart';
-import 'folder_actions_bottom_sheet.dart';
 import 'quick_action_card.dart';
 import 'section_header.dart';
 import 'feature_grid.dart';
@@ -36,12 +34,7 @@ class QuickAccessTab extends ConsumerWidget {
                 color: AppColors.primary(context),
                 onTap: () => _showSnackBar(context, 'File picker coming soon!'),
               ),
-              QuickActionCard(
-                title: 'Create Folder',
-                icon: Icons.create_new_folder,
-                color: AppColors.secondary(context),
-                onTap: () => _showCreateFolderDialog(context, ref),
-              ),
+             
               QuickActionCard(
                 title: 'Scan to PDF',
                 icon: Icons.document_scanner,
@@ -66,63 +59,6 @@ class QuickAccessTab extends ConsumerWidget {
     );
   }
 
-  void _showCreateFolderDialog(BuildContext context, WidgetRef ref) {
-    showDialog(
-      context: context,
-      builder: (context) => CreateFolderDialog(
-        onCreateFolder: (name) {
-          // Show a loading indicator while the folder is being created
-          _showLoadingDialog(context, 'Creating folder "$name"...');
-
-          // Create the folder
-          ref
-              .read(fileManagerNotifierProvider.notifier)
-              .createFolder(name)
-              .then((_) {
-            // Hide the loading indicator
-            Navigator.of(context, rootNavigator: true).pop();
-
-            // Show success message
-            _showSnackBar(
-              context,
-              'Folder "$name" created successfully',
-              isSuccess: true,
-            );
-          }).catchError((error) {
-            // Hide the loading indicator
-            Navigator.of(context, rootNavigator: true).pop();
-
-            // Show an error message
-            _showSnackBar(
-              context,
-              'Failed to create folder: $error',
-              isError: true,
-            );
-          });
-        },
-      ),
-    );
-  }
-
-  void _showLoadingDialog(BuildContext context, String message) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        content: Row(
-          children: [
-            CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(
-                AppColors.primary(context),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(child: Text(message)),
-          ],
-        ),
-      ),
-    );
-  }
 
   void _showSnackBar(BuildContext context, String message,
       {bool isError = false, bool isSuccess = false}) {

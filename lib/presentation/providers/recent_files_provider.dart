@@ -300,7 +300,6 @@ class RecentFilesNotifier extends _$RecentFilesNotifier {
   // Delete a specific recent file
   Future<bool> deleteRecentFile(int fileId) async {
     try {
-      final repository = ref.read(recentFilesRepositoryProvider);
       final dbHelper = DatabaseHelper();
 
       // Delete from database

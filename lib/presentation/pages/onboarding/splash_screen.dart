@@ -242,29 +242,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                             textAlign: TextAlign.center,
                           ),
                         ],
-                        // Temporary debug buttons (remove in production)
-                        const SizedBox(height: 20),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            ElevatedButton(
-                              onPressed: () {
-                                print(
-                                    '🔧 DEBUG: Manual navigation to permissions');
-                                context.go('/permissions');
-                              },
-                              child: const Text('→ Permissions'),
-                            ),
-                            const SizedBox(width: 10),
-                            ElevatedButton(
-                              onPressed: () {
-                                print('🔧 DEBUG: Manual navigation to main');
-                                context.go('/');
-                              },
-                              child: const Text('→ Main'),
-                            ),
-                          ],
-                        ),
                       ],
                     ),
                   );

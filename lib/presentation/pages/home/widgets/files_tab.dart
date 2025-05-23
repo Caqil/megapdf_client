@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:megapdf_client/core/theme/app_colors.dart';
 import 'package:megapdf_client/data/models/file_item.dart';
-import 'package:megapdf_client/presentation/pages/home/widgets/folder_actions_bottom_sheet.dart';
 import 'package:megapdf_client/presentation/providers/file_manager_provider.dart';
 import '../../../widgets/common/custom_snackbar.dart';
 import 'file_list_item.dart';
@@ -37,21 +36,12 @@ class FilesTab extends ConsumerWidget {
 
     return Column(
       children: [
-        if (fileState.folderPath.isNotEmpty) _buildBreadcrumb(context, ref),
         if (searchQuery.isNotEmpty || fileState.hasFiles)
           _buildSearchBar(context),
         Expanded(
           child: RefreshIndicator(
             onRefresh: () async {
-              if (fileState.currentFolder != null) {
-                await ref
-                    .read(fileManagerNotifierProvider.notifier)
-                    .loadFolder(fileState.currentFolder!.id!);
-              } else {
-                await ref
-                    .read(fileManagerNotifierProvider.notifier)
-                    .loadRootFolder();
-              }
+              await ref.read(fileManagerNotifierProvider.notifier).loadFiles();
             },
             child: fileState.isLoading
                 ? _buildLoadingState()
@@ -79,87 +69,8 @@ class FilesTab extends ConsumerWidget {
       child: CustomErrorWidget(
         message: fileState.error!,
         onRetry: () {
-          if (fileState.currentFolder != null) {
-            ref
-                .read(fileManagerNotifierProvider.notifier)
-                .loadFolder(fileState.currentFolder!.id!);
-          } else {
-            ref.read(fileManagerNotifierProvider.notifier).loadRootFolder();
-          }
+          ref.read(fileManagerNotifierProvider.notifier).loadFiles();
         },
-      ),
-    );
-  }
-
-  Widget _buildBreadcrumb(BuildContext context, WidgetRef ref) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      color: AppColors.surface(context),
-      child: Row(
-        children: [
-          if (ref.read(fileManagerNotifierProvider.notifier).canGoUp())
-            IconButton(
-              onPressed: () =>
-                  ref.read(fileManagerNotifierProvider.notifier).navigateUp(),
-              icon: const Icon(Icons.arrow_back),
-              iconSize: 20,
-              color: AppColors.primary(context),
-            ),
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: fileState.folderPath.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final folder = entry.value;
-                  final isLast = index == fileState.folderPath.length - 1;
-
-                  return Row(
-                    children: [
-                      GestureDetector(
-                        onTap: isLast
-                            ? null
-                            : () => ref
-                                .read(fileManagerNotifierProvider.notifier)
-                                .navigateToFolder(folder.id!),
-                        child: Text(
-                          folder.name,
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: isLast
-                                        ? AppColors.textPrimary(context)
-                                        : AppColors.primary(context),
-                                    fontWeight: isLast
-                                        ? FontWeight.w600
-                                        : FontWeight.normal,
-                                  ),
-                        ),
-                      ),
-                      if (!isLast) ...[
-                        const SizedBox(width: 8),
-                        Icon(
-                          Icons.chevron_right,
-                          size: 16,
-                          color: AppColors.textSecondary(context),
-                        ),
-                        const SizedBox(width: 8),
-                      ],
-                    ],
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
-          // Add a create folder button in the breadcrumb bar
-          IconButton(
-            onPressed: () => _showCreateFolderDialog(context, ref),
-            icon: const Icon(Icons.create_new_folder),
-            iconSize: 20,
-            tooltip: 'Create Folder',
-            color: AppColors.primary(context),
-          ),
-        ],
       ),
     );
   }
@@ -175,7 +86,7 @@ class FilesTab extends ConsumerWidget {
       ),
       child: TextField(
         decoration: InputDecoration(
-          hintText: 'Search files and folders...',
+          hintText: 'Search files...',
           border: InputBorder.none,
           prefixIcon:
               Icon(Icons.search, color: AppColors.textSecondary(context)),
@@ -260,7 +171,7 @@ class FilesTab extends ConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.folder_open_outlined,
+            Icons.insert_drive_file_outlined,
             size: 64,
             color: AppColors.textSecondary(context).withOpacity(0.5),
           ),
@@ -273,101 +184,34 @@ class FilesTab extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Create a folder or import files to get started',
+            'Import files to get started',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: AppColors.textSecondary(context),
                 ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ElevatedButton.icon(
-                onPressed: () => _showCreateFolderDialog(context, ref),
-                icon: const Icon(Icons.create_new_folder),
-                label: const Text('Create Folder'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary(context),
-                ),
-              ),
-              const SizedBox(width: 16),
-              ElevatedButton.icon(
-                onPressed: () {
-                  CustomSnackbar.show(
-                    context: context,
-                    message: 'Import files coming soon!',
-                    type: SnackbarType.success,
-                    duration: const Duration(seconds: 4),
-                  );
-                },
-                icon: const Icon(Icons.upload_file),
-                label: const Text('Add Files'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.secondary(context),
-                ),
-              ),
-            ],
+          ElevatedButton.icon(
+            onPressed: () {
+              _showImportDialog(context, ref);
+            },
+            icon: const Icon(Icons.upload_file),
+            label: const Text('Add Files'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary(context),
+            ),
           ),
         ],
       ),
     );
   }
 
-  void _showCreateFolderDialog(BuildContext context, WidgetRef ref) {
-    showDialog(
+  void _showImportDialog(BuildContext context, WidgetRef ref) {
+    CustomSnackbar.show(
       context: context,
-      builder: (context) => CreateFolderDialog(
-        onCreateFolder: (name) {
-          // Show loading indicator
-          _showLoadingDialog(context, 'Creating folder "$name"...');
-
-          // Create the folder
-          ref
-              .read(fileManagerNotifierProvider.notifier)
-              .createFolder(name)
-              .then((_) {
-            // Hide loading indicator
-            Navigator.of(context, rootNavigator: true).pop();
-            CustomSnackbar.show(
-              context: context,
-              message: 'Folder "$name" created successfully',
-              type: SnackbarType.success,
-              duration: const Duration(seconds: 4),
-            );
-          }).catchError((error) {
-            // Hide loading indicator
-            Navigator.of(context, rootNavigator: true).pop();
-            CustomSnackbar.show(
-              context: context,
-              message: 'Failed to create folder: $error',
-              type: SnackbarType.failure,
-              duration: const Duration(seconds: 4),
-            );
-          
-          });
-        },
-      ),
-    );
-  }
-
-  void _showLoadingDialog(BuildContext context, String message) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        content: Row(
-          children: [
-            CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(
-                AppColors.primary(context),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(child: Text(message)),
-          ],
-        ),
-      ),
+      message: 'Import files coming soon!',
+      type: SnackbarType.info,
+      duration: const Duration(seconds: 4),
     );
   }
 }

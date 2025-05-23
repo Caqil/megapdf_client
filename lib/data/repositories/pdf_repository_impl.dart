@@ -237,7 +237,6 @@ class PdfRepositoryImpl implements PdfRepository {
     final finalFilePath = await _storageService.saveFile(
       sourceFilePath: tempFilePath,
       fileName: customFileName ?? filename,
-      subfolder: subfolder,
       addTimestamp: true,
     );
 

@@ -1,3 +1,4 @@
+// lib/data/models/file_item.dart
 import 'dart:io';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
@@ -8,11 +9,11 @@ import '../../core/utils/file_utils.dart';
 class FileItem extends Equatable {
   final String name;
   final String path;
-  final bool isDirectory;
+  final bool
+      isDirectory; // Keep this for compatibility but it will always be false
   final int size;
   final DateTime lastModified;
   final String? extension;
-  final int? folderId; // Add this to link to database folder
 
   const FileItem({
     required this.name,
@@ -21,7 +22,6 @@ class FileItem extends Equatable {
     required this.size,
     required this.lastModified,
     this.extension,
-    this.folderId,
   });
 
   factory FileItem.fromFile(File file) {
@@ -33,17 +33,6 @@ class FileItem extends Equatable {
       size: stat.size,
       lastModified: stat.modified,
       extension: p.extension(file.path).toLowerCase(), // Use p.extension
-    );
-  }
-
-  factory FileItem.fromDirectory(Directory directory) {
-    final stat = directory.statSync();
-    return FileItem(
-      name: p.basename(directory.path), // Use p.basename
-      path: directory.path,
-      isDirectory: true,
-      size: 0,
-      lastModified: stat.modified,
     );
   }
 

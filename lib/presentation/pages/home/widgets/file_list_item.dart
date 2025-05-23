@@ -17,8 +17,8 @@ class FileListItem extends ConsumerWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => _handleFileTap(context, ref),
-        onLongPress: () => _showFileContextMenu(context),
+        onTap: () => _handleFileTap(context),
+        onLongPress: () => _showFileContextMenu(context, ref),
         borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.all(12),
@@ -58,16 +58,14 @@ class FileListItem extends ConsumerWidget {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        if (!file.isDirectory) ...[
-                          Text(
-                            file.formattedSize,
-                            style:
-                                Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: AppColors.textSecondary(context),
-                                    ),
-                          ),
-                          const Text(' • '),
-                        ],
+                        Text(
+                          file.formattedSize,
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: AppColors.textSecondary(context),
+                                  ),
+                        ),
+                        const Text(' • '),
                         Text(
                           file.formattedDate,
                           style:
@@ -104,11 +102,11 @@ class FileListItem extends ConsumerWidget {
                     ),
                   ),
                   PopupMenuItem(
-                    value: 'move',
+                    value: 'share',
                     child: ListTile(
-                      leading: Icon(Icons.drive_file_move,
-                          size: 20, color: AppColors.warning(context)),
-                      title: const Text('Move'),
+                      leading: Icon(Icons.share,
+                          size: 20, color: AppColors.secondary(context)),
+                      title: const Text('Share'),
                       contentPadding: EdgeInsets.zero,
                     ),
                   ),
@@ -136,14 +134,8 @@ class FileListItem extends ConsumerWidget {
     );
   }
 
-  void _handleFileTap(BuildContext context, WidgetRef ref) {
-    if (file.isDirectory) {
-      if (file.folderId != null) {
-        ref
-            .read(fileManagerNotifierProvider.notifier)
-            .navigateToFolder(file.folderId!);
-      }
-    } else if (file.isPdf) {
+  void _handleFileTap(BuildContext context) {
+    if (file.isPdf) {
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -176,8 +168,8 @@ class FileListItem extends ConsumerWidget {
       case 'rename':
         _showRenameDialog(context, ref);
         break;
-      case 'move':
-        _showSnackBar(context, 'Move functionality coming soon!');
+      case 'share':
+        _showSnackBar(context, 'Share functionality coming soon!');
         break;
       case 'delete':
         _showDeleteDialog(context, ref);
@@ -209,7 +201,7 @@ class FileListItem extends ConsumerWidget {
               if (newName.isNotEmpty && newName != file.name) {
                 ref
                     .read(fileManagerNotifierProvider.notifier)
-                    .renameItem(file, newName);
+                    .renameFile(file, newName);
               }
               Navigator.pop(context);
             },
@@ -224,10 +216,9 @@ class FileListItem extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Delete ${file.isDirectory ? 'Folder' : 'File'}'),
+        title: const Text('Delete File'),
         content: Text(
-          'Are you sure you want to delete "${file.name}"?'
-          '${file.isDirectory ? ' This will also delete all contents inside.' : ''}',
+          'Are you sure you want to delete "${file.name}"?',
         ),
         actions: [
           TextButton(
@@ -236,7 +227,9 @@ class FileListItem extends ConsumerWidget {
           ),
           ElevatedButton(
             onPressed: () {
-              ref.read(fileManagerNotifierProvider.notifier).deleteItem(file);
+              ref
+                  .read(fileManagerNotifierProvider.notifier)
+                  .deleteFile(file, context: context);
               Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(
@@ -248,8 +241,63 @@ class FileListItem extends ConsumerWidget {
     );
   }
 
-  void _showFileContextMenu(BuildContext context) {
-    _showSnackBar(context, 'File context menu coming soon!');
+  void _showFileContextMenu(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.border(context),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (file.isPdf)
+              ListTile(
+                leading:
+                    Icon(Icons.open_in_new, color: AppColors.primary(context)),
+                title: const Text('Open'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _handleFileTap(context);
+                },
+              ),
+            ListTile(
+              leading: Icon(Icons.edit, color: AppColors.info(context)),
+              title: const Text('Rename'),
+              onTap: () {
+                Navigator.pop(context);
+                _showRenameDialog(context, ref);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.share, color: AppColors.secondary(context)),
+              title: const Text('Share'),
+              onTap: () {
+                Navigator.pop(context);
+                _showSnackBar(context, 'Share functionality coming soon!');
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.delete, color: AppColors.error(context)),
+              title: Text('Delete',
+                  style: TextStyle(color: AppColors.error(context))),
+              onTap: () {
+                Navigator.pop(context);
+                _showDeleteDialog(context, ref);
+              },
+            ),
+            SizedBox(height: MediaQuery.of(context).padding.bottom),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showSnackBar(BuildContext context, String message,
@@ -258,7 +306,7 @@ class FileListItem extends ConsumerWidget {
       context: context,
       message: message,
       type: isError ? SnackbarType.failure : SnackbarType.info,
-      duration: const Duration(seconds: 4),
+      duration: const Duration(seconds: 3),
     );
   }
 }

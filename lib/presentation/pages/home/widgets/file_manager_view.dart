@@ -7,8 +7,6 @@ import '../../../../data/models/file_item.dart';
 import '../../../providers/file_manager_provider.dart';
 import '../../../widgets/common/custom_snackbar.dart';
 import '../../../widgets/common/loading_widget.dart';
-import '../../../widgets/common/error_widget.dart';
-import '../../../widgets/dialogs/folder_selection_dialog.dart';
 
 class FileManagerView extends ConsumerWidget {
   final Function(FileItem) onFolderTap;
@@ -47,22 +45,7 @@ class FileManagerView extends ConsumerWidget {
       );
     }
 
-    if (fileManagerState.error != null) {
-      return Center(
-        child: CustomErrorWidget(
-          message: fileManagerState.error!,
-          onRetry: () {
-            if (fileManagerState.currentFolder != null) {
-              fileManagerNotifier
-                  .loadFolder(fileManagerState.currentFolder!.id!);
-            } else {
-              fileManagerNotifier.loadRootFolder();
-            }
-          },
-        ),
-      );
-    }
-
+   
     if (!fileManagerState.hasFiles) {
       return Center(
         child: Column(
@@ -110,7 +93,6 @@ class FileManagerView extends ConsumerWidget {
           },
           onLongPress:
               onFileLongPress != null ? () => onFileLongPress!(item) : null,
-          onMove: (item) => _showMoveDialog(context, ref, item),
           onRename: (item) => _showRenameDialog(context, ref, item),
           onDelete: (item) => _showDeleteDialog(context, ref, item),
         );
@@ -118,21 +100,6 @@ class FileManagerView extends ConsumerWidget {
     );
   }
 
-  void _showMoveDialog(BuildContext context, WidgetRef ref, FileItem item) {
-    showDialog(
-      context: context,
-      builder: (context) => FolderSelectionDialog(
-        title: 'Move ${item.isDirectory ? 'Folder' : 'File'}',
-        subtitle: 'Select the destination folder for "${item.name}"',
-        excludeFolderId: item.isDirectory ? item.folderId : null,
-        onFolderSelected: (targetFolder) {
-          ref
-              .read(fileManagerNotifierProvider.notifier)
-              .moveFileToFolder(item, targetFolder);
-        },
-      ),
-    );
-  }
 
   void _showRenameDialog(BuildContext context, WidgetRef ref, FileItem item) {
     final controller = TextEditingController(text: item.name);
@@ -171,7 +138,7 @@ class FileManagerView extends ConsumerWidget {
     if (newName.trim().isNotEmpty && newName.trim() != item.name) {
       ref
           .read(fileManagerNotifierProvider.notifier)
-          .renameItem(item, newName.trim());
+          .renameFile(item, newName.trim());
     }
     Navigator.pop(context);
   }
@@ -192,7 +159,7 @@ class FileManagerView extends ConsumerWidget {
           ),
           ElevatedButton(
             onPressed: () {
-              ref.read(fileManagerNotifierProvider.notifier).deleteItem(item);
+              ref.read(fileManagerNotifierProvider.notifier).deleteFile(item);
               Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(
@@ -210,7 +177,6 @@ class FileItemTile extends StatelessWidget {
   final FileItem item;
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
-  final Function(FileItem) onMove;
   final Function(FileItem) onRename;
   final Function(FileItem) onDelete;
 
@@ -219,7 +185,6 @@ class FileItemTile extends StatelessWidget {
     required this.item,
     required this.onTap,
     this.onLongPress,
-    required this.onMove,
     required this.onRename,
     required this.onDelete,
   });
@@ -313,10 +278,7 @@ class FileItemTile extends StatelessWidget {
 
   void _handleMenuAction(BuildContext context, String action) {
     switch (action) {
-      case 'move':
-        onMove(item);
-        break;
-      case 'rename':
+     case 'rename':
         onRename(item);
         break;
       case 'delete':

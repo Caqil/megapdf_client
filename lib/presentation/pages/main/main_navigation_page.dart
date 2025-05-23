@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
-import '../../providers/recent_files_provider.dart';
 import '../home/home_page.dart';
 import '../tools/tools_page.dart';
 import '../recent/recent_page.dart';
@@ -18,7 +17,6 @@ class MainNavigationPage extends ConsumerStatefulWidget {
 
 class _MainNavigationPageState extends ConsumerState<MainNavigationPage> {
   int _currentIndex = 0;
-  int _lastRecentTabVisit = 0;
 
   final List<Widget> _pages = [
     const HomePage(),

@@ -5,8 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:path/path.dart' as path;
-import '../../../core/utils/download_manager.dart';
-import '../../../core/utils/permission_manager.dart';
+import '../../core/utils/permission_manager.dart';
 import 'fallback_storage_service.dart';
 
 part 'storage_service.g.dart';
@@ -49,7 +48,6 @@ class StorageService {
   Future<bool> requestPermissions(BuildContext context) async {
     return await _permissionManager.requestStoragePermission(context);
   }
-
 
   // Create MegaPDF folder in the root directory
   Future<Directory?> createMegaPDFDirectory() async {
@@ -98,97 +96,6 @@ class StorageService {
       return privateMegaPdfDir;
     }
   }
-
-  // Create a subfolder within the MegaPDF directory
-  Future<Directory?> createSubfolder(String subfolder) async {
-    try {
-      print('Creating subfolder: $subfolder');
-      final megaPdfDir = await createMegaPDFDirectory();
-
-      if (megaPdfDir == null) {
-        debugPrint('⚠️ MegaPDF directory is null');
-        return null;
-      }
-
-      // Handle both absolute and relative paths
-      String subfolderPath;
-      if (subfolder.startsWith('/')) {
-        // This is an absolute path, so make it relative to MegaPDF
-        if (subfolder.startsWith('/MegaPDF/')) {
-          subfolderPath = subfolder.substring('/MegaPDF/'.length);
-        } else {
-          // This is some other absolute path, just use the basename
-          subfolderPath = path.basename(subfolder);
-        }
-      } else {
-        // This is already a relative path
-        subfolderPath = subfolder;
-      }
-
-      final subfolderDir = Directory(path.join(megaPdfDir.path, subfolderPath));
-      print('Full subfolder path: ${subfolderDir.path}');
-
-      if (!await subfolderDir.exists()) {
-        try {
-          await subfolderDir.create(recursive: true);
-          debugPrint('✅ Created subfolder at: ${subfolderDir.path}');
-        } catch (e) {
-          debugPrint('⚠️ Failed to create subfolder: $e');
-          // Try in private storage
-          _usePrivateStorage = true;
-          final privateDir = await getApplicationDocumentsDirectory();
-          final privateMegaPdfDir =
-              Directory(path.join(privateDir.path, _rootDirName));
-          await privateMegaPdfDir.create(recursive: true);
-          final privateSubfolderDir =
-              Directory(path.join(privateMegaPdfDir.path, subfolderPath));
-          await privateSubfolderDir.create(recursive: true);
-          print(
-              'Created subfolder in private storage: ${privateSubfolderDir.path}');
-          return privateSubfolderDir;
-        }
-      } else {
-        print('Subfolder already exists at: ${subfolderDir.path}');
-      }
-
-      return subfolderDir;
-    } catch (e) {
-      debugPrint('⚠️ Error creating subfolder: $e');
-      // Fall back to private storage
-      _usePrivateStorage = true;
-      final privateDir = await getApplicationDocumentsDirectory();
-      final privateMegaPdfDir =
-          Directory(path.join(privateDir.path, _rootDirName));
-      await privateMegaPdfDir.create(recursive: true);
-      final privateSubfolderDir =
-          Directory(path.join(privateMegaPdfDir.path, subfolder));
-      await privateSubfolderDir.create(recursive: true);
-      return privateSubfolderDir;
-    }
-  }
-
-  // Maps a virtual path like "/MegaPDF/MyFolder" to a real system path
-  Future<String?> mapVirtualPathToReal(String virtualPath) async {
-    try {
-      if (virtualPath == '/MegaPDF' || virtualPath == '/MegaPDF/') {
-        final megaPdfDir = await createMegaPDFDirectory();
-        return megaPdfDir?.path;
-      }
-
-      if (virtualPath.startsWith('/MegaPDF/')) {
-        final subfolderPath = virtualPath.substring('/MegaPDF/'.length);
-        final subfolderDir = await createSubfolder(subfolderPath);
-        return subfolderDir?.path;
-      }
-
-      // If it doesn't start with /MegaPDF, treat it as a direct path
-      return virtualPath;
-    } catch (e) {
-      debugPrint('⚠️ Error mapping virtual path: $e');
-      return null;
-    }
-  }
-
 
   // Helper method to create a safe filename
   String _createSafeFileName(String fileName) {
@@ -340,11 +247,10 @@ class StorageService {
     }
   }
 
-  /// Enhanced saveFile method with better permission handling
+  /// Simplified saveFile method without folder functionality
   Future<String?> saveFile({
     required String sourceFilePath,
     required String fileName,
-    String? subfolder,
     bool addTimestamp = true,
     BuildContext? context,
   }) async {
@@ -404,19 +310,17 @@ class StorageService {
         _usePrivateStorage = true;
       }
 
-      // Get directory to save to
-      final Directory? saveDir = subfolder != null
-          ? await createSubfolder(subfolder)
-          : await createMegaPDFDirectory();
+      // Get MegaPDF directory
+      final Directory? megaPdfDir = await createMegaPDFDirectory();
 
-      if (saveDir == null) {
-        debugPrint('⚠️ Save directory is null');
+      if (megaPdfDir == null) {
+        debugPrint('⚠️ MegaPDF directory is null');
 
         // Fall back to app's private directory
         return await _fallbackService.saveToAppDirectory(
           sourceFilePath: sourceFilePath,
           fileName: fileName,
-          subfolder: subfolder,
+          subfolder: null,
         );
       }
 
@@ -433,20 +337,12 @@ class StorageService {
       }
 
       // Full path for the destination file
-      final savePath = path.join(saveDir.path, finalFileName);
+      final savePath = path.join(megaPdfDir.path, finalFileName);
 
       try {
         // Copy the file
         final newFile = await sourceFile.copy(savePath);
         debugPrint('✅ File saved to: ${newFile.path}');
-
-        // Store metadata about permission status
-        final metadata = {
-          'is_public_storage': !_usePrivateStorage,
-          'permission_granted': hasPermission,
-          'save_method': _usePrivateStorage ? 'private' : 'public',
-        };
-
         return newFile.path;
       } catch (e) {
         debugPrint('⚠️ Error copying file: $e');
@@ -457,7 +353,7 @@ class StorageService {
           return await _fallbackService.saveToAppDirectory(
             sourceFilePath: sourceFilePath,
             fileName: fileName,
-            subfolder: subfolder,
+            subfolder: null,
           );
         }
 
@@ -614,5 +510,53 @@ class StorageService {
     return _usePrivateStorage
         ? 'Using private app storage (limited access)'
         : 'Using public storage (accessible to all apps)';
+  }
+
+  // Get list of files in the MegaPDF directory
+  Future<List<File>> getFiles() async {
+    try {
+      final megaPdfDir = await createMegaPDFDirectory();
+      if (megaPdfDir == null) {
+        return [];
+      }
+
+      if (!await megaPdfDir.exists()) {
+        return [];
+      }
+
+      final files = <File>[];
+      await for (final entity in megaPdfDir.list()) {
+        if (entity is File) {
+          files.add(entity);
+        }
+      }
+
+      // Sort by modification date (newest first)
+      files.sort((a, b) {
+        final aStat = a.statSync();
+        final bStat = b.statSync();
+        return bStat.modified.compareTo(aStat.modified);
+      });
+
+      return files;
+    } catch (e) {
+      print('Error getting files: $e');
+      return [];
+    }
+  }
+
+  // Delete a file
+  Future<bool> deleteFile(String filePath) async {
+    try {
+      final file = File(filePath);
+      if (await file.exists()) {
+        await file.delete();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('Error deleting file: $e');
+      return false;
+    }
   }
 }

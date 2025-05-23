@@ -5,9 +5,7 @@ import 'package:path/path.dart' as path;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../data/models/file_item.dart';
-import '../../data/models/folder_model.dart';
-import '../../data/repositories/folder_repository.dart';
-import '../../data/database/database_helper.dart';
+import '../../data/services/storage_service.dart';
 
 part 'file_manager_provider.g.dart';
 
@@ -15,26 +13,22 @@ part 'file_manager_provider.g.dart';
 class FileManagerNotifier extends _$FileManagerNotifier {
   @override
   FileManagerState build() {
+    // Load files when provider is first created
+    loadFiles();
     return const FileManagerState();
   }
 
-  Future<void> loadRootFolder() async {
+  Future<void> loadFiles() async {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      final folderRepo = ref.read(folderRepositoryProvider);
-      final rootFolder = await folderRepo.getRootFolder();
+      // Get all files from the MegaPDF directory
+      final fileList = await _getAllFiles();
 
-      if (rootFolder != null) {
-        await loadFolder(rootFolder.id!);
-      } else {
-        // Create root folder if it doesn't exist
-        final rootId = await folderRepo.createFolder(
-          name: 'MegaPDF',
-          path: '/MegaPDF',
-        );
-        await loadFolder(rootId);
-      }
+      state = state.copyWith(
+        isLoading: false,
+        fileItems: fileList,
+      );
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -43,437 +37,340 @@ class FileManagerNotifier extends _$FileManagerNotifier {
     }
   }
 
-  Future<void> loadFolder(int folderId) async {
-    state = state.copyWith(isLoading: true, error: null);
-
+  Future<List<FileItem>> _getAllFiles() async {
     try {
-      final folderRepo = ref.read(folderRepositoryProvider);
-      final dbHelper = DatabaseHelper();
+      // Get the MegaPDF directory
+      final storageService = StorageService();
+      final Directory? megaPdfDir =
+          await storageService.createMegaPDFDirectory();
 
-      final currentFolder = await folderRepo.getFolderById(folderId);
-
-      if (currentFolder == null) {
-        throw Exception('Folder not found');
+      if (megaPdfDir == null) {
+        throw Exception('Could not access storage directory');
       }
 
-      // Get subfolders
-      final subfolders = await folderRepo.getFolders(parentId: folderId);
+      // Create if it doesn't exist
+      if (!await megaPdfDir.exists()) {
+        await megaPdfDir.create(recursive: true);
+      }
 
-      // Get files linked to this folder
-      final linkedFiles = await dbHelper.getFilesInFolder(folderId);
-
-      // Combine folders and files
       final List<FileItem> fileItems = [];
 
-      // Add folders first
-      for (final folder in subfolders) {
-        fileItems.add(FileItem(
-          name: folder.name,
-          path: folder.path,
-          isDirectory: true,
-          size: 0,
-          lastModified: folder.updatedAt,
-          folderId: folder.id,
-        ));
-      }
-
-      // Add linked files
-      for (final fileLink in linkedFiles) {
-        final file = File(fileLink.filePath);
-        if (await file.exists()) {
-          final stat = file.statSync();
+      // Scan for PDF files
+      await for (final entity in megaPdfDir.list(recursive: false)) {
+        if (entity is File) {
+          final stat = entity.statSync();
           fileItems.add(FileItem(
-            name: fileLink.fileName,
-            path: fileLink.filePath,
+            name: path.basename(entity.path),
+            path: entity.path,
             isDirectory: false,
             size: stat.size,
             lastModified: stat.modified,
-            extension: path.extension(fileLink.filePath).toLowerCase(),
-          ));
-        } else {
-          // File doesn't exist physically, but keep the record
-          fileItems.add(FileItem(
-            name: fileLink.fileName + ' (missing)',
-            path: fileLink.filePath,
-            isDirectory: false,
-            size: 0,
-            lastModified: fileLink.addedAt,
-            extension: path.extension(fileLink.filePath).toLowerCase(),
+            extension: path.extension(entity.path).toLowerCase(),
           ));
         }
       }
 
-      // Get folder path for breadcrumb
-      final folderPath = await folderRepo.getFolderPath(folderId);
+      // Sort files by date (newest first)
+      fileItems.sort((a, b) => b.lastModified.compareTo(a.lastModified));
 
-      state = state.copyWith(
-        isLoading: false,
-        fileItems: fileItems,
-        currentFolder: currentFolder,
-        folderPath: folderPath,
-      );
+      return fileItems;
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.toString(),
-      );
+      print('Error getting files: $e');
+      return [];
     }
   }
 
-  Future<void> createFolder(String folderName) async {
-    debugPrint('🔧 FILE_MANAGER: Creating folder: "$folderName"');
+  // Refresh files
+  Future<void> refreshFiles() async {
+    await loadFiles();
+  }
 
-    // Validate folder name
-    if (folderName.trim().isEmpty) {
-      state = state.copyWith(error: 'Folder name cannot be empty');
-      return;
+  // Delete file
+  Future<void> deleteFile(FileItem file, {BuildContext? context}) async {
+    if (context != null) {
+      // Show confirmation dialog
+      final shouldDelete =
+          await _showDeleteConfirmationDialog(context, file.name);
+      if (!shouldDelete) return;
     }
-
-    // Check for invalid characters
-    if (folderName.contains(RegExp(r'[<>:"/\\|?*]'))) {
-      state = state.copyWith(error: 'Folder name contains invalid characters');
-      return;
-    }
-
-    final currentFolder = state.currentFolder;
-    if (currentFolder == null) {
-      state = state.copyWith(error: 'No current folder selected');
-      return;
-    }
-
-    debugPrint(
-        '🔧 FILE_MANAGER: Current folder: ${currentFolder.name} (${currentFolder.path})');
 
     try {
       state = state.copyWith(isLoading: true, error: null);
 
-      final folderRepo = ref.read(folderRepositoryProvider);
-
-      // Generate unique folder path
-      final newPath = await folderRepo.generateUniqueFolderPath(
-        currentFolder.path,
-        folderName.trim(),
-      );
-
-      debugPrint('🔧 FILE_MANAGER: Generated path: $newPath');
-
-      final pathParts = newPath.split('/');
-      final uniqueName = pathParts.last;
-
-      debugPrint('🔧 FILE_MANAGER: Creating folder with name: "$uniqueName"');
-
-      final folderId = await folderRepo.createFolder(
-        name: uniqueName,
-        path: newPath,
-        parentId: currentFolder.id,
-      );
-
-      debugPrint('🔧 FILE_MANAGER: Folder created with ID: $folderId');
-
-      // Reload current folder to show the new folder
-      await loadFolder(currentFolder.id!);
-
-      state = state.copyWith(
-        isLoading: false,
-        successMessage: 'Folder "$uniqueName" created successfully',
-        error: null,
-      );
-
-      debugPrint('🔧 FILE_MANAGER: Folder creation completed successfully');
-    } catch (e) {
-      debugPrint('🔧 FILE_MANAGER: Folder creation failed: $e');
-
-      String errorMessage = 'Failed to create folder';
-
-      // Provide more specific error messages
-      if (e.toString().contains('Operation not permitted')) {
-        errorMessage =
-            'Permission denied. Cannot create folder in this location.';
-      } else if (e.toString().contains('PathAccessException')) {
-        errorMessage = 'Invalid folder path. Please try a different name.';
-      } else if (e.toString().contains('already exists')) {
-        errorMessage = 'A folder with this name already exists.';
-      } else {
-        errorMessage = 'Failed to create folder: ${e.toString()}';
+      // Delete physical file
+      final fileToDelete = File(file.path);
+      if (await fileToDelete.exists()) {
+        await fileToDelete.delete();
       }
 
+      // Reload files
+      await loadFiles();
+
       state = state.copyWith(
         isLoading: false,
-        error: errorMessage,
-        successMessage: null,
+        successMessage: 'File "${file.name}" deleted successfully',
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Failed to delete file: $e',
       );
     }
   }
 
-  Future<void> moveFileToFolder(FileItem file, FolderModel targetFolder) async {
-    print('🔧 MOVE: Starting move operation');
-    print('🔧 MOVE: File: ${file.name} (isDirectory: ${file.isDirectory})');
-    print(
-        '🔧 MOVE: Target folder: ${targetFolder.name} (ID: ${targetFolder.id})');
+  // Show delete confirmation dialog
+  Future<bool> _showDeleteConfirmationDialog(
+      BuildContext context, String fileName) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Delete File'),
+            content: Text('Are you sure you want to delete "$fileName"?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                ),
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
 
+  // Rename file
+  Future<void> renameFile(FileItem file, String newName,
+      {BuildContext? context}) async {
     try {
-      final dbHelper = DatabaseHelper();
-      final folderRepo = ref.read(folderRepositoryProvider);
+      if (newName.trim().isEmpty) {
+        state = state.copyWith(error: 'File name cannot be empty');
+        return;
+      }
 
-      if (file.isDirectory) {
-        print('🔧 MOVE: Moving folder');
+      state = state.copyWith(isLoading: true, error: null);
 
-        // Moving folder - update parent_id
-        if (file.folderId == null) {
-          throw Exception('Folder ID is null');
-        }
+      final directory = path.dirname(file.path);
+      final extension = path.extension(file.path);
+      final newPath = path.join(directory, '$newName$extension');
 
-        final folderToMove = await folderRepo.getFolderById(file.folderId!);
-        if (folderToMove == null) {
-          throw Exception('Folder to move not found');
-        }
-
-        // Check if we're trying to move a folder into itself or its descendant
-        if (await _isDescendantFolder(folderToMove.id!, targetFolder.id!)) {
-          throw Exception('Cannot move folder into itself or its descendant');
-        }
-
-        // Update the folder's parent
-        final updatedFolder = folderToMove.copyWith(
-          parentId: targetFolder.id,
-          updatedAt: DateTime.now(),
+      // Check if a file with the new name already exists
+      if (await File(newPath).exists()) {
+        state = state.copyWith(
+          isLoading: false,
+          error: 'A file with this name already exists',
         );
-
-        print(
-            '🔧 MOVE: Updating folder parent from ${folderToMove.parentId} to ${targetFolder.id}');
-
-        final updateResult = await folderRepo.updateFolder(updatedFolder);
-        if (!updateResult) {
-          throw Exception('Failed to update folder in database');
-        }
-
-        print('🔧 MOVE: Folder parent updated successfully');
-      } else {
-        print('🔧 MOVE: Moving file');
-
-        // Moving file - update the file-folder link
-        final existingLink = await dbHelper.getFileLocation(file.path);
-        print('🔧 MOVE: Existing link found: ${existingLink != null}');
-
-        if (existingLink != null) {
-          print(
-              '🔧 MOVE: Updating existing link from folder ${existingLink.folderId} to ${targetFolder.id}');
-
-          // Update existing link to new folder
-          final updateResult = await dbHelper.moveFileToFolder(
-            filePath: file.path,
-            newFolderId: targetFolder.id!,
-          );
-
-          print('🔧 MOVE: Update result: $updateResult');
-
-          if (updateResult == 0) {
-            throw Exception(
-                'Failed to update file location in database - no rows affected');
-          }
-        } else {
-          print('🔧 MOVE: Creating new file-folder link');
-
-          // Create new link
-          final linkId = await dbHelper.addFileToFolder(
-            filePath: file.path,
-            fileName: file.name,
-            folderId: targetFolder.id!,
-          );
-
-          print('🔧 MOVE: New link created with ID: $linkId');
-
-          if (linkId <= 0) {
-            throw Exception('Failed to create file-folder link');
-          }
-        }
+        return;
       }
 
-      // Reload current folder to reflect changes
-      if (state.currentFolder != null) {
-        print('🔧 MOVE: Reloading current folder');
-        await loadFolder(state.currentFolder!.id!);
-      }
+      // Rename the file
+      final oldFile = File(file.path);
+      await oldFile.rename(newPath);
+
+      // Reload files
+      await loadFiles();
 
       state = state.copyWith(
-        successMessage:
-            '${file.isDirectory ? 'Folder' : 'File'} "${file.name}" moved to "${targetFolder.name}" successfully',
-        error: null,
+        isLoading: false,
+        successMessage: 'File renamed successfully',
       );
-
-      print('🔧 MOVE: Move operation completed successfully');
     } catch (e) {
-      print('🔧 MOVE: Move operation failed: $e');
       state = state.copyWith(
-        error: 'Failed to move ${file.isDirectory ? 'folder' : 'file'}: $e',
-        successMessage: null,
+        isLoading: false,
+        error: 'Failed to rename file: $e',
       );
     }
   }
 
-  // Helper method to check if targetFolder is a descendant of sourceFolder
-  Future<bool> _isDescendantFolder(
-      int sourceFolderId, int targetFolderId) async {
-    if (sourceFolderId == targetFolderId) {
+  // Import a file to the app
+  Future<bool> importFile(String sourcePath, {String? customName}) async {
+    try {
+      state = state.copyWith(isLoading: true, error: null);
+
+      final sourceFile = File(sourcePath);
+      if (!await sourceFile.exists()) {
+        state = state.copyWith(
+          isLoading: false,
+          error: 'Source file does not exist',
+        );
+        return false;
+      }
+
+      // Get the MegaPDF directory
+      final storageService = StorageService();
+      final Directory? megaPdfDir =
+          await storageService.createMegaPDFDirectory();
+
+      if (megaPdfDir == null) {
+        state = state.copyWith(
+          isLoading: false,
+          error: 'Could not access storage directory',
+        );
+        return false;
+      }
+
+      // Generate file name
+      final originalName = path.basename(sourcePath);
+      final extension = path.extension(originalName);
+      final baseName =
+          customName ?? path.basenameWithoutExtension(originalName);
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final destFileName = '${baseName}_$timestamp$extension';
+
+      // Create destination path
+      final destPath = path.join(megaPdfDir.path, destFileName);
+
+      // Copy the file
+      await sourceFile.copy(destPath);
+
+      // Reload files
+      await loadFiles();
+
+      state = state.copyWith(
+        isLoading: false,
+        successMessage: 'File imported successfully',
+      );
+
       return true;
-    }
-
-    final folderRepo = ref.read(folderRepositoryProvider);
-    final targetFolder = await folderRepo.getFolderById(targetFolderId);
-
-    if (targetFolder?.parentId == null) {
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Failed to import file: $e',
+      );
       return false;
     }
-
-    return await _isDescendantFolder(sourceFolderId, targetFolder!.parentId!);
   }
 
-  Future<void> deleteItem(FileItem item) async {
+  // Add a file directly to the app's storage
+  Future<String?> addFile(File file, {String? customName}) async {
     try {
-      final dbHelper = DatabaseHelper();
+      // Get the MegaPDF directory
+      final storageService = StorageService();
+      final Directory? megaPdfDir =
+          await storageService.createMegaPDFDirectory();
 
-      if (item.isDirectory && item.folderId != null) {
-        final folderRepo = ref.read(folderRepositoryProvider);
-
-        // Remove all files from folder first
-        await dbHelper.removeFilesFromFolder(item.folderId!);
-
-        // Delete the folder
-        final deleteResult = await folderRepo.deleteFolder(item.folderId!);
-        if (!deleteResult) {
-          throw Exception('Failed to delete folder from database');
-        }
-      } else {
-        // Remove file link from folder
-        await dbHelper.removeFileFromFolder(item.path);
-
-        // Delete physical file if it exists
-        try {
-          final file = File(item.path);
-          if (await file.exists()) {
-            await file.delete();
-            print('Physical file deleted: ${item.path}');
-          }
-        } catch (e) {
-          print('Warning: Could not delete physical file: $e');
-          // Continue even if physical file deletion fails
-        }
+      if (megaPdfDir == null) {
+        return null;
       }
 
-      // Reload current folder
-      if (state.currentFolder != null) {
-        await loadFolder(state.currentFolder!.id!);
-      }
+      // Generate file name
+      final originalName = path.basename(file.path);
+      final extension = path.extension(originalName);
+      final baseName =
+          customName ?? path.basenameWithoutExtension(originalName);
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final destFileName = '${baseName}_$timestamp$extension';
 
-      state = state.copyWith(
-        successMessage:
-            '${item.isDirectory ? 'Folder' : 'File'} "${item.name}" deleted successfully',
-      );
+      // Create destination path
+      final destPath = path.join(megaPdfDir.path, destFileName);
+
+      // Copy the file
+      final newFile = await file.copy(destPath);
+
+      // Reload files (don't await to avoid blocking)
+      loadFiles();
+
+      return newFile.path;
     } catch (e) {
-      state = state.copyWith(error: 'Failed to delete item: $e');
+      print('Error adding file: $e');
+      return null;
     }
   }
 
-  Future<void> addFileToCurrentFolder(String filePath) async {
-    final currentFolder = state.currentFolder;
-    if (currentFolder == null) {
-      state = state.copyWith(error: 'No current folder selected');
-      return;
+  // Selection methods
+  void toggleFileSelection(FileItem file) {
+    final currentSelection = [...state.selectedItems];
+
+    if (currentSelection.contains(file)) {
+      currentSelection.remove(file);
+    } else {
+      currentSelection.add(file);
     }
 
-    try {
-      final dbHelper = DatabaseHelper();
-      final file = File(filePath);
-
-      if (!await file.exists()) {
-        throw Exception('File does not exist');
-      }
-
-      await dbHelper.addFileToFolder(
-        filePath: filePath,
-        fileName: path.basename(filePath),
-        folderId: currentFolder.id!,
-      );
-
-      // Reload current folder
-      await loadFolder(currentFolder.id!);
-
-      state = state.copyWith(
-        successMessage: 'File added to folder successfully',
-      );
-    } catch (e) {
-      state = state.copyWith(error: 'Failed to add file to folder: $e');
-    }
-  }
-
-  Future<void> renameItem(FileItem item, String newName) async {
-    if (newName.trim().isEmpty) {
-      state = state.copyWith(error: 'Name cannot be empty');
-      return;
-    }
-
-    try {
-      if (item.isDirectory && item.folderId != null) {
-        final folderRepo = ref.read(folderRepositoryProvider);
-        await folderRepo.renameFolder(item.folderId!, newName.trim());
-      } else {
-        // For files, we need to update the file link
-        final dbHelper = DatabaseHelper();
-        final fileLink = await dbHelper.getFileLocation(item.path);
-
-        if (fileLink != null) {
-          // Remove old link and add new one with updated name
-          await dbHelper.removeFileFromFolder(item.path);
-
-          // If renaming involves changing the actual file, handle that here
-          final oldFile = File(item.path);
-          if (await oldFile.exists()) {
-            final directory = path.dirname(item.path);
-            final extension = path.extension(item.path);
-            final newPath = path.join(directory, '$newName$extension');
-            final newFile = await oldFile.rename(newPath);
-
-            // Add new link with new path and name
-            await dbHelper.addFileToFolder(
-              filePath: newFile.path,
-              fileName: path.basename(newFile.path),
-              folderId: fileLink.folderId,
-            );
-          }
-        }
-      }
-
-      // Reload current folder
-      if (state.currentFolder != null) {
-        await loadFolder(state.currentFolder!.id!);
-      }
-
-      state = state.copyWith(
-        successMessage:
-            '${item.isDirectory ? 'Folder' : 'File'} renamed successfully',
-      );
-    } catch (e) {
-      state = state.copyWith(error: 'Failed to rename item: $e');
-    }
-  }
-
-  Future<void> navigateToFolder(int folderId) async {
-    await loadFolder(folderId);
-  }
-
-  Future<void> navigateUp() async {
-    final currentFolder = state.currentFolder;
-    if (currentFolder?.parentId != null) {
-      await loadFolder(currentFolder!.parentId!);
-    }
-  }
-
-  void setSelectedItems(List<FileItem> items) {
-    state = state.copyWith(selectedItems: items);
+    state = state.copyWith(
+      selectedItems: currentSelection,
+      isSelectionMode: currentSelection.isNotEmpty,
+    );
   }
 
   void clearSelection() {
-    state = state.copyWith(selectedItems: []);
+    state = state.copyWith(
+      selectedItems: [],
+      isSelectionMode: false,
+    );
+  }
+
+  void selectAll() {
+    state = state.copyWith(
+      selectedItems: [...state.fileItems],
+      isSelectionMode: state.fileItems.isNotEmpty,
+    );
+  }
+
+  // Delete multiple files
+  Future<void> deleteSelectedFiles(BuildContext context) async {
+    if (state.selectedItems.isEmpty) return;
+
+    // Show confirmation dialog
+    final shouldDelete = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Delete Files'),
+            content: Text(
+              'Are you sure you want to delete ${state.selectedItems.length} selected files?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                ),
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+
+    if (!shouldDelete) return;
+
+    try {
+      state = state.copyWith(isLoading: true, error: null);
+
+      int deletedCount = 0;
+
+      // Delete each file
+      for (final file in state.selectedItems) {
+        final fileToDelete = File(file.path);
+        if (await fileToDelete.exists()) {
+          await fileToDelete.delete();
+          deletedCount++;
+        }
+      }
+
+      // Clear selection and reload files
+      clearSelection();
+      await loadFiles();
+
+      state = state.copyWith(
+        isLoading: false,
+        successMessage: '$deletedCount files deleted successfully',
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Failed to delete files: $e',
+      );
+    }
   }
 
   void clearError() {
@@ -484,19 +381,28 @@ class FileManagerNotifier extends _$FileManagerNotifier {
     state = state.copyWith(successMessage: null);
   }
 
-  String getCurrentPath() {
-    return state.folderPath.map((f) => f.name).join(' / ');
-  }
+  // Check if a file with the given name exists
+  Future<bool> fileExists(String fileName) async {
+    try {
+      final storageService = StorageService();
+      final Directory? megaPdfDir =
+          await storageService.createMegaPDFDirectory();
 
-  bool canGoUp() {
-    return state.currentFolder?.parentId != null;
+      if (megaPdfDir == null) {
+        return false;
+      }
+
+      final filePath = path.join(megaPdfDir.path, fileName);
+      return await File(filePath).exists();
+    } catch (e) {
+      print('Error checking if file exists: $e');
+      return false;
+    }
   }
 }
 
 class FileManagerState {
   final List<FileItem> fileItems;
-  final FolderModel? currentFolder;
-  final List<FolderModel> folderPath;
   final List<FileItem> selectedItems;
   final bool isLoading;
   final String? error;
@@ -505,8 +411,6 @@ class FileManagerState {
 
   const FileManagerState({
     this.fileItems = const [],
-    this.currentFolder,
-    this.folderPath = const [],
     this.selectedItems = const [],
     this.isLoading = false,
     this.error,
@@ -516,8 +420,6 @@ class FileManagerState {
 
   FileManagerState copyWith({
     List<FileItem>? fileItems,
-    FolderModel? currentFolder,
-    List<FolderModel>? folderPath,
     List<FileItem>? selectedItems,
     bool? isLoading,
     String? error,
@@ -526,8 +428,6 @@ class FileManagerState {
   }) {
     return FileManagerState(
       fileItems: fileItems ?? this.fileItems,
-      currentFolder: currentFolder ?? this.currentFolder,
-      folderPath: folderPath ?? this.folderPath,
       selectedItems: selectedItems ?? this.selectedItems,
       isLoading: isLoading ?? this.isLoading,
       error: error,
@@ -538,6 +438,5 @@ class FileManagerState {
 
   bool get hasFiles => fileItems.isNotEmpty;
   bool get hasSelection => selectedItems.isNotEmpty;
-  int get fileCount => fileItems.where((item) => !item.isDirectory).length;
-  int get folderCount => fileItems.where((item) => item.isDirectory).length;
+  int get fileCount => fileItems.length;
 }

@@ -91,17 +91,17 @@ class WelcomeHeader extends StatelessWidget {
               const SizedBox(width: 16),
               Expanded(
                 child: StatCard(
-                  label: 'Folders',
-                  value: fileState.folderCount.toString(),
-                  icon: Icons.folder,
+                  label: 'Recent',
+                  value: recentState.recentFiles.length.toString(),
+                  icon: Icons.history,
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: StatCard(
-                  label: 'Recent',
-                  value: recentState.recentFiles.length.toString(),
-                  icon: Icons.history,
+                  label: 'Actions',
+                  value: recentState.operationTypes.length.toString(),
+                  icon: Icons.auto_awesome_motion,
                 ),
               ),
             ],
