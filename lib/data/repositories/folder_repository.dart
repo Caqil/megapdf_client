@@ -47,11 +47,16 @@ class FolderRepository {
     return await _dbHelper.getFolderPath(folderId);
   }
 
+  Future<bool> updateFolder(FolderModel folder) async {
+    final result = await _dbHelper.updateFolder(folder);
+    return result > 0;
+  }
+
   Future<bool> renameFolder(int id, String newName) async {
     final folder = await _dbHelper.getFolderById(id);
     if (folder == null) return false;
 
-    // Update path for this folder and all subfolders
+    // Update path for this folder
     final oldPath = folder.path;
     final pathParts = oldPath.split('/');
     pathParts[pathParts.length - 1] = newName;

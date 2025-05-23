@@ -56,6 +56,7 @@ class _RecentPageState extends ConsumerState<RecentPage>
   PreferredSizeWidget _buildAppBar(RecentFilesState state) {
     return AppBar(
       backgroundColor: AppColors.surface,
+      centerTitle: false,
       elevation: 0,
       automaticallyImplyLeading: false,
       title: Column(

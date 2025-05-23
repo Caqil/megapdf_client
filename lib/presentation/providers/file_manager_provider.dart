@@ -161,18 +161,27 @@ class FileManagerNotifier extends _$FileManagerNotifier {
             parentId: targetFolder.id,
             updatedAt: DateTime.now(),
           );
-         // await folderRepo.updateFolder(updatedFolder);
+
+          // Actually update the folder in database
+          final updateResult = await folderRepo.updateFolder(updatedFolder);
+          if (!updateResult) {
+            throw Exception('Failed to update folder in database');
+          }
         }
       } else {
-        // Moving file - check if file is already linked to a folder
+        // Moving file - update the file-folder link
         final existingLink = await dbHelper.getFileLocation(file.path);
 
         if (existingLink != null) {
           // Update existing link to new folder
-          await dbHelper.moveFileToFolder(
+          final updateResult = await dbHelper.moveFileToFolder(
             filePath: file.path,
             newFolderId: targetFolder.id!,
           );
+
+          if (updateResult == 0) {
+            throw Exception('Failed to update file location in database');
+          }
         } else {
           // Create new link
           await dbHelper.addFileToFolder(
@@ -190,11 +199,57 @@ class FileManagerNotifier extends _$FileManagerNotifier {
 
       state = state.copyWith(
         successMessage:
-            '${file.isDirectory ? 'Folder' : 'File'} moved successfully',
+            '${file.isDirectory ? 'Folder' : 'File'} moved to "${targetFolder.name}" successfully',
       );
     } catch (e) {
       state = state.copyWith(
           error: 'Failed to move ${file.isDirectory ? 'folder' : 'file'}: $e');
+    }
+  }
+
+  Future<void> deleteItem(FileItem item) async {
+    try {
+      final dbHelper = DatabaseHelper();
+
+      if (item.isDirectory && item.folderId != null) {
+        final folderRepo = ref.read(folderRepositoryProvider);
+
+        // Remove all files from folder first
+        await dbHelper.removeFilesFromFolder(item.folderId!);
+
+        // Delete the folder
+        final deleteResult = await folderRepo.deleteFolder(item.folderId!);
+        if (!deleteResult) {
+          throw Exception('Failed to delete folder from database');
+        }
+      } else {
+        // Remove file link from folder
+        await dbHelper.removeFileFromFolder(item.path);
+
+        // Delete physical file if it exists
+        try {
+          final file = File(item.path);
+          if (await file.exists()) {
+            await file.delete();
+            print('Physical file deleted: ${item.path}');
+          }
+        } catch (e) {
+          print('Warning: Could not delete physical file: $e');
+          // Continue even if physical file deletion fails
+        }
+      }
+
+      // Reload current folder
+      if (state.currentFolder != null) {
+        await loadFolder(state.currentFolder!.id!);
+      }
+
+      state = state.copyWith(
+        successMessage:
+            '${item.isDirectory ? 'Folder' : 'File'} "${item.name}" deleted successfully',
+      );
+    } catch (e) {
+      state = state.copyWith(error: 'Failed to delete item: $e');
     }
   }
 
@@ -230,37 +285,6 @@ class FileManagerNotifier extends _$FileManagerNotifier {
     }
   }
 
-  Future<void> deleteItem(FileItem item) async {
-    try {
-      final dbHelper = DatabaseHelper();
-
-      if (item.isDirectory && item.folderId != null) {
-        final folderRepo = ref.read(folderRepositoryProvider);
-
-        // Remove all files from folder first
-        await dbHelper.removeFilesFromFolder(item.folderId!);
-
-        // Delete the folder
-        await folderRepo.deleteFolder(item.folderId!);
-      } else {
-        // Remove file link from folder
-        await dbHelper.removeFileFromFolder(item.path);
-
-        // Optionally delete physical file (be careful with this)
-        // final file = File(item.path);
-        // if (await file.exists()) {
-        //   await file.delete();
-        // }
-      }
-
-      // Reload current folder
-      if (state.currentFolder != null) {
-        await loadFolder(state.currentFolder!.id!);
-      }
-    } catch (e) {
-      state = state.copyWith(error: 'Failed to delete item: $e');
-    }
-  }
 
   Future<void> renameItem(FileItem item, String newName) async {
     if (newName.trim().isEmpty) {

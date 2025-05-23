@@ -2,6 +2,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:megapdf_client/data/database/database_helper.dart';
+import 'package:megapdf_client/presentation/providers/recent_files_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:open_file/open_file.dart';
 import 'package:go_router/go_router.dart';
@@ -574,39 +576,196 @@ class _FileOperationsBottomSheetState
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete File'),
-        content: Text(
-            'Are you sure you want to delete "${widget.file.originalFileName}"?'),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            Icon(
+              Icons.warning,
+              color: AppColors.error,
+              size: 24,
+            ),
+            const SizedBox(width: 12),
+            const Text('Delete File'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Are you sure you want to delete "${widget.file.originalFileName}"?',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.error.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.error.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    color: AppColors.error,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'This action cannot be undone. The file will be permanently removed from your device.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppColors.error,
+                          ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              Navigator.pop(context); // Close bottom sheet
-
-              if (widget.file.resultFilePath != null) {
-                try {
-                  final file = File(widget.file.resultFilePath!);
-                  if (await file.exists()) {
-                    await file.delete();
-                    _showSnackBar('File deleted successfully');
-                  }
-                } catch (e) {
-                  _showSnackBar('Failed to delete file: $e', isError: true);
-                }
-              }
-            },
+          ElevatedButton.icon(
+            onPressed: () => _performDelete(context),
+            icon: const Icon(Icons.delete_forever, size: 18),
+            label: const Text('Delete'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
             ),
-            child: const Text('Delete'),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _performDelete(BuildContext dialogContext) async {
+    // Show loading dialog
+    Navigator.pop(dialogContext); // Close confirmation dialog
+    Navigator.pop(context); // Close bottom sheet
+
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        content: Row(
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(width: 16),
+            const Text('Deleting file...'),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      bool fileDeleted = false;
+      bool databaseUpdated = false;
+
+      // 1. Delete physical file if it exists
+      if (widget.file.resultFilePath != null) {
+        final file = File(widget.file.resultFilePath!);
+        if (await file.exists()) {
+          await file.delete();
+          fileDeleted = true;
+          print('Physical file deleted: ${widget.file.resultFilePath}');
+        }
+      }
+
+      // 2. Remove from database (if you have access to the database)
+      try {
+        final dbHelper = DatabaseHelper();
+
+        // Remove from recent files
+        await dbHelper.database.then((db) async {
+          await db.delete(
+            'recent_files',
+            where: 'id = ?',
+            whereArgs: [widget.file.id],
+          );
+        });
+
+        // Remove file-folder link if it exists
+        if (widget.file.resultFilePath != null) {
+          await dbHelper.removeFileFromFolder(widget.file.resultFilePath!);
+        }
+
+        databaseUpdated = true;
+        print('Database records removed');
+      } catch (e) {
+        print('Warning: Could not update database: $e');
+        // Continue even if database update fails
+      }
+
+      // 3. Update UI state - refresh recent files and file manager
+      if (context.mounted) {
+        // Close loading dialog
+        Navigator.pop(context);
+
+        // Refresh recent files provider
+        ref.read(recentFilesNotifierProvider.notifier).refreshRecentFiles();
+
+        // Refresh file manager if needed
+        ref.read(fileManagerNotifierProvider.notifier).loadRootFolder();
+
+        // Show success message
+        _showSnackBar(
+          fileDeleted
+              ? 'File deleted successfully'
+              : 'File record removed (file was already deleted)',
+        );
+      }
+    } catch (e) {
+      // Close loading dialog
+      if (context.mounted) {
+        Navigator.pop(context);
+        _showSnackBar('Failed to delete file: $e', isError: true);
+      }
+      print('Error during file deletion: $e');
+    }
+  }
+
+// Helper method to show snackbar with better styling
+  void _showSnackBar(String message, {bool isError = false}) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(
+                isError ? Icons.error : Icons.check_circle,
+                color: isError ? AppColors.error : AppColors.success,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Expanded(child: Text(message)),
+            ],
+          ),
+          backgroundColor: isError
+              ? AppColors.error.withOpacity(0.1)
+              : AppColors.success.withOpacity(0.1),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          action: SnackBarAction(
+            label: 'OK',
+            textColor: isError ? AppColors.error : AppColors.success,
+            onPressed: () {
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            },
+          ),
+        ),
+      );
+    }
   }
 
   // Helper methods
@@ -647,18 +806,6 @@ class _FileOperationsBottomSheetState
         return AppColors.pageNumbersColor;
       default:
         return AppColors.primary;
-    }
-  }
-
-  void _showSnackBar(String message, {bool isError = false}) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: isError ? AppColors.error : null,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
     }
   }
 }
