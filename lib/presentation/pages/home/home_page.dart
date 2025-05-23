@@ -182,7 +182,6 @@ class _HomePageState extends ConsumerState<HomePage> {
       builder: (context) => FolderActionsBottomSheet(
         onCreateFolder: () => _showCreateFolderDialog(context),
         onImportFiles: () {
-          // TODO: Implement file import
           Navigator.pop(context);
           context.showSnackBar('File import feature coming soon!');
         },
