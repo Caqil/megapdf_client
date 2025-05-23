@@ -50,115 +50,6 @@ class StorageService {
     return await _permissionManager.requestStoragePermission(context);
   }
 
-  // Get the root directory for saving files
-  Future<Directory?> getRootDirectory() async {
-    try {
-      // If we're in private storage mode, return app documents directory
-      if (_usePrivateStorage) {
-        final appDir = await getApplicationDocumentsDirectory();
-        print('Using private storage directory: ${appDir.path}');
-        return appDir;
-      }
-
-      // Check permissions first
-      final hasPermission = await checkPermissions();
-      if (!hasPermission) {
-        debugPrint('⚠️ Storage permission not granted, using private storage');
-        _usePrivateStorage = true;
-        final appDir = await getApplicationDocumentsDirectory();
-        print(
-            'Using private storage directory due to permissions: ${appDir.path}');
-        return appDir;
-      }
-
-      // Try to get the Downloads directory first (Android only)
-      if (Platform.isAndroid) {
-        // On newer Android versions with scoped storage, try to use the Download directory
-        final externalDir = await getExternalStorageDirectory();
-
-        if (externalDir != null) {
-          // Try to navigate to Downloads folder
-          String dirPath = externalDir.path;
-
-          // Get to the root storage directory
-          List<String> paths = dirPath.split("/");
-          int storageIndex = paths.indexOf('storage');
-
-          if (storageIndex >= 0 && paths.length > storageIndex + 2) {
-            // Typical path to Downloads folder
-            final downloadsPath = path.join(
-              '/', // First argument
-              path.joinAll(paths.sublist(0,
-                  storageIndex + 3)), // Join the sublist into a single string
-              'Download',
-            );
-
-            // Check if we can access the directory
-            try {
-              final downloadsDir = Directory(downloadsPath);
-              if (await downloadsDir.exists()) {
-                // Test if we can actually write to this directory
-                final testFile =
-                    File(path.join(downloadsPath, '.megapdf_test'));
-                try {
-                  await testFile.writeAsString('test');
-                  await testFile.delete();
-                  print('Using downloads directory: $downloadsPath');
-                  return downloadsDir;
-                } catch (e) {
-                  debugPrint('⚠️ Cannot write to Downloads directory: $e');
-                  // Fall through to next option
-                }
-              }
-            } catch (e) {
-              debugPrint('⚠️ Cannot access Downloads directory: $e');
-              // Fall through to next option
-            }
-          }
-        }
-      }
-
-      // For iOS or if Android Downloads directory wasn't accessible
-      Directory? directory;
-
-      if (Platform.isIOS) {
-        // On iOS, use the Documents directory
-        directory = await getApplicationDocumentsDirectory();
-      } else if (Platform.isAndroid) {
-        // On Android, try to use app's external storage
-        final externalDir = await getExternalStorageDirectory();
-        if (externalDir != null) {
-          // Test if we can write to this directory
-          try {
-            final testFile = File(path.join(externalDir.path, '.megapdf_test'));
-            await testFile.writeAsString('test');
-            await testFile.delete();
-            directory = externalDir;
-            print('Using external directory: ${externalDir.path}');
-          } catch (e) {
-            debugPrint('⚠️ Cannot write to external directory: $e');
-            // Fall through to fallback
-          }
-        }
-      }
-
-      if (directory != null) {
-        return directory;
-      }
-
-      // If we got here, we couldn't access any external storage
-      debugPrint('⚠️ Falling back to private storage');
-      _usePrivateStorage = true;
-      final appDir = await getApplicationDocumentsDirectory();
-      print('Using private storage as fallback: ${appDir.path}');
-      return appDir;
-    } catch (e) {
-      debugPrint('⚠️ Error accessing storage: $e');
-      // Fall back to application documents directory as a last resort
-      _usePrivateStorage = true;
-      return await getApplicationDocumentsDirectory();
-    }
-  }
 
   // Create MegaPDF folder in the root directory
   Future<Directory?> createMegaPDFDirectory() async {
@@ -298,7 +189,158 @@ class StorageService {
     }
   }
 
-  // Save a file to local storage
+
+  // Helper method to create a safe filename
+  String _createSafeFileName(String fileName) {
+    // Remove or replace invalid characters
+    return fileName
+        .replaceAll(RegExp(r'[<>:"/\\|?*]'), '_')
+        .replaceAll(RegExp(r'\s+'), '_')
+        .replaceAll(RegExp(r'_{2,}'), '_')
+        .trim();
+  }
+
+  // Check if a file exists
+  Future<bool> fileExists(String filePath) async {
+    try {
+      final file = File(filePath);
+      return await file.exists();
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Check if we're using private storage
+  bool isUsingPrivateStorage() {
+    return _usePrivateStorage;
+  }
+
+  // Reset storage mode (for testing)
+  void resetStorageMode() {
+    _usePrivateStorage = false;
+  }
+
+  Future<bool> hasStorageAccess() async {
+    return await _permissionManager.hasStoragePermission();
+  }
+
+  /// Request storage permissions if needed
+  Future<bool> requestStorageAccess(BuildContext context) async {
+    return await _permissionManager.requestStoragePermission(context);
+  }
+
+  /// Modified getRootDirectory method that respects permissions
+  Future<Directory?> getRootDirectory() async {
+    try {
+      // Check permissions first
+      final hasPermission = await hasStorageAccess();
+
+      // If we don't have permission, use private storage
+      if (!hasPermission) {
+        debugPrint('⚠️ No storage permission, using private storage');
+        _usePrivateStorage = true;
+        final appDir = await getApplicationDocumentsDirectory();
+        print('Using private storage directory: ${appDir.path}');
+        return appDir;
+      }
+
+      // If we're in private storage mode, return app documents directory
+      if (_usePrivateStorage) {
+        final appDir = await getApplicationDocumentsDirectory();
+        print('Using private storage directory: ${appDir.path}');
+        return appDir;
+      }
+
+      // Try to get the Downloads directory first (Android only)
+      if (Platform.isAndroid) {
+        // On newer Android versions with scoped storage, try to use the Download directory
+        final externalDir = await getExternalStorageDirectory();
+
+        if (externalDir != null) {
+          // Try to navigate to Downloads folder
+          String dirPath = externalDir.path;
+
+          // Get to the root storage directory
+          List<String> paths = dirPath.split("/");
+          int storageIndex = paths.indexOf('storage');
+
+          if (storageIndex >= 0 && paths.length > storageIndex + 2) {
+            // Typical path to Downloads folder
+            final downloadsPath = path.join(
+              '/', // First argument
+              path.joinAll(paths.sublist(0,
+                  storageIndex + 3)), // Join the sublist into a single string
+              'Download',
+            );
+
+            // Check if we can access the directory
+            try {
+              final downloadsDir = Directory(downloadsPath);
+              if (await downloadsDir.exists()) {
+                // Test if we can actually write to this directory
+                final testFile =
+                    File(path.join(downloadsPath, '.megapdf_test'));
+                try {
+                  await testFile.writeAsString('test');
+                  await testFile.delete();
+                  print('Using downloads directory: $downloadsPath');
+                  return downloadsDir;
+                } catch (e) {
+                  debugPrint('⚠️ Cannot write to Downloads directory: $e');
+                  // Fall through to next option
+                }
+              }
+            } catch (e) {
+              debugPrint('⚠️ Cannot access Downloads directory: $e');
+              // Fall through to next option
+            }
+          }
+        }
+      }
+
+      // For iOS or if Android Downloads directory wasn't accessible
+      Directory? directory;
+
+      if (Platform.isIOS) {
+        // On iOS, use the Documents directory
+        directory = await getApplicationDocumentsDirectory();
+      } else if (Platform.isAndroid) {
+        // On Android, try to use app's external storage
+        final externalDir = await getExternalStorageDirectory();
+        if (externalDir != null) {
+          // Test if we can write to this directory
+          try {
+            final testFile = File(path.join(externalDir.path, '.megapdf_test'));
+            await testFile.writeAsString('test');
+            await testFile.delete();
+            directory = externalDir;
+            print('Using external directory: ${externalDir.path}');
+          } catch (e) {
+            debugPrint('⚠️ Cannot write to external directory: $e');
+            // Fall through to fallback
+          }
+        }
+      }
+
+      if (directory != null) {
+        return directory;
+      }
+
+      // If we got here, we couldn't access any external storage
+      debugPrint('⚠️ Falling back to private storage');
+      _usePrivateStorage = true;
+      final appDir = await getApplicationDocumentsDirectory();
+      print('Using private storage as fallback: ${appDir.path}');
+      return appDir;
+    } catch (e) {
+      debugPrint('⚠️ Error accessing storage: $e');
+      // Fall back to application documents directory as a last resort
+      _usePrivateStorage = true;
+      return await getApplicationDocumentsDirectory();
+    }
+  }
+
+  /// Enhanced saveFile method with better permission handling
   Future<String?> saveFile({
     required String sourceFilePath,
     required String fileName,
@@ -314,13 +356,16 @@ class StorageService {
         return null;
       }
 
-      // If context is provided and we don't have permissions, ask the user
-      if (context != null && !await checkPermissions() && !_usePrivateStorage) {
+      // Check if we have storage permission
+      final hasPermission = await hasStorageAccess();
+
+      // If context is provided and we don't have permissions, handle the flow
+      if (context != null && !hasPermission && !_usePrivateStorage) {
         final action = await _fallbackService.showStorageOptionsDialog(context);
 
         switch (action) {
           case StorageAction.requestPermission:
-            final granted = await requestPermissions(context);
+            final granted = await requestStorageAccess(context);
             if (!granted) {
               // Fall back to picker
               return _fallbackService.saveFileWithPicker(
@@ -354,6 +399,9 @@ class StorageService {
           case StorageAction.cancel:
             return null;
         }
+      } else if (!hasPermission) {
+        // No context provided but no permission - force private storage
+        _usePrivateStorage = true;
       }
 
       // Get directory to save to
@@ -391,6 +439,14 @@ class StorageService {
         // Copy the file
         final newFile = await sourceFile.copy(savePath);
         debugPrint('✅ File saved to: ${newFile.path}');
+
+        // Store metadata about permission status
+        final metadata = {
+          'is_public_storage': !_usePrivateStorage,
+          'permission_granted': hasPermission,
+          'save_method': _usePrivateStorage ? 'private' : 'public',
+        };
+
         return newFile.path;
       } catch (e) {
         debugPrint('⚠️ Error copying file: $e');
@@ -423,34 +479,134 @@ class StorageService {
     }
   }
 
-  // Helper method to create a safe filename
-  String _createSafeFileName(String fileName) {
-    // Remove or replace invalid characters
-    return fileName
-        .replaceAll(RegExp(r'[<>:"/\\|?*]'), '_')
-        .replaceAll(RegExp(r'\s+'), '_')
-        .replaceAll(RegExp(r'_{2,}'), '_')
-        .trim();
+  /// Get storage information for the user
+  Map<String, dynamic> getStorageInfo() {
+    return {
+      'usingPrivateStorage': _usePrivateStorage,
+      'storageMode': getStorageModeDescription(),
+      'canSaveToPublicStorage': !_usePrivateStorage,
+    };
   }
 
-  // Check if a file exists
-  Future<bool> fileExists(String filePath) async {
-    try {
-      final file = File(filePath);
-      return await file.exists();
-    } catch (e) {
-      return false;
-    }
-  }
+  /// Show storage info dialog to user
+  Future<void> showStorageInfoDialog(BuildContext context) async {
+    final storageInfo = getStorageInfo();
 
-  // Check if we're using private storage
-  bool isUsingPrivateStorage() {
-    return _usePrivateStorage;
-  }
-
-  // Reset storage mode (for testing)
-  void resetStorageMode() {
-    _usePrivateStorage = false;
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              storageInfo['usingPrivateStorage']
+                  ? Icons.lock
+                  : Icons.folder_shared,
+              color: storageInfo['usingPrivateStorage']
+                  ? Colors.orange
+                  : Colors.green,
+            ),
+            const SizedBox(width: 12),
+            const Text('Storage Information'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Current Storage Mode:',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(storageInfo['storageMode']),
+            const SizedBox(height: 16),
+            if (storageInfo['usingPrivateStorage']) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.info_outline,
+                            color: Colors.orange, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Limited Storage Access',
+                          style: TextStyle(
+                            color: Colors.orange.shade700,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Files are saved within the app. Other apps cannot access them directly.',
+                      style: TextStyle(color: Colors.orange.shade700),
+                    ),
+                  ],
+                ),
+              ),
+            ] else ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green.withOpacity(0.3)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.check_circle, color: Colors.green, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Full Storage Access',
+                          style: TextStyle(
+                            color: Colors.green.shade700,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Files are saved to your device storage and can be accessed by other apps.',
+                      style: TextStyle(color: Colors.green.shade700),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          if (storageInfo['usingPrivateStorage'])
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                final granted = await requestStorageAccess(context);
+                if (granted) {
+                  resetStorageMode();
+                }
+              },
+              child: const Text('Grant Storage Access'),
+            ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   // Get storage mode description

@@ -72,11 +72,21 @@ class FolderRepository {
         }
 
         // Extract the subfolder path (everything after /MegaPDF/)
-        final subfolderPath = folderPath.replaceFirst('/MegaPDF', '');
+        // Fix: Remove the leading slash to prevent absolute path issues
+        String subfolderPath = folderPath.replaceFirst('/MegaPDF/', '');
+
+        // Handle case where folderPath is exactly "/MegaPDF"
+        if (folderPath == '/MegaPDF') {
+          subfolderPath = '';
+        }
+
         if (subfolderPath.isEmpty) {
           // This is the root MegaPDF folder itself
           return rootDir;
         }
+
+        // Remove any remaining leading slashes
+        subfolderPath = subfolderPath.replaceFirst(RegExp(r'^/+'), '');
 
         // Create the subfolder within MegaPDF
         final fullPath = path.join(rootDir.path, subfolderPath);
@@ -114,8 +124,9 @@ class FolderRepository {
             currentDir = await _storageService.createMegaPDFDirectory();
           } else {
             // This is a subdirectory
-            currentDir = await _storageService
-                .createSubfolder(path.join(currentPath.substring(1)));
+            // Remove leading slash and join segments for subfolder creation
+            final relativePath = segments.sublist(1, i + 1).join('/');
+            currentDir = await _storageService.createSubfolder(relativePath);
           }
 
           if (currentDir == null) {

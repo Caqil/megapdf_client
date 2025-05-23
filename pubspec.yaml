@@ -50,6 +50,7 @@ dependencies:
   printing: ^5.14.2
   flutter_file_downloader: ^2.1.0
   app_settings: ^6.1.1
+  shared_preferences: ^2.5.3
 
 dev_dependencies:
   flutter_test:

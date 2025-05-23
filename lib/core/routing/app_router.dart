@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../presentation/pages/main/main_navigation_page.dart';
+import '../../presentation/pages/onboarding/permission_initialization_page.dart';
+import '../../presentation/pages/onboarding/splash_screen.dart';
 import '../../presentation/pages/home/home_page.dart';
 import '../../presentation/pages/tools/tools_page.dart';
 import '../../presentation/pages/recent/recent_page.dart';
@@ -22,14 +24,29 @@ import '../../presentation/pages/storage/storage_browser_page.dart';
 import '../../presentation/pages/storage/storage_management_page.dart';
 import '../../presentation/pages/common/file_operation_success_page.dart';
 import '../../presentation/pages/pdf_viewer/pdf_viewer_page.dart';
+import '../../presentation/providers/permission_provider.dart';
 
 part 'app_router.g.dart';
 
 @riverpod
 GoRouter router(Ref ref) {
   return GoRouter(
-    initialLocation: '/',
+    initialLocation: '/splash',
     routes: [
+      // Splash screen
+      GoRoute(
+        path: '/splash',
+        name: 'splash',
+        builder: (context, state) => const SplashScreen(),
+      ),
+
+      // Permission initialization
+      GoRoute(
+        path: '/permissions',
+        name: 'permissions',
+        builder: (context, state) => const PermissionInitializationPage(),
+      ),
+
       // Main navigation route (with bottom navigation)
       GoRoute(
         path: '/',

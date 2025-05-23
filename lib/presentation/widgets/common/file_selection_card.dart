@@ -9,7 +9,7 @@ class FileActionCard extends StatefulWidget {
   final String actionButtonText;
   final IconData selectIcon;
   final IconData actionIcon;
-  final Future<void>  onAction;
+  final Future<void> Function() onAction;
   final Future<File?> Function() onPickFile;
 
   const FileActionCard({
@@ -170,7 +170,7 @@ class _FileActionCardState extends State<FileActionCard> {
         _isProcessing = true;
         _errorMessage = null;
       });
-      await widget.onAction;
+      await widget.onAction();
       setState(() {
         _isProcessing = false;
       });

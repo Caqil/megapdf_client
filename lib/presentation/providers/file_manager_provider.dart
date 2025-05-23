@@ -8,7 +8,6 @@ import '../../data/models/file_item.dart';
 import '../../data/models/folder_model.dart';
 import '../../data/repositories/folder_repository.dart';
 import '../../data/database/database_helper.dart';
-import '../../core/errors/api_exception.dart';
 
 part 'file_manager_provider.g.dart';
 
