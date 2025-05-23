@@ -1,310 +1,295 @@
 // lib/core/utils/enhanced_permission_manager.dart
 import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:device_info_plus/device_info_plus.dart';
-import 'package:flutter/material.dart';
+import 'package:app_settings/app_settings.dart';
 
 class PermissionManager {
   static final PermissionManager _instance = PermissionManager._internal();
   factory PermissionManager() => _instance;
   PermissionManager._internal();
 
-  /// Request all necessary permissions for file downloading
-  Future<bool> requestDownloadPermissions({
-    required BuildContext context,
-    bool showRationale = true,
-  }) async {
-    if (!Platform.isAndroid) return true; // iOS handles this differently
+  // Cache Android version to avoid repeated checks
+  int? _androidSdkVersion;
+  bool? _hasAllFilesAccess;
+
+  /// Check if the device requires MANAGE_EXTERNAL_STORAGE permission (Android 11+)
+  Future<bool> _needsManageExternalStorage() async {
+    if (!Platform.isAndroid) return false;
+
+    _androidSdkVersion ??= await _getAndroidVersion();
+    return _androidSdkVersion! >= 30; // Android 11+
+  }
+
+  /// Get Android SDK version
+  Future<int> _getAndroidVersion() async {
+    if (!Platform.isAndroid) return 0;
 
     try {
       final androidInfo = await DeviceInfoPlugin().androidInfo;
-      final androidVersion = androidInfo.version.sdkInt;
-
-      print('Android SDK Version: $androidVersion');
-
-      // For Android 11+ (API 30+)
-      if (androidVersion >= 30) {
-        return await _requestAndroid11Permissions(context, showRationale);
-      }
-      // For Android 10 (API 29)
-      else if (androidVersion >= 29) {
-        return await _requestAndroid10Permissions(context, showRationale);
-      }
-      // For older Android versions
-      else {
-        return await _requestLegacyPermissions(context, showRationale);
-      }
+      return androidInfo.version.sdkInt;
     } catch (e) {
-      print('Error checking Android version: $e');
-      // Fallback to requesting all permissions
-      return await _requestAllPermissions(context, showRationale);
+      debugPrint('Error getting Android version: $e');
+      return 0;
     }
   }
 
-  /// Android 11+ (API 30+) permission handling
-  Future<bool> _requestAndroid11Permissions(
-      BuildContext context, bool showRationale) async {
-    // Check MANAGE_EXTERNAL_STORAGE permission
-    var manageStorageStatus = await Permission.manageExternalStorage.status;
+  /// Check if all required storage permissions are granted
+  Future<bool> hasStoragePermission() async {
+    if (!Platform.isAndroid) return true; // iOS handles permissions differently
 
-    if (manageStorageStatus.isDenied) {
-      if (showRationale && context.mounted) {
-        await _showPermissionRationale(
+    // Check if Android 11+ (API 30+) - requires special handling
+    if (await _needsManageExternalStorage()) {
+      _hasAllFilesAccess = await Permission.manageExternalStorage.isGranted;
+      return _hasAllFilesAccess!;
+    }
+
+    // For Android 10 (API 29)
+    if (_androidSdkVersion == 29) {
+      return await Permission.storage.isGranted;
+    }
+
+    // For older Android versions
+    return await Permission.storage.isGranted;
+  }
+
+  /// Request storage permissions with appropriate handling for different Android versions
+  Future<bool> requestStoragePermission(BuildContext context) async {
+    if (!Platform.isAndroid) return true; // iOS handles permissions differently
+
+    // Check if Android 11+ (API 30+) - requires special handling
+    if (await _needsManageExternalStorage()) {
+      final status = await Permission.manageExternalStorage.status;
+
+      if (status.isDenied || status.isPermanentlyDenied) {
+        // Show a rationale dialog before requesting permission
+        final shouldRequest = await _showPermissionRationaleDialog(
           context,
           'Storage Access Required',
-          'This app needs access to device storage to download and save PDF files. Please grant "All files access" permission in the next screen.',
+          'MegaPDF needs to access all files on your device to save PDFs to your Downloads folder. This requires special permission on your Android version.',
+          'Without this permission, files can only be saved within the app.',
         );
+
+        if (!shouldRequest) return false;
+
+        // Request the permission
+        final result = await Permission.manageExternalStorage.request();
+        _hasAllFilesAccess = result.isGranted;
+
+        // If denied, show settings dialog
+        if (!result.isGranted) {
+          _showSettingsDialog(context);
+          return false;
+        }
+
+        return result.isGranted;
       }
 
-      manageStorageStatus = await Permission.manageExternalStorage.request();
+      _hasAllFilesAccess = status.isGranted;
+      return status.isGranted;
     }
 
-    // If MANAGE_EXTERNAL_STORAGE is denied, try basic storage permissions
-    if (manageStorageStatus.isDenied ||
-        manageStorageStatus.isPermanentlyDenied) {
-      if (context.mounted) {
-        await _showPermissionDeniedDialog(context, 'manage_external_storage');
-      }
-      return false;
-    }
+    // For Android 10 (API 29) and below
+    final storageStatus = await Permission.storage.status;
 
-    // Also request notification permission for Android 13+
-    final androidInfo = await DeviceInfoPlugin().androidInfo;
-    if (androidInfo.version.sdkInt >= 33) {
-      await Permission.notification.request();
-    }
-
-    return manageStorageStatus.isGranted;
-  }
-
-  /// Android 10 (API 29) permission handling
-  Future<bool> _requestAndroid10Permissions(
-      BuildContext context, bool showRationale) async {
-    final permissions = [
-      Permission.storage,
-    ];
-
-    if (showRationale && context.mounted) {
-      await _showPermissionRationale(
+    if (storageStatus.isDenied || storageStatus.isPermanentlyDenied) {
+      // Show a rationale dialog before requesting permission
+      final shouldRequest = await _showPermissionRationaleDialog(
         context,
         'Storage Permission Required',
-        'This app needs storage permission to download and save PDF files to your device.',
+        'MegaPDF needs storage permission to save files to your device.',
+        'Without this permission, you won\'t be able to access saved files outside the app.',
       );
-    }
 
-    final Map<Permission, PermissionStatus> statuses =
-        await permissions.request();
+      if (!shouldRequest) return false;
 
-    final storageGranted = statuses[Permission.storage]?.isGranted ?? false;
+      // Request the permission
+      final result = await Permission.storage.request();
 
-    if (!storageGranted && context.mounted) {
-      await _showPermissionDeniedDialog(context, 'storage');
-    }
-
-    return storageGranted;
-  }
-
-  /// Legacy Android (API < 29) permission handling
-  Future<bool> _requestLegacyPermissions(
-      BuildContext context, bool showRationale) async {
-    final permissions = [
-      Permission.storage,
-    ];
-
-    if (showRationale && context.mounted) {
-      await _showPermissionRationale(
-        context,
-        'Storage Permission Required',
-        'This app needs storage permission to download and save PDF files to your device.',
-      );
-    }
-
-    final Map<Permission, PermissionStatus> statuses =
-        await permissions.request();
-
-    final storageGranted = statuses[Permission.storage]?.isGranted ?? false;
-
-    if (!storageGranted && context.mounted) {
-      await _showPermissionDeniedDialog(context, 'storage');
-    }
-
-    return storageGranted;
-  }
-
-  /// Fallback method to request all permissions
-  Future<bool> _requestAllPermissions(
-      BuildContext context, bool showRationale) async {
-    final permissions = [
-      Permission.storage,
-      Permission.manageExternalStorage,
-    ];
-
-    if (showRationale && context.mounted) {
-      await _showPermissionRationale(
-        context,
-        'Permissions Required',
-        'This app needs storage permissions to download and save PDF files. Please grant all requested permissions.',
-      );
-    }
-
-    final Map<Permission, PermissionStatus> statuses =
-        await permissions.request();
-
-    // Check if any storage permission is granted
-    final storageGranted = statuses[Permission.storage]?.isGranted ?? false;
-    final manageStorageGranted =
-        statuses[Permission.manageExternalStorage]?.isGranted ?? false;
-
-    final hasStoragePermission = storageGranted || manageStorageGranted;
-
-    if (!hasStoragePermission && context.mounted) {
-      await _showPermissionDeniedDialog(context, 'storage');
-    }
-
-    return hasStoragePermission;
-  }
-
-  /// Check if download permissions are currently granted
-  Future<bool> hasDownloadPermissions() async {
-    if (!Platform.isAndroid) return true;
-
-    try {
-      final androidInfo = await DeviceInfoPlugin().androidInfo;
-      final androidVersion = androidInfo.version.sdkInt;
-
-      if (androidVersion >= 30) {
-        // Android 11+: Check MANAGE_EXTERNAL_STORAGE
-        final manageStorage = await Permission.manageExternalStorage.status;
-        return manageStorage.isGranted;
-      } else {
-        // Android 10 and below: Check regular storage permission
-        final storage = await Permission.storage.status;
-        return storage.isGranted;
+      // If denied, show settings dialog
+      if (!result.isGranted &&
+          (result.isPermanentlyDenied || storageStatus.isPermanentlyDenied)) {
+        _showSettingsDialog(context);
+        return false;
       }
-    } catch (e) {
-      print('Error checking permissions: $e');
-      return false;
+
+      return result.isGranted;
     }
+
+    return storageStatus.isGranted;
   }
 
-  /// Show permission rationale dialog
-  Future<void> _showPermissionRationale(
+  /// Open system settings for the app
+  Future<void> openSettings() async {
+    await AppSettings.openAppSettings();
+  }
+
+  /// Show dialog explaining why the permission is needed
+  Future<bool> _showPermissionRationaleDialog(
     BuildContext context,
     String title,
     String message,
+    String warningMessage,
   ) async {
-    return showDialog<void>(
+    final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Row(
-            children: [
-              Icon(Icons.security, color: Theme.of(context).primaryColor),
-              const SizedBox(width: 8),
-              Text(title),
-            ],
-          ),
-          content: Text(message),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('OK'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(message),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.amber.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.amber.withOpacity(0.5)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.warning_amber_rounded,
+                      color: Colors.amber, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                      child: Text(warningMessage,
+                          style: const TextStyle(fontSize: 12))),
+                ],
+              ),
             ),
           ],
-        );
-      },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Skip'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Grant Permission'),
+          ),
+        ],
+      ),
+    );
+
+    return result ?? false;
+  }
+
+  /// Show dialog to direct user to settings
+  void _showSettingsDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Permission Required'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+                'Storage permission is required for MegaPDF to work properly.'),
+            const SizedBox(height: 12),
+            if (Platform.isAndroid && _androidSdkVersion! >= 30)
+              const Text(
+                'Please enable "Allow access to manage all files" in the next screen.',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              )
+            else
+              const Text(
+                'Please enable storage permission in Settings.',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              openSettings();
+            },
+            child: const Text('Open Settings'),
+          ),
+        ],
+      ),
     );
   }
 
-  /// Show permission denied dialog with options
-  Future<void> _showPermissionDeniedDialog(
-    BuildContext context,
-    String permissionType,
-  ) async {
-    return showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Row(
-            children: [
-              Icon(Icons.warning, color: Colors.orange),
-              SizedBox(width: 8),
-              Text('Permission Required'),
-            ],
+  /// Fallback method using Storage Access Framework if direct storage access fails
+  Future<bool> useStorageAccessFramework(BuildContext context) async {
+    if (!Platform.isAndroid) return false;
+
+    try {
+      // This would use a plugin like file_picker or flutter_document_picker
+      // to request access via the Storage Access Framework
+      // For now, we'll just show a dialog explaining this
+
+      final result = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Alternative Access Method'),
+          content: const Text(
+            'MegaPDF can use an alternative method to save files. This will show a folder picker each time you save a file, but allows you to choose exactly where to save.',
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Storage permission is required to download files.'),
-              const SizedBox(height: 12),
-              Text(
-                'To enable downloads:',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              if (permissionType == 'manage_external_storage') ...[
-                const Text('1. Tap "Open Settings"'),
-                const Text('2. Find this app in the list'),
-                const Text('3. Enable "All files access"'),
-              ] else ...[
-                const Text('1. Tap "Open Settings"'),
-                const Text('2. Find "Permissions"'),
-                const Text('3. Enable "Storage" permission'),
-              ],
-            ],
-          ),
-          actions: <Widget>[
+          actions: [
             TextButton(
+              onPressed: () => Navigator.pop(context, false),
               child: const Text('Cancel'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
             ),
             ElevatedButton(
-              child: const Text('Open Settings'),
-              onPressed: () {
-                Navigator.of(context).pop();
-                openAppSettings();
-              },
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Use Alternative Method'),
             ),
           ],
-        );
-      },
-    );
+        ),
+      );
+
+      return result ?? false;
+    } catch (e) {
+      debugPrint('Error using Storage Access Framework: $e');
+      return false;
+    }
   }
 
-  /// Get permission status details for debugging
-  Future<Map<String, String>> getPermissionStatusDetails() async {
-    final Map<String, String> details = {};
+  /// Get detailed status of permissions for debugging
+  Future<Map<String, String>> getPermissionStatus() async {
+    final result = <String, String>{};
 
     if (Platform.isAndroid) {
       try {
         final androidInfo = await DeviceInfoPlugin().androidInfo;
-        details['Android Version'] = androidInfo.version.sdkInt.toString();
-        details['Device Model'] = androidInfo.model;
+        result['Android SDK'] = androidInfo.version.sdkInt.toString();
+        result['Android Release'] = androidInfo.version.release;
+        result['Device'] = '${androidInfo.manufacturer} ${androidInfo.model}';
 
-        final storage = await Permission.storage.status;
-        details['Storage Permission'] = storage.toString();
+        // Check basic storage permission
+        final storageStatus = await Permission.storage.status;
+        result['Storage Permission'] = storageStatus.toString();
 
-        final manageStorage = await Permission.manageExternalStorage.status;
-        details['Manage External Storage'] = manageStorage.toString();
+        // Check advanced permissions for Android 11+
+        if (androidInfo.version.sdkInt >= 30) {
+          final manageStatus = await Permission.manageExternalStorage.status;
+          result['Manage External Storage'] = manageStatus.toString();
+        }
 
-        final notification = await Permission.notification.status;
-        details['Notification Permission'] = notification.toString();
+        // Check Android 13+ media permissions
+        if (androidInfo.version.sdkInt >= 33) {
+          final imagesStatus = await Permission.photos.status;
+          result['Read Media Images'] = imagesStatus.toString();
+        }
       } catch (e) {
-        details['Error'] = e.toString();
+        result['Error'] = e.toString();
       }
-    } else {
-      details['Platform'] = 'iOS (permissions handled automatically)';
+    } else if (Platform.isIOS) {
+      result['Platform'] = 'iOS (permissions handled differently)';
     }
 
-    return details;
+    return result;
   }
 }

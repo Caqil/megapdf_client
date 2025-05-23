@@ -1,3 +1,4 @@
+// lib/core/routing/app_router.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -17,6 +18,9 @@ import '../../presentation/pages/protect/protect_page.dart';
 import '../../presentation/pages/unlock/unlock_page.dart';
 import '../../presentation/pages/rotate/rotate_page.dart';
 import '../../presentation/pages/page_numbers/page_numbers_page.dart';
+import '../../presentation/pages/storage/storage_browser_page.dart';
+import '../../presentation/pages/storage/storage_management_page.dart';
+import '../../presentation/pages/common/file_operation_success_page.dart';
 
 part 'app_router.g.dart';
 
@@ -99,6 +103,60 @@ GoRouter router(Ref ref) {
         path: '/page-numbers',
         name: 'page-numbers',
         builder: (context, state) => const PageNumbersPage(),
+      ),
+
+      // Storage Management
+      GoRoute(
+        path: '/storage',
+        name: 'storage',
+        builder: (context, state) {
+          final initialPath = state.uri.queryParameters['path'];
+          return StorageBrowserPage(initialPath: initialPath);
+        },
+      ),
+      GoRoute(
+        path: '/storage-management',
+        name: 'storage-management',
+        builder: (context, state) => const StorageManagementPage(),
+      ),
+
+      // Success page
+      GoRoute(
+        path: '/success',
+        name: 'success',
+        builder: (context, state) {
+          final filePath = state.uri.queryParameters['filePath'] ?? '';
+          final operationType =
+              state.uri.queryParameters['operationType'] ?? '';
+          final operationName =
+              state.uri.queryParameters['operationName'] ?? 'Processed';
+
+          // Convert details string to map if available
+          Map<String, dynamic>? details;
+          if (state.uri.queryParameters.containsKey('details')) {
+            try {
+              details = {};
+              final detailsString = state.uri.queryParameters['details'] ?? '';
+              final pairs = detailsString.split('|');
+
+              for (final pair in pairs) {
+                final keyValue = pair.split(':');
+                if (keyValue.length == 2) {
+                  details[keyValue[0]] = keyValue[1];
+                }
+              }
+            } catch (e) {
+              details = null;
+            }
+          }
+
+          return FileOperationSuccessPage(
+            filePath: filePath,
+            operationType: operationType,
+            operationName: operationName,
+            details: details,
+          );
+        },
       ),
     ],
     errorBuilder: (context, state) => Scaffold(

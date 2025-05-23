@@ -51,22 +51,6 @@ class _MainNavigationPageState extends ConsumerState<MainNavigationPage> {
             setState(() {
               _currentIndex = index;
             });
-
-            // If user navigated to recent tab, refresh the recent files
-            if (index == 2) {
-              // Check if it's been more than 5 seconds since last visit
-              final now = DateTime.now().millisecondsSinceEpoch;
-              if (now - _lastRecentTabVisit > 5000) {
-                Future.delayed(const Duration(milliseconds: 300), () {
-                  if (mounted) {
-                    ref
-                        .read(recentFilesNotifierProvider.notifier)
-                        .refreshRecentFiles();
-                  }
-                });
-              }
-              _lastRecentTabVisit = now;
-            }
           },
           type: BottomNavigationBarType.fixed,
           selectedItemColor: AppColors.primary(context),

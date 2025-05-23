@@ -32,14 +32,10 @@ class _FileOperationsBottomSheetState
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final maxHeight = screenHeight * 0.9; // 90% of screen height
-    final minHeight = screenHeight * 0.3; // 30% of screen height
-
     return DraggableScrollableSheet(
-      initialChildSize: 0.6, // Start at 60% of screen height
-      minChildSize: 0.3, // Minimum 30% of screen height
-      maxChildSize: 0.9, // Maximum 90% of screen height
+      initialChildSize: 0.6,
+      minChildSize: 0.3,
+      maxChildSize: 0.9,
       builder: (context, scrollController) {
         return Container(
           decoration: const BoxDecoration(
@@ -50,9 +46,8 @@ class _FileOperationsBottomSheetState
             ),
           ),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              // Handle bar - fixed at top
+              // Handle bar
               Container(
                 margin: const EdgeInsets.only(top: 8),
                 width: 40,
@@ -67,9 +62,7 @@ class _FileOperationsBottomSheetState
               Expanded(
                 child: SingleChildScrollView(
                   controller: scrollController,
-                  padding: const EdgeInsets.only(bottom: 16),
                   child: Column(
-                    mainAxisSize: MainAxisSize.min,
                     children: [
                       // File info header
                       _buildFileHeader(),
@@ -84,7 +77,8 @@ class _FileOperationsBottomSheetState
                       if (_isPdf) _buildPdfTools(),
 
                       // Bottom padding for safe area
-                      SizedBox(height: MediaQuery.of(context).padding.bottom),
+                      SizedBox(
+                          height: MediaQuery.of(context).padding.bottom + 16),
                     ],
                   ),
                 ),
@@ -98,14 +92,15 @@ class _FileOperationsBottomSheetState
 
   Widget _buildFileHeader() {
     return Container(
-      padding: const EdgeInsets.all(16), // Reduced padding
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
       child: Column(
         children: [
           // File icon and basic info
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(12), // Reduced padding
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: _getOperationColor(widget.file.operationType)
                       .withOpacity(0.1),
@@ -113,7 +108,7 @@ class _FileOperationsBottomSheetState
                 ),
                 child: Icon(
                   _getFileIcon(),
-                  size: 28, // Reduced size
+                  size: 28,
                   color: _getOperationColor(widget.file.operationType),
                 ),
               ),
@@ -157,24 +152,24 @@ class _FileOperationsBottomSheetState
 
           const SizedBox(height: 12),
 
-          // File details - made more compact
+          // File details
           Container(
-            padding: const EdgeInsets.all(10), // Reduced padding
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: AppColors.background(context),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: AppColors.border(context)),
             ),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
               children: [
                 _buildDetailRow('Size', _getFileSize()),
-                const SizedBox(height: 6), // Reduced spacing
+                const SizedBox(height: 8),
                 _buildDetailRow('Modified', widget.file.timeAgo),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 _buildDetailRow('Operation', widget.file.operation),
                 if (widget.file.resultFilePath != null) ...[
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   _buildDetailRow('Status', 'Downloaded', Icons.check_circle,
                       AppColors.success(context)),
                 ],
@@ -188,46 +183,39 @@ class _FileOperationsBottomSheetState
 
   Widget _buildDetailRow(String label, String value,
       [IconData? icon, Color? iconColor]) {
-    return ConstrainedBox(
-      constraints: BoxConstraints(maxWidth: 400),
-      child: Row(
-        children: [
-          Expanded(
-              child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                label,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary(context),
-                    ),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppColors.textSecondary(context),
               ),
-              Row(
-                children: [
-                  if (icon != null) ...[
-                    Icon(icon,
-                        size: 14,
-                        color: iconColor ??
-                            AppColors.textSecondary(context)), // Reduced size
-                    const SizedBox(width: 4), const SizedBox(width: 4),
-                  ],
-                  Flexible(
-                    child: Text(
-                      value,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.textPrimary(context),
-                          ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
+        ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Icon(
+                icon,
+                size: 16,
+                color: iconColor ?? AppColors.textSecondary(context),
               ),
+              const SizedBox(width: 4),
             ],
-          )),
-        ],
-      ),
+            Flexible(
+              child: Text(
+                value,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textPrimary(context),
+                    ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -244,7 +232,7 @@ class _FileOperationsBottomSheetState
               onTap: _openFile,
             ),
           ),
-          const SizedBox(width: 8), // Reduced spacing
+          const SizedBox(width: 8),
           Expanded(
             child: _buildQuickActionButton(
               icon: Icons.share,
@@ -279,8 +267,7 @@ class _FileOperationsBottomSheetState
         onTap: onTap,
         borderRadius: BorderRadius.circular(10),
         child: Container(
-          padding: const EdgeInsets.symmetric(
-              vertical: 10, horizontal: 6), // Reduced padding
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
           decoration: BoxDecoration(
             color: color.withOpacity(0.1),
             borderRadius: BorderRadius.circular(10),
@@ -289,14 +276,14 @@ class _FileOperationsBottomSheetState
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, color: color, size: 20), // Reduced size
-              const SizedBox(height: 3), // Reduced spacing
+              Icon(icon, color: color, size: 20),
+              const SizedBox(height: 4),
               Text(
                 label,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: color,
                       fontWeight: FontWeight.w600,
-                      fontSize: 11, // Smaller font
+                      fontSize: 12,
                     ),
                 textAlign: TextAlign.center,
               ),
@@ -310,19 +297,16 @@ class _FileOperationsBottomSheetState
   Widget _buildFileOperations() {
     return Column(
       children: [
-        const SizedBox(height: 16),
-        Padding(
+        const SizedBox(height: 7),
+        Container(
+          width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            children: [
-              Text(
-                'File Operations',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary(context),
-                    ),
-              ),
-            ],
+          child: Text(
+            'File Operations',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary(context),
+                ),
           ),
         ),
         const SizedBox(height: 8),
@@ -365,32 +349,27 @@ class _FileOperationsBottomSheetState
     return Column(
       children: [
         const SizedBox(height: 16),
-        Padding(
+        Container(
+          width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            children: [
-              Text(
-                'PDF Tools',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary(context),
-                    ),
-              ),
-            ],
+          child: Text(
+            'PDF Tools',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary(context),
+                ),
           ),
         ),
         const SizedBox(height: 8),
-
-        // PDF operations grid - made more compact
-        Padding(
+        Container(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: GridView.count(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 4, // Changed from 3 to 4 for smaller buttons
-            mainAxisSpacing: 8, // Reduced spacing
+            crossAxisCount: 4,
+            mainAxisSpacing: 8,
             crossAxisSpacing: 8,
-            childAspectRatio: 0.85, // Adjusted aspect ratio
+            childAspectRatio: 0.9,
             children: [
               _buildPdfToolButton(
                 icon: Icons.compress,
@@ -458,19 +437,17 @@ class _FileOperationsBottomSheetState
     return ListTile(
       enabled: enabled && !_isLoading,
       onTap: enabled ? onTap : null,
-      contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16, vertical: 2), // Reduced padding
       leading: Container(
-        padding: const EdgeInsets.all(6), // Reduced padding
+        padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
           color: (enabled ? color : AppColors.textSecondary(context))
               .withOpacity(0.1),
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(
           icon,
           color: enabled ? color : AppColors.textSecondary(context),
-          size: 18, // Reduced size
+          size: 20,
         ),
       ),
       title: Text(
@@ -486,14 +463,13 @@ class _FileOperationsBottomSheetState
         subtitle,
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: AppColors.textSecondary(context),
-              fontSize: 11, // Smaller font
             ),
       ),
       trailing: enabled
           ? Icon(
               Icons.chevron_right,
               color: AppColors.textSecondary(context),
-              size: 18, // Reduced size
+              size: 20,
             )
           : null,
     );
@@ -533,7 +509,7 @@ class _FileOperationsBottomSheetState
               Icon(
                 icon,
                 color: enabled ? color : AppColors.textSecondary(context),
-                size: 18, // Reduced size
+                size: 20,
               ),
               const SizedBox(height: 4),
               Text(
@@ -541,7 +517,7 @@ class _FileOperationsBottomSheetState
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: enabled ? color : AppColors.textSecondary(context),
                       fontWeight: FontWeight.w600,
-                      fontSize: 10, // Smaller font
+                      fontSize: 11,
                     ),
                 textAlign: TextAlign.center,
                 maxLines: 1,
@@ -554,7 +530,7 @@ class _FileOperationsBottomSheetState
     );
   }
 
-  // Action methods (keeping all existing methods)
+  // Action methods
   Future<void> _openFile() async {
     if (widget.file.resultFilePath == null) {
       _showSnackBar('File not available on device', isError: true);
@@ -716,12 +692,12 @@ class _FileOperationsBottomSheetState
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
+      builder: (context) => const AlertDialog(
         content: Row(
           children: [
-            const CircularProgressIndicator(),
-            const SizedBox(width: 16),
-            const Text('Deleting file...'),
+            CircularProgressIndicator(),
+            SizedBox(width: 16),
+            Text('Deleting file...'),
           ],
         ),
       ),

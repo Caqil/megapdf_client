@@ -2,18 +2,13 @@
     
     <!-- Basic permissions -->
     <uses-permission android:name="android.permission.INTERNET"/>
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+<uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+<uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+<uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+<uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
     
-    <!-- For Android 11+ (API 30+) - Required for downloading to public directories -->
-    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" 
-        android:minSdkVersion="30" />
-    
-    <!-- Optional: Disable download notifications -->
-    <uses-permission android:name="android.permission.DOWNLOAD_WITHOUT_NOTIFICATION"/>
-    
-    <!-- For Android 13+ (API 33+) - Notification permission -->
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
     <application
         android:label="megapdf_client"

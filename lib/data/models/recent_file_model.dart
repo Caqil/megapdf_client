@@ -1,6 +1,8 @@
+// lib/data/models/recent_file_model.dart
 import 'dart:convert';
-
+import 'dart:io';
 import 'package:equatable/equatable.dart';
+import '../../core/utils/file_utils.dart';
 
 class RecentFileModel extends Equatable {
   final int? id;
@@ -33,7 +35,6 @@ class RecentFileModel extends Equatable {
     try {
       print('🔧 MODEL: Attempting to parse RecentFileModel');
       print('🔧 MODEL: Input map keys: ${map.keys.toList()}');
-      print('🔧 MODEL: Input map: $map');
 
       // Safe parsing with defaults and validation
       final id = map['id'] as int?;
@@ -108,7 +109,6 @@ class RecentFileModel extends Equatable {
     } catch (e, stackTrace) {
       print('🔧 MODEL: Error creating RecentFileModel: $e');
       print('🔧 MODEL: Stack trace: $stackTrace');
-      print('🔧 MODEL: Input map: $map');
 
       // Return a safe default model instead of crashing
       return RecentFileModel(
@@ -140,7 +140,6 @@ class RecentFileModel extends Equatable {
       'metadata': metadata,
     };
 
-    print('🔧 MODEL: toMap created: $map');
     return map;
   }
 
@@ -168,6 +167,77 @@ class RecentFileModel extends Equatable {
       print('🔧 MODEL: Error calculating timeAgo: $e');
       return 'Unknown time';
     }
+  }
+
+  // Helper method to check if the result file exists
+  Future<bool> resultFileExists() async {
+    if (resultFilePath == null) return false;
+    try {
+      final file = File(resultFilePath!);
+      return await file.exists();
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Get the current size of the result file (may have changed)
+  Future<String> getCurrentResultSize() async {
+    if (resultFilePath == null) return resultSize ?? 'Unknown';
+    try {
+      final file = File(resultFilePath!);
+      if (await file.exists()) {
+        final stat = await file.stat();
+        return FileUtils.formatFileSize(stat.size);
+      }
+    } catch (e) {
+      // Ignore errors
+    }
+    return resultSize ?? 'Unknown';
+  }
+
+  // Get public storage path (for display)
+  String? get publicStoragePath {
+    if (resultFilePath == null) return null;
+
+    // Check if path contains indicators of public storage
+    if (resultFilePath!.contains('/storage/emulated/0') ||
+        resultFilePath!.contains('/Download') ||
+        resultFilePath!.contains('/MegaPDF')) {
+      return resultFilePath;
+    }
+
+    return null;
+  }
+
+  // Check if this file is in public storage
+  bool get isInPublicStorage {
+    if (metadata != null && metadata!.containsKey('is_public_storage')) {
+      return metadata!['is_public_storage'] == true;
+    }
+
+    return publicStoragePath != null;
+  }
+
+  // Get a friendly display path
+  String get displayPath {
+    if (resultFilePath == null) return 'Not saved';
+
+    if (resultFilePath!.contains('/storage/emulated/0')) {
+      String displayPath = resultFilePath!
+          .replaceFirst('/storage/emulated/0', 'Internal Storage');
+
+      // Find MegaPDF in the path
+      final parts = displayPath.split('/');
+      final megaPdfIndex = parts.indexOf('MegaPDF');
+
+      if (megaPdfIndex >= 0) {
+        return parts.sublist(megaPdfIndex - 1).join('/');
+      }
+
+      return displayPath;
+    }
+
+    return resultFilePath!;
   }
 
   @override

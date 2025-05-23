@@ -12,6 +12,7 @@ import 'package:megapdf_client/data/models/split_options.dart';
 import 'package:megapdf_client/data/models/split_result.dart';
 import 'package:megapdf_client/data/models/unlock_result.dart';
 import 'package:megapdf_client/data/models/watermark_result.dart';
+import 'package:megapdf_client/data/services/storage_service.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../services/pdf_api_service.dart';
 import '../services/file_service.dart';
@@ -23,14 +24,16 @@ part 'pdf_repository_impl.g.dart';
 PdfRepository pdfRepository(Ref ref) {
   final apiService = ref.watch(pdfApiServiceProvider);
   final fileService = ref.watch(fileServiceProvider);
-  return PdfRepositoryImpl(apiService, fileService);
+  final storageService = ref.watch(storageServiceProvider);
+  return PdfRepositoryImpl(apiService, fileService, storageService);
 }
 
 class PdfRepositoryImpl implements PdfRepository {
   final PdfApiService _apiService;
   final FileService _fileService;
+  final StorageService _storageService;
 
-  PdfRepositoryImpl(this._apiService, this._fileService);
+  PdfRepositoryImpl(this._apiService, this._fileService, this._storageService);
 
   @override
   Future<CompressResult> compressPdf(File file) async {
@@ -223,12 +226,53 @@ class PdfRepositoryImpl implements PdfRepository {
     String? customFileName,
     String? subfolder,
   }) async {
-    return await _fileService.saveFileToLocal(
+    // First, download the file to the app's temporary storage
+    final tempFilePath = await _fileService.saveFileToLocal(
       fileUrl: fileUrl,
       filename: filename,
       customFileName: customFileName,
+    );
+
+    // Then save it to the public storage with the appropriate subfolder
+    final finalFilePath = await _storageService.saveFile(
+      sourceFilePath: tempFilePath,
+      fileName: customFileName ?? filename,
       subfolder: subfolder,
+      addTimestamp: true,
+    );
+
+    if (finalFilePath != null) {
+      // Delete the temporary file as we've now saved it to public storage
+      try {
+        final tempFile = File(tempFilePath);
+        if (await tempFile.exists()) {
+          await tempFile.delete();
+        }
+      } catch (e) {
+        print('Error deleting temporary file: $e');
+        // Continue even if temp file deletion fails
+      }
+
+      return finalFilePath;
+    } else {
+      // If saving to public storage failed, return the app's private storage path
+      return tempFilePath;
+    }
+  }
+
+  // New method to directly save a file from URL to public storage
+  Future<String?> saveFileFromUrl({
+    required String fileUrl,
+    required String filename,
+    String? customFileName,
+    String? subfolder,
+    Function(double)? onProgress,
+  }) async {
+    return await _storageService.saveFileFromUrl(
+      url: fileUrl,
+      fileName: customFileName ?? filename,
+      subfolder: subfolder,
+      onProgress: onProgress,
     );
   }
-  
 }

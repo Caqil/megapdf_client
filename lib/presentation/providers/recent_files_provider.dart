@@ -1,9 +1,12 @@
+// lib/presentation/providers/recent_files_provider.dart
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../data/models/recent_file_model.dart';
 import '../../data/repositories/recent_files_repository.dart';
 import '../../data/database/database_helper.dart';
 import 'file_operation_notifier.dart';
+import 'file_path_provider.dart';
 import 'dart:convert';
 
 part 'recent_files_provider.g.dart';
@@ -19,6 +22,19 @@ class RecentFilesNotifier extends _$RecentFilesNotifier {
       print('🔧 PROVIDER: File operation notification: $previous -> $next');
       if (previous != null && next > previous) {
         print('🔧 PROVIDER: New file operation, refreshing...');
+        Future.delayed(const Duration(milliseconds: 500), () {
+          loadRecentFiles(operationType: state.currentFilter);
+          loadStats();
+        });
+      }
+    });
+
+    // Also listen to file save notifications
+    ref.listen<FileSaveState>(fileSaveNotifierProvider, (previous, next) {
+      if (next.hasLastSaved &&
+          (previous == null ||
+              previous.lastSavedFilePath != next.lastSavedFilePath)) {
+        print('🔧 PROVIDER: New file saved, refreshing...');
         Future.delayed(const Duration(milliseconds: 500), () {
           loadRecentFiles(operationType: state.currentFilter);
           loadStats();
@@ -102,6 +118,69 @@ class RecentFilesNotifier extends _$RecentFilesNotifier {
 
       print('🔧 PROVIDER: Successfully parsed ${recentFiles.length} files');
 
+      // Verify file existence and accessibility
+      final verifiedFiles = <RecentFileModel>[];
+      for (final file in recentFiles) {
+        if (file.resultFilePath != null) {
+          try {
+            final physicalFile = File(file.resultFilePath!);
+            if (await physicalFile.exists()) {
+              verifiedFiles.add(file);
+              print(
+                  '🔧 PROVIDER: Verified file exists: ${file.resultFilePath}');
+            } else {
+              // File doesn't exist but still add it to the list
+              // just mark it as inaccessible in the metadata
+              final updatedMetadata =
+                  Map<String, dynamic>.from(file.metadata ?? {});
+              updatedMetadata['file_missing'] = true;
+
+              final updatedFile = RecentFileModel(
+                id: file.id,
+                originalFileName: file.originalFileName,
+                resultFileName: file.resultFileName,
+                operation: file.operation,
+                operationType: file.operationType,
+                originalFilePath: file.originalFilePath,
+                resultFilePath: file.resultFilePath,
+                originalSize: file.originalSize,
+                resultSize: file.resultSize,
+                processedAt: file.processedAt,
+                metadata: updatedMetadata,
+              );
+
+              verifiedFiles.add(updatedFile);
+              print('🔧 PROVIDER: File not found: ${file.resultFilePath}');
+            }
+          } catch (e) {
+            print('🔧 PROVIDER: Error checking file: $e');
+            // Still add it but mark as error
+            final updatedMetadata =
+                Map<String, dynamic>.from(file.metadata ?? {});
+            updatedMetadata['file_error'] = e.toString();
+
+            final updatedFile = RecentFileModel(
+              id: file.id,
+              originalFileName: file.originalFileName,
+              resultFileName: file.resultFileName,
+              operation: file.operation,
+              operationType: file.operationType,
+              originalFilePath: file.originalFilePath,
+              resultFilePath: file.resultFilePath,
+              originalSize: file.originalSize,
+              resultSize: file.resultSize,
+              processedAt: file.processedAt,
+              metadata: updatedMetadata,
+            );
+
+            verifiedFiles.add(updatedFile);
+          }
+        } else {
+          // No result path, just add as is
+          verifiedFiles.add(file);
+        }
+      }
+
       // Get operation types for filtering
       final operationResult = await db.rawQuery('''
         SELECT DISTINCT operation_type FROM recent_files 
@@ -116,7 +195,7 @@ class RecentFilesNotifier extends _$RecentFilesNotifier {
       // Force state update
       final newState = state.copyWith(
         isLoading: false,
-        recentFiles: recentFiles,
+        recentFiles: verifiedFiles,
         operationTypes: operationTypes,
         currentFilter: operationType,
         error: null,
@@ -202,8 +281,48 @@ class RecentFilesNotifier extends _$RecentFilesNotifier {
     // Trigger a complete rebuild
     ref.invalidateSelf();
   }
+
+  // Get a specific recent file by its path
+  RecentFileModel? getRecentFileByPath(String path) {
+    try {
+      for (final file in state.recentFiles) {
+        if (file.resultFilePath == path) {
+          return file;
+        }
+      }
+      return null;
+    } catch (e) {
+      print('Error finding recent file: $e');
+      return null;
+    }
+  }
+
+  // Delete a specific recent file
+  Future<bool> deleteRecentFile(int fileId) async {
+    try {
+      final repository = ref.read(recentFilesRepositoryProvider);
+      final dbHelper = DatabaseHelper();
+
+      // Delete from database
+      await dbHelper.database.then((db) async {
+        await db.delete(
+          'recent_files',
+          where: 'id = ?',
+          whereArgs: [fileId],
+        );
+      });
+
+      // Refresh the list
+      await refreshRecentFiles();
+      return true;
+    } catch (e) {
+      print('Error deleting recent file: $e');
+      return false;
+    }
+  }
 }
 
+/// State class for recent files
 class RecentFilesState {
   final List<RecentFileModel> recentFiles;
   final List<String> operationTypes;
@@ -241,4 +360,29 @@ class RecentFilesState {
 
   bool get hasRecentFiles => recentFiles.isNotEmpty;
   bool get hasError => error != null;
+
+  // Get files filtered by operation type
+  List<RecentFileModel> getFilteredFiles(String operationType) {
+    return recentFiles
+        .where((file) => file.operationType == operationType)
+        .toList();
+  }
+
+  // Get recently saved files (with paths that exist)
+  List<RecentFileModel> get recentlySavedFiles {
+    return recentFiles
+        .where((file) =>
+            file.resultFilePath != null &&
+                !file.metadata!.containsKey('file_missing'))
+        .toList();
+  }
+
+  // Get most recent file of a specific type
+  RecentFileModel? getMostRecentFileOfType(String operationType) {
+    final filtered = getFilteredFiles(operationType);
+    if (filtered.isNotEmpty) {
+      return filtered.first;
+    }
+    return null;
+  }
 }
