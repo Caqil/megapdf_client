@@ -54,7 +54,7 @@ class NumberingOptions extends StatelessWidget {
               children: [
                 Icon(
                   Icons.format_list_numbered,
-                  color: AppColors.pageNumbersColor,
+                  color: AppColors.pageNumbersColor(context),
                   size: 24,
                 ),
                 const SizedBox(width: 12),
@@ -154,7 +154,7 @@ class NumberingOptions extends StatelessWidget {
                   ),
             ),
             const SizedBox(height: 8),
-            _buildColorPicker(),
+            _buildColorPicker(context),
 
             const SizedBox(height: 16),
 
@@ -231,7 +231,7 @@ class NumberingOptions extends StatelessWidget {
                         min: 10,
                         max: 100,
                         divisions: 18,
-                        activeColor: AppColors.pageNumbersColor,
+                        activeColor: AppColors.pageNumbersColor(context),
                         onChanged: (value) =>
                             onMarginsChanged(value.round(), null),
                       ),
@@ -249,7 +249,7 @@ class NumberingOptions extends StatelessWidget {
                         min: 10,
                         max: 100,
                         divisions: 18,
-                        activeColor: AppColors.pageNumbersColor,
+                        activeColor: AppColors.pageNumbersColor(context),
                         onChanged: (value) =>
                             onMarginsChanged(null, value.round()),
                       ),
@@ -289,7 +289,7 @@ class NumberingOptions extends StatelessWidget {
                   'Don\'t add numbers to the first page (title page)'),
               value: skipFirstPage,
               onChanged: (value) => onPageSelectionChanged(null, value),
-              activeColor: AppColors.pageNumbersColor,
+              activeColor: AppColors.pageNumbersColor(context),
               contentPadding: EdgeInsets.zero,
             ),
           ],
@@ -298,7 +298,7 @@ class NumberingOptions extends StatelessWidget {
     );
   }
 
-  Widget _buildColorPicker() {
+  Widget _buildColorPicker(BuildContext context) {
     final colors = [
       '#000000', // Black
       '#333333', // Dark Gray
@@ -321,8 +321,9 @@ class NumberingOptions extends StatelessWidget {
               color: Color(
                   int.parse(colorHex.substring(1), radix: 16) + 0xFF000000),
               border: Border.all(
-                color:
-                    isSelected ? AppColors.pageNumbersColor : AppColors.border,
+                color: isSelected
+                    ? AppColors.pageNumbersColor(context)
+                    : AppColors.border(context),
                 width: isSelected ? 3 : 1,
               ),
               borderRadius: BorderRadius.circular(16),

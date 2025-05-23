@@ -2,60 +2,95 @@ import 'package:flutter/material.dart';
 
 class AppColors {
   // Primary Colors
-  static const Color primary = Color(0xFF2563EB); // Blue
-  static const Color primaryLight = Color(0xFF3B82F6);
-  static const Color primaryDark = Color(0xFF1D4ED8);
+  static Color primary(BuildContext context) =>
+      _isDark(context) ? const Color(0xFFFF3333) : const Color(0xFFFF0000);
+  static Color primaryLight(BuildContext context) =>
+      _isDark(context) ? const Color(0xFFFF6666) : const Color(0xFFFF4D4D);
+  static Color primaryDark(BuildContext context) =>
+      _isDark(context) ? const Color(0xFF990000) : const Color(0xFFB30000);
 
   // Secondary Colors
-  static const Color secondary = Color(0xFF10B981); // Green
-  static const Color secondaryLight = Color(0xFF34D399);
-  static const Color secondaryDark = Color(0xFF059669);
+  static Color secondary(BuildContext context) =>
+      _isDark(context) ? const Color(0xFFFF8080) : const Color(0xFFFF6666);
+  static Color secondaryLight(BuildContext context) =>
+      _isDark(context) ? const Color(0xFFFFB3B3) : const Color(0xFFFF9999);
+  static Color secondaryDark(BuildContext context) =>
+      _isDark(context) ? const Color(0xFFCC3333) : const Color(0xFFCC3333);
 
   // Text Colors
-  static const Color textPrimary = Color(0xFF1F2937);
-  static const Color textSecondary = Color(0xFF6B7280);
-  static const Color textMuted = Color(0xFF9CA3AF);
+  static Color textPrimary(BuildContext context) =>
+      _isDark(context) ? const Color(0xFFE6E6E6) : const Color(0xFF1F1F1F);
+  static Color textSecondary(BuildContext context) =>
+      _isDark(context) ? const Color(0xFFB3B3B3) : const Color(0xFF666666);
+  static Color textMuted(BuildContext context) =>
+      _isDark(context) ? const Color(0xFF808080) : const Color(0xFF999999);
 
   // Background Colors
-  static const Color background = Color(0xFFF9FAFB);
-  static const Color surface = Color(0xFFFFFFFF);
-  static const Color surfaceVariant = Color(0xFFF3F4F6);
+  static Color background(BuildContext context) =>
+      _isDark(context) ? const Color(0xFF1A1A1A) : const Color(0xFFFFF5F5);
+  static Color surface(BuildContext context) =>
+      _isDark(context) ? const Color(0xFF2D2D2D) : const Color(0xFFFFFFFF);
+  static Color surfaceVariant(BuildContext context) =>
+      _isDark(context) ? const Color(0xFF3D2D2D) : const Color(0xFFFFE6E6);
 
   // Border Colors
-  static const Color border = Color(0xFFE5E7EB);
-  static const Color borderLight = Color(0xFFF3F4F6);
+  static Color border(BuildContext context) =>
+      _isDark(context) ? const Color(0xFF5C3D3D) : const Color(0xFFFFB3B3);
+  static Color borderLight(BuildContext context) =>
+      _isDark(context) ? const Color(0xFF805050) : const Color(0xFFFFD9D9);
 
   // Status Colors
-  static const Color success = Color(0xFF10B981);
-  static const Color warning = Color(0xFFF59E0B);
-  static const Color error = Color(0xFFEF4444);
-  static const Color info = Color(0xFF3B82F6);
+  static Color success(BuildContext context) =>
+      const Color(0xFF4CAF50); // Consistent across themes
+  static Color warning(BuildContext context) => const Color(0xFFFFA726);
+  static Color error(BuildContext context) => const Color(0xFFEF4444);
+  static Color info(BuildContext context) =>
+      _isDark(context) ? const Color(0xFFFF8080) : const Color(0xFFFF6666);
 
-  // Feature Specific Colors
-  static const Color compressColor = Color(0xFF8B5CF6); // Purple
-  static const Color splitColor = Color(0xFF06B6D4); // Cyan
-  static const Color mergeColor = Color(0xFF10B981); // Green
-  static const Color watermarkColor = Color(0xFFF59E0B); // Amber
-  static const Color convertColor = Color(0xFFEF4444); // Red
-  static const Color protectColor = Color(0xFF8B5CF6); // Purple
-  static const Color unlockColor = Color(0xFF10B981); // Green
-  static const Color rotateColor = Color(0xFF06B6D4); // Cyan
-  static const Color pageNumbersColor = Color(0xFFF59E0B); // Amber
+  // Feature-Specific Colors
+  static Color compressColor(BuildContext context) =>
+      _isDark(context) ? const Color(0xFFFF6666) : const Color(0xFFFF4D4D);
+  static Color splitColor(BuildContext context) =>
+      _isDark(context) ? const Color(0xFFFF8080) : const Color(0xFFFF8080);
+  static Color mergeColor(BuildContext context) =>
+      _isDark(context) ? const Color(0xFFFFB3B3) : const Color(0xFFFF6666);
+  static Color watermarkColor(BuildContext context) =>
+      _isDark(context) ? const Color(0xFFFFA726) : const Color(0xFFFFA726);
+  static Color convertColor(BuildContext context) =>
+      _isDark(context) ? const Color(0xFFEF4444) : const Color(0xFFEF4444);
+  static Color protectColor(BuildContext context) =>
+      _isDark(context) ? const Color(0xFF990000) : const Color(0xFFB30000);
+  static Color unlockColor(BuildContext context) =>
+      _isDark(context) ? const Color(0xFFFF8080) : const Color(0xFFFF6666);
+  static Color rotateColor(BuildContext context) =>
+      _isDark(context) ? const Color(0xFFFFB3B3) : const Color(0xFFFF8080);
+  static Color pageNumbersColor(BuildContext context) =>
+      _isDark(context) ? const Color(0xFFFFA726) : const Color(0xFFFFA726);
 
-  // Gradient Colors
-  static const LinearGradient primaryGradient = LinearGradient(
-    colors: [primary, primaryLight],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
+  // Gradients
+  static LinearGradient primaryGradient(BuildContext context) => LinearGradient(
+        colors: [
+          primary(context),
+          primaryLight(context),
+        ],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      );
 
-  static const LinearGradient successGradient = LinearGradient(
-    colors: [success, secondaryLight],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
+  static LinearGradient successGradient(BuildContext context) => LinearGradient(
+        colors: [
+          success(context),
+          const Color(0xFF66BB6A),
+        ],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      );
 
   // Shadow Colors
-  static const Color shadow = Color(0x1A000000);
-  static const Color shadowLight = Color(0x0D000000);
+  static Color shadow(BuildContext context) => const Color(0x1A000000);
+  static Color shadowLight(BuildContext context) => const Color(0x0D000000);
+
+  // Helper to check if dark mode is active
+  static bool _isDark(BuildContext context) =>
+      MediaQuery.of(context).platformBrightness == Brightness.dark;
 }

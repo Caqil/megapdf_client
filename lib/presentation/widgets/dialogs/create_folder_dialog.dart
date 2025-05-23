@@ -44,12 +44,12 @@ class _CreateFolderDialogState extends State<CreateFolderDialog> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
+              color: AppColors.primary(context).withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
               Icons.create_new_folder,
-              color: AppColors.primary,
+              color: AppColors.primary(context),
               size: 20,
             ),
           ),
@@ -72,7 +72,7 @@ class _CreateFolderDialogState extends State<CreateFolderDialog> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 filled: true,
-                fillColor: AppColors.background,
+                fillColor: AppColors.background(context),
               ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
@@ -106,10 +106,10 @@ class _CreateFolderDialogState extends State<CreateFolderDialog> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.05),
+                color: AppColors.primary(context).withOpacity(0.05),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary(context).withOpacity(0.1),
                 ),
               ),
               child: Column(
@@ -118,7 +118,7 @@ class _CreateFolderDialogState extends State<CreateFolderDialog> {
                   Text(
                     'Quick suggestions:',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.textSecondary,
+                          color: AppColors.textSecondary(context),
                           fontWeight: FontWeight.w500,
                         ),
                   ),
@@ -165,7 +165,7 @@ class _CreateFolderDialogState extends State<CreateFolderDialog> {
               : const Icon(Icons.create_new_folder, size: 18),
           label: Text(_isCreating ? 'Creating...' : 'Create'),
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
+            backgroundColor: AppColors.primary(context),
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
@@ -201,14 +201,14 @@ class _CreateFolderDialogState extends State<CreateFolderDialog> {
               children: [
                 Icon(
                   Icons.check_circle,
-                  color: AppColors.success,
+                  color: AppColors.success(context),
                   size: 20,
                 ),
                 const SizedBox(width: 8),
                 Text('Folder "$folderName" created successfully'),
               ],
             ),
-            backgroundColor: AppColors.success.withOpacity(0.1),
+            backgroundColor: AppColors.success(context).withOpacity(0.1),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
@@ -228,14 +228,14 @@ class _CreateFolderDialogState extends State<CreateFolderDialog> {
               children: [
                 Icon(
                   Icons.error,
-                  color: AppColors.error,
+                  color: AppColors.error(context),
                   size: 20,
                 ),
                 const SizedBox(width: 8),
                 Text('Failed to create folder: $e'),
               ],
             ),
-            backgroundColor: AppColors.error.withOpacity(0.1),
+            backgroundColor: AppColors.error(context).withOpacity(0.1),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
@@ -263,16 +263,16 @@ class _SuggestionChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: AppColors.primary.withOpacity(0.1),
+          color: AppColors.primary(context).withOpacity(0.1),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: AppColors.primary.withOpacity(0.2),
+            color: AppColors.primary(context).withOpacity(0.2),
           ),
         ),
         child: Text(
           label,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.primary,
+                color: AppColors.primary(context),
                 fontWeight: FontWeight.w500,
               ),
         ),

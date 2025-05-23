@@ -67,7 +67,7 @@ class _PageSelectorState extends State<PageSelector> {
               children: [
                 Icon(
                   Icons.pages,
-                  color: AppColors.rotateColor,
+                  color: AppColors.rotateColor(context),
                   size: 24,
                 ),
                 const SizedBox(width: 12),
@@ -93,7 +93,7 @@ class _PageSelectorState extends State<PageSelector> {
                       _controller.clear();
                       widget.onPagesChanged(value!);
                     },
-                    activeColor: AppColors.rotateColor,
+                    activeColor: AppColors.rotateColor(context),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -111,7 +111,7 @@ class _PageSelectorState extends State<PageSelector> {
                           'Rotate all pages in the document',
                           style:
                               Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: AppColors.textSecondary,
+                                    color: AppColors.textSecondary(context),
                                   ),
                         ),
                       ],
@@ -132,7 +132,7 @@ class _PageSelectorState extends State<PageSelector> {
                       // Don't change the value, just focus on text field
                     }
                   },
-                  activeColor: AppColors.rotateColor,
+                  activeColor: AppColors.rotateColor(context),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -148,7 +148,7 @@ class _PageSelectorState extends State<PageSelector> {
                       Text(
                         'Rotate only specified pages',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.textSecondary,
+                              color: AppColors.textSecondary(context),
                             ),
                       ),
                     ],
@@ -205,14 +205,15 @@ class _PageSelectorState extends State<PageSelector> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: AppColors.rotateColor.withOpacity(0.1),
+          color: AppColors.rotateColor(context).withOpacity(0.1),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.rotateColor.withOpacity(0.3)),
+          border: Border.all(
+              color: AppColors.rotateColor(context).withOpacity(0.3)),
         ),
         child: Text(
           example,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.rotateColor,
+                color: AppColors.rotateColor(context),
                 fontWeight: FontWeight.w500,
               ),
         ),

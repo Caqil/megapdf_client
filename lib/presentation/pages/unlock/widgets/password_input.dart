@@ -45,7 +45,7 @@ class _PasswordInputState extends State<PasswordInput> {
               children: [
                 Icon(
                   Icons.lock_open,
-                  color: AppColors.unlockColor,
+                  color: AppColors.unlockColor(context),
                   size: 24,
                 ),
                 const SizedBox(width: 12),
@@ -89,15 +89,16 @@ class _PasswordInputState extends State<PasswordInput> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.info.withOpacity(0.1),
+                color: AppColors.info(context).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.info.withOpacity(0.3)),
+                border:
+                    Border.all(color: AppColors.info(context).withOpacity(0.3)),
               ),
               child: Row(
                 children: [
                   Icon(
                     Icons.info,
-                    color: AppColors.info,
+                    color: AppColors.info(context),
                     size: 16,
                   ),
                   const SizedBox(width: 8),
@@ -105,7 +106,7 @@ class _PasswordInputState extends State<PasswordInput> {
                     child: Text(
                       'Your password is used only to unlock the PDF and is not stored or transmitted.',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.info,
+                            color: AppColors.info(context),
                           ),
                     ),
                   ),

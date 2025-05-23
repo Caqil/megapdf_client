@@ -25,7 +25,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
           ? IconButton(
               onPressed: onBack,
               icon: const Icon(Icons.arrow_back_ios),
-              color: AppColors.textPrimary,
+              color: AppColors.textPrimary(context),
             )
           : null,
       title: Column(
@@ -34,16 +34,16 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
           Text(
             title,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary(context),
+                ),
           ),
           if (subtitle != null)
             Text(
               subtitle!,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.textSecondary,
-              ),
+                    color: AppColors.textSecondary(context),
+                  ),
             ),
         ],
       ),

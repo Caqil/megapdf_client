@@ -25,12 +25,12 @@ class CompressionResult extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.success.withOpacity(0.15),
+                    color: AppColors.success(context).withOpacity(0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     Icons.check_circle,
-                    color: AppColors.success,
+                    color: AppColors.success(context),
                     size: 24,
                   ),
                 ),
@@ -43,13 +43,13 @@ class CompressionResult extends StatelessWidget {
                         'Compression Complete',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.bold,
-                              color: AppColors.success,
+                              color: AppColors.success(context),
                             ),
                       ),
                       Text(
                         result.message,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppColors.textSecondary,
+                              color: AppColors.textSecondary(context),
                             ),
                       ),
                     ],
@@ -65,10 +65,10 @@ class CompressionResult extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.compressColor.withOpacity(0.1),
+                color: AppColors.compressColor(context).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: AppColors.compressColor.withOpacity(0.3),
+                  color: AppColors.compressColor(context).withOpacity(0.3),
                 ),
               ),
               child: Column(
@@ -80,7 +80,7 @@ class CompressionResult extends StatelessWidget {
                       children: [
                         Icon(
                           Icons.trending_down,
-                          color: AppColors.compressColor,
+                          color: AppColors.compressColor(context),
                           size: 20,
                         ),
                         const SizedBox(width: 8),
@@ -89,7 +89,7 @@ class CompressionResult extends StatelessWidget {
                           style:
                               Theme.of(context).textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.bold,
-                                    color: AppColors.compressColor,
+                                    color: AppColors.compressColor(context),
                                   ),
                         ),
                       ],
@@ -106,13 +106,13 @@ class CompressionResult extends StatelessWidget {
                           'Original Size',
                           result.formattedOriginalSize,
                           Icons.file_present,
-                          AppColors.textSecondary,
+                          AppColors.textSecondary(context),
                         ),
                       ),
                       const SizedBox(width: 16),
                       Icon(
                         Icons.arrow_forward,
-                        color: AppColors.textMuted,
+                        color: AppColors.textMuted(context),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -121,7 +121,7 @@ class CompressionResult extends StatelessWidget {
                           'Compressed Size',
                           result.formattedCompressedSize,
                           Icons.photo_size_select_small_sharp,
-                          AppColors.success,
+                          AppColors.success(context),
                         ),
                       ),
                     ],
@@ -133,7 +133,7 @@ class CompressionResult extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: AppColors.success.withOpacity(0.1),
+                        color: AppColors.success(context).withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
@@ -141,7 +141,7 @@ class CompressionResult extends StatelessWidget {
                         children: [
                           Icon(
                             Icons.save_alt,
-                            color: AppColors.success,
+                            color: AppColors.success(context),
                             size: 20,
                           ),
                           const SizedBox(width: 8),
@@ -152,7 +152,7 @@ class CompressionResult extends StatelessWidget {
                                 .bodyMedium
                                 ?.copyWith(
                                   fontWeight: FontWeight.w600,
-                                  color: AppColors.success,
+                                  color: AppColors.success(context),
                                 ),
                           ),
                         ],
@@ -171,14 +171,14 @@ class CompressionResult extends StatelessWidget {
                 children: [
                   Icon(
                     Icons.insert_drive_file,
-                    color: AppColors.textSecondary,
+                    color: AppColors.textSecondary(context),
                     size: 16,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     'File: ${result.filename}',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.textSecondary,
+                          color: AppColors.textSecondary(context),
                         ),
                   ),
                 ],
@@ -208,7 +208,7 @@ class CompressionResult extends StatelessWidget {
         Text(
           label,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.textSecondary,
+                color: AppColors.textSecondary(context),
               ),
           textAlign: TextAlign.center,
         ),

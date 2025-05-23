@@ -15,7 +15,7 @@ class CustomHomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: AppColors.surface,
+      backgroundColor: AppColors.surface(context),
       elevation: 0,
       automaticallyImplyLeading: false,
       title: Row(
@@ -23,7 +23,7 @@ class CustomHomeAppBar extends StatelessWidget implements PreferredSizeWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppColors.primary,
+              color: AppColors.primary(context),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(
@@ -40,13 +40,13 @@ class CustomHomeAppBar extends StatelessWidget implements PreferredSizeWidget {
                 'MegaPDF',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                      color: AppColors.textPrimary(context),
                     ),
               ),
               Text(
                 'File Manager',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSecondary,
+                      color: AppColors.textSecondary(context),
                     ),
               ),
             ],
@@ -57,12 +57,12 @@ class CustomHomeAppBar extends StatelessWidget implements PreferredSizeWidget {
         IconButton(
           onPressed: onSearchTap,
           icon: const Icon(Icons.search),
-          color: AppColors.textSecondary,
+          color: AppColors.textSecondary(context),
         ),
         IconButton(
           onPressed: onMenuTap,
           icon: const Icon(Icons.more_vert),
-          color: AppColors.textSecondary,
+          color: AppColors.textSecondary(context),
         ),
       ],
     );

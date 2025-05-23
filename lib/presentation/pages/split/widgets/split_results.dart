@@ -32,12 +32,12 @@ class SplitResults extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.success.withOpacity(0.15),
+                    color: AppColors.success(context).withOpacity(0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     Icons.check_circle,
-                    color: AppColors.success,
+                    color: AppColors.success(context),
                     size: 24,
                   ),
                 ),
@@ -50,13 +50,13 @@ class SplitResults extends StatelessWidget {
                         'Split Complete',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.bold,
-                              color: AppColors.success,
+                              color: AppColors.success(context),
                             ),
                       ),
                       Text(
                         '${parts.length} files created',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppColors.textSecondary,
+                              color: AppColors.textSecondary(context),
                             ),
                       ),
                     ],
@@ -87,7 +87,7 @@ class SplitResults extends StatelessWidget {
                     isDownloading ? 'Downloading...' : 'Download All Files'),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: AppColors.success,
+                  backgroundColor: AppColors.success(context),
                 ),
               ),
             ),
@@ -123,9 +123,10 @@ class SplitResults extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.splitColor.withOpacity(0.05),
+        color: AppColors.splitColor(context).withOpacity(0.05),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.splitColor.withOpacity(0.2)),
+        border:
+            Border.all(color: AppColors.splitColor(context).withOpacity(0.2)),
       ),
       child: Row(
         children: [
@@ -133,12 +134,12 @@ class SplitResults extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppColors.splitColor.withOpacity(0.15),
+              color: AppColors.splitColor(context).withOpacity(0.15),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Icon(
               Icons.picture_as_pdf,
-              color: AppColors.splitColor,
+              color: AppColors.splitColor(context),
               size: 20,
             ),
           ),
@@ -160,13 +161,13 @@ class SplitResults extends StatelessWidget {
                 Text(
                   'Pages: ${part.pageRange}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
+                        color: AppColors.textSecondary(context),
                       ),
                 ),
                 Text(
                   '${part.pageCount} page${part.pageCount != 1 ? 's' : ''}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
+                        color: AppColors.textSecondary(context),
                       ),
                 ),
               ],
@@ -178,7 +179,9 @@ class SplitResults extends StatelessWidget {
             onPressed: isDownloading ? null : () => onDownloadPart(part),
             icon: Icon(
               Icons.download,
-              color: isDownloading ? AppColors.textMuted : AppColors.splitColor,
+              color: isDownloading
+                  ? AppColors.textMuted(context)
+                  : AppColors.splitColor(context),
             ),
             tooltip: 'Download this part',
           ),

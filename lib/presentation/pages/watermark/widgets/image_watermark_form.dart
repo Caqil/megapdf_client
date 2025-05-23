@@ -27,7 +27,7 @@ class ImageWatermarkForm extends StatelessWidget {
               children: [
                 Icon(
                   Icons.image,
-                  color: AppColors.watermarkColor,
+                  color: AppColors.watermarkColor(context),
                   size: 24,
                 ),
                 const SizedBox(width: 12),
@@ -54,9 +54,10 @@ class ImageWatermarkForm extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.success.withOpacity(0.1),
+                  color: AppColors.success(context).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.success.withOpacity(0.3)),
+                  border: Border.all(
+                      color: AppColors.success(context).withOpacity(0.3)),
                 ),
                 child: Column(
                   children: [
@@ -66,7 +67,7 @@ class ImageWatermarkForm extends StatelessWidget {
                       width: 120,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.border),
+                        border: Border.all(color: AppColors.border(context)),
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(8),
@@ -92,7 +93,7 @@ class ImageWatermarkForm extends StatelessWidget {
                     Text(
                       'Size: ${(selectedImage!.lengthSync() / 1024).toStringAsFixed(1)} KB',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.textSecondary,
+                            color: AppColors.textSecondary(context),
                           ),
                     ),
 

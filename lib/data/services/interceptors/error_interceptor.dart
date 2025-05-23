@@ -38,8 +38,7 @@ class ErrorInterceptor extends Interceptor {
         return ApiException.network('SSL certificate error');
 
       case DioExceptionType.unknown:
-      default:
-        return ApiException.unknown(
+      return ApiException.unknown(
           error.message ?? 'An unexpected error occurred',
         );
     }

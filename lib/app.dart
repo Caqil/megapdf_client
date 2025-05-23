@@ -13,9 +13,9 @@ class MegaPDFApp extends ConsumerWidget {
 
     return MaterialApp.router(
       title: 'MegaPDF Client',
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
+      theme: AppThemes.lightTheme,
+      darkTheme: AppThemes.darkTheme,
+      themeMode: ThemeMode.system, // Follows system theme
       routerConfig: router,
       debugShowCheckedModeBanner: false,
       builder: (context, child) {

@@ -40,7 +40,7 @@ class _RecentPageState extends ConsumerState<RecentPage>
     final state = ref.watch(recentFilesNotifierProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.background(context),
       appBar: _buildAppBar(state),
       body: RefreshIndicator(
         onRefresh: () async {
@@ -55,7 +55,7 @@ class _RecentPageState extends ConsumerState<RecentPage>
 
   PreferredSizeWidget _buildAppBar(RecentFilesState state) {
     return AppBar(
-      backgroundColor: AppColors.surface,
+      backgroundColor: AppColors.surface(context),
       centerTitle: false,
       elevation: 0,
       automaticallyImplyLeading: false,
@@ -66,14 +66,14 @@ class _RecentPageState extends ConsumerState<RecentPage>
             'Recent Files',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+                  color: AppColors.textPrimary(context),
                 ),
           ),
           if (state.recentFiles.isNotEmpty)
             Text(
               '${state.recentFiles.length} files processed',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: AppColors.textSecondary(context),
                   ),
             ),
         ],
@@ -89,7 +89,8 @@ class _RecentPageState extends ConsumerState<RecentPage>
             },
             icon: Icon(
               _showFilterChips ? Icons.filter_list_off : Icons.filter_list,
-              color: _selectedFilter != null ? AppColors.primary : null,
+              color:
+                  _selectedFilter != null ? AppColors.primary(context) : null,
             ),
             tooltip: 'Filter',
           ),
@@ -109,8 +110,8 @@ class _RecentPageState extends ConsumerState<RecentPage>
                   height: 20,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    valueColor:
-                        AlwaysStoppedAnimation<Color>(AppColors.primary),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                        AppColors.primary(context)),
                   ),
                 )
               : const Icon(Icons.refresh),
@@ -124,9 +125,9 @@ class _RecentPageState extends ConsumerState<RecentPage>
             PopupMenuItem(
               value: 'clear_all',
               child: ListTile(
-                leading: Icon(Icons.clear_all, color: AppColors.error),
-                title:
-                    Text('Clear All', style: TextStyle(color: AppColors.error)),
+                leading: Icon(Icons.clear_all, color: AppColors.error(context)),
+                title: Text('Clear All',
+                    style: TextStyle(color: AppColors.error(context))),
                 contentPadding: EdgeInsets.zero,
               ),
             ),
@@ -208,8 +209,8 @@ class _RecentPageState extends ConsumerState<RecentPage>
                     .read(recentFilesNotifierProvider.notifier)
                     .loadRecentFiles();
               },
-              selectedColor: AppColors.primary.withOpacity(0.2),
-              checkmarkColor: AppColors.primary,
+              selectedColor: AppColors.primary(context).withOpacity(0.2),
+              checkmarkColor: AppColors.primary(context),
             ),
           ),
 
@@ -247,7 +248,7 @@ class _RecentPageState extends ConsumerState<RecentPage>
           'Activity Summary',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: AppColors.textPrimary(context),
               ),
         ),
         const SizedBox(height: 12),
@@ -258,7 +259,7 @@ class _RecentPageState extends ConsumerState<RecentPage>
                 title: 'Today',
                 count: state.stats['today']?.toString() ?? '0',
                 subtitle: 'files processed',
-                color: AppColors.primary,
+                color: AppColors.primary(context),
                 icon: Icons.today,
               ),
             ),
@@ -268,7 +269,7 @@ class _RecentPageState extends ConsumerState<RecentPage>
                 title: 'This Week',
                 count: state.stats['thisWeek']?.toString() ?? '0',
                 subtitle: 'files processed',
-                color: AppColors.secondary,
+                color: AppColors.secondary(context),
                 icon: Icons.calendar_month,
               ),
             ),
@@ -295,7 +296,7 @@ class _RecentPageState extends ConsumerState<RecentPage>
                   : 'Recent Activity',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                    color: AppColors.textPrimary(context),
                   ),
             ),
             if (state.recentFiles.length > 10)
@@ -334,13 +335,13 @@ class _RecentPageState extends ConsumerState<RecentPage>
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
+              color: AppColors.primary(context).withOpacity(0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.history_outlined,
               size: 64,
-              color: AppColors.primary.withOpacity(0.7),
+              color: AppColors.primary(context).withOpacity(0.7),
             ),
           ),
           const SizedBox(height: 24),
@@ -349,7 +350,7 @@ class _RecentPageState extends ConsumerState<RecentPage>
                 ? 'No ${_getOperationDisplayName(_selectedFilter!).toLowerCase()} files'
                 : 'No recent files',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: AppColors.textSecondary,
+                  color: AppColors.textSecondary(context),
                   fontWeight: FontWeight.w600,
                 ),
           ),
@@ -359,7 +360,7 @@ class _RecentPageState extends ConsumerState<RecentPage>
                 ? 'Try a different filter or process some files'
                 : 'Files you process will appear here',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textSecondary,
+                  color: AppColors.textSecondary(context),
                 ),
             textAlign: TextAlign.center,
           ),
@@ -425,13 +426,13 @@ class _RecentPageState extends ConsumerState<RecentPage>
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('All recent files cleared'),
-                    backgroundColor: AppColors.success,
+                    backgroundColor: AppColors.success(context),
                   ),
                 );
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
+              backgroundColor: AppColors.error(context),
             ),
             child: Text('Clear All'),
           ),
@@ -464,7 +465,7 @@ class _RecentPageState extends ConsumerState<RecentPage>
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('Old files cleaned up'),
-                    backgroundColor: AppColors.success,
+                    backgroundColor: AppColors.success(context),
                   ),
                 );
               }
@@ -479,25 +480,25 @@ class _RecentPageState extends ConsumerState<RecentPage>
   Color _getOperationColor(String operationType) {
     switch (operationType) {
       case 'compress':
-        return AppColors.compressColor;
+        return AppColors.compressColor(context);
       case 'merge':
-        return AppColors.mergeColor;
+        return AppColors.mergeColor(context);
       case 'split':
-        return AppColors.splitColor;
+        return AppColors.splitColor(context);
       case 'convert':
-        return AppColors.convertColor;
+        return AppColors.convertColor(context);
       case 'protect':
-        return AppColors.protectColor;
+        return AppColors.protectColor(context);
       case 'unlock':
-        return AppColors.unlockColor;
+        return AppColors.unlockColor(context);
       case 'rotate':
-        return AppColors.rotateColor;
+        return AppColors.rotateColor(context);
       case 'watermark':
-        return AppColors.watermarkColor;
+        return AppColors.watermarkColor(context);
       case 'page_numbers':
-        return AppColors.pageNumbersColor;
+        return AppColors.pageNumbersColor(context);
       default:
-        return AppColors.primary;
+        return AppColors.primary(context);
     }
   }
 
@@ -583,7 +584,7 @@ class _StatsCard extends StatelessWidget {
           Text(
             subtitle,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textSecondary,
+                  color: AppColors.textSecondary(context),
                 ),
           ),
         ],
@@ -605,7 +606,7 @@ class RecentFileCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _getOperationColor(item.operationType);
+    final color = _getOperationColor(item.operationType, context);
     final icon = _getOperationIcon(item.operationType);
 
     return Material(
@@ -616,12 +617,12 @@ class RecentFileCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: AppColors.surface(context),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: AppColors.border(context)),
             boxShadow: [
               BoxShadow(
-                color: AppColors.shadow,
+                color: AppColors.shadow(context),
                 blurRadius: 4,
                 offset: Offset(0, 2),
               ),
@@ -653,7 +654,7 @@ class RecentFileCard extends StatelessWidget {
                       item.originalFileName,
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
+                            color: AppColors.textPrimary(context),
                           ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -683,7 +684,7 @@ class RecentFileCard extends StatelessWidget {
                             _getSizeInfo(),
                             style:
                                 Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: AppColors.textSecondary,
+                                      color: AppColors.textSecondary(context),
                                     ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -696,14 +697,14 @@ class RecentFileCard extends StatelessWidget {
                         Icon(
                           Icons.access_time,
                           size: 12,
-                          color: AppColors.textSecondary,
+                          color: AppColors.textSecondary(context),
                         ),
                         const SizedBox(width: 4),
                         Text(
                           item.timeAgo,
                           style:
                               Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: AppColors.textSecondary,
+                                    color: AppColors.textSecondary(context),
                                   ),
                         ),
                         const Spacer(),
@@ -711,14 +712,14 @@ class RecentFileCard extends StatelessWidget {
                           Icon(
                             Icons.check_circle,
                             size: 16,
-                            color: AppColors.success,
+                            color: AppColors.success(context),
                           ),
                           const SizedBox(width: 4),
                           Text(
                             'Saved',
                             style:
                                 Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: AppColors.success,
+                                      color: AppColors.success(context),
                                       fontWeight: FontWeight.w500,
                                     ),
                           ),
@@ -732,7 +733,7 @@ class RecentFileCard extends StatelessWidget {
               // More button
               Icon(
                 Icons.more_vert,
-                color: AppColors.textSecondary,
+                color: AppColors.textSecondary(context),
                 size: 20,
               ),
             ],
@@ -749,28 +750,28 @@ class RecentFileCard extends StatelessWidget {
     return item.originalSize;
   }
 
-  Color _getOperationColor(String operationType) {
+  Color _getOperationColor(String operationType, BuildContext context) {
     switch (operationType) {
       case 'compress':
-        return AppColors.compressColor;
+        return AppColors.compressColor(context);
       case 'merge':
-        return AppColors.mergeColor;
+        return AppColors.mergeColor(context);
       case 'split':
-        return AppColors.splitColor;
+        return AppColors.splitColor(context);
       case 'convert':
-        return AppColors.convertColor;
+        return AppColors.convertColor(context);
       case 'protect':
-        return AppColors.protectColor;
+        return AppColors.protectColor(context);
       case 'unlock':
-        return AppColors.unlockColor;
+        return AppColors.unlockColor(context);
       case 'rotate':
-        return AppColors.rotateColor;
+        return AppColors.rotateColor(context);
       case 'watermark':
-        return AppColors.watermarkColor;
+        return AppColors.watermarkColor(context);
       case 'page_numbers':
-        return AppColors.pageNumbersColor;
+        return AppColors.pageNumbersColor(context);
       default:
-        return AppColors.primary;
+        return AppColors.primary(context);
     }
   }
 

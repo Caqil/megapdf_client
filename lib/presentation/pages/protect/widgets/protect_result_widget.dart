@@ -26,12 +26,12 @@ class ProtectResultWidget extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.success.withOpacity(0.15),
+                    color: AppColors.success(context).withOpacity(0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     Icons.check_circle,
-                    color: AppColors.success,
+                    color: AppColors.success(context),
                     size: 24,
                   ),
                 ),
@@ -44,13 +44,13 @@ class ProtectResultWidget extends StatelessWidget {
                         'PDF Protected',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.bold,
-                              color: AppColors.success,
+                              color: AppColors.success(context),
                             ),
                       ),
                       Text(
                         result.message,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppColors.textSecondary,
+                              color: AppColors.textSecondary(context),
                             ),
                       ),
                     ],
@@ -66,16 +66,16 @@ class ProtectResultWidget extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.protectColor.withOpacity(0.1),
+                color: AppColors.protectColor(context).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
-                border:
-                    Border.all(color: AppColors.protectColor.withOpacity(0.3)),
+                border: Border.all(
+                    color: AppColors.protectColor(context).withOpacity(0.3)),
               ),
               child: Column(
                 children: [
                   Icon(
                     Icons.lock,
-                    color: AppColors.protectColor,
+                    color: AppColors.protectColor(context),
                     size: 48,
                   ),
                   const SizedBox(height: 12),
@@ -83,7 +83,7 @@ class ProtectResultWidget extends StatelessWidget {
                     'Password Protection Applied',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: AppColors.protectColor,
+                          color: AppColors.protectColor(context),
                         ),
                     textAlign: TextAlign.center,
                   ),
@@ -91,7 +91,7 @@ class ProtectResultWidget extends StatelessWidget {
                   Text(
                     'Your PDF is now secured with password protection',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.textSecondary,
+                          color: AppColors.textSecondary(context),
                         ),
                     textAlign: TextAlign.center,
                   ),
@@ -100,7 +100,7 @@ class ProtectResultWidget extends StatelessWidget {
                     Text(
                       'Method: ${result.methodUsed}',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.textSecondary,
+                            color: AppColors.textSecondary(context),
                           ),
                     ),
                   ],
@@ -116,14 +116,14 @@ class ProtectResultWidget extends StatelessWidget {
                 children: [
                   Icon(
                     Icons.insert_drive_file,
-                    color: AppColors.textSecondary,
+                    color: AppColors.textSecondary(context),
                     size: 16,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     'File: ${result.filename}',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.textSecondary,
+                          color: AppColors.textSecondary(context),
                         ),
                   ),
                 ],

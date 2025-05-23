@@ -33,7 +33,7 @@ class ConversionOptions extends StatelessWidget {
               children: [
                 Icon(
                   Icons.settings,
-                  color: AppColors.convertColor,
+                  color: AppColors.convertColor(context),
                   size: 24,
                 ),
                 const SizedBox(width: 12),
@@ -51,9 +51,9 @@ class ConversionOptions extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.surfaceVariant,
+                color: AppColors.surfaceVariant(context),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: AppColors.border(context)),
               ),
               child: Column(
                 children: [
@@ -61,7 +61,7 @@ class ConversionOptions extends StatelessWidget {
                     children: [
                       Icon(
                         Icons.text_fields,
-                        color: AppColors.convertColor,
+                        color: AppColors.convertColor(context),
                         size: 20,
                       ),
                       const SizedBox(width: 12),
@@ -84,7 +84,7 @@ class ConversionOptions extends StatelessWidget {
                                   .textTheme
                                   .bodySmall
                                   ?.copyWith(
-                                    color: AppColors.textSecondary,
+                                    color: AppColors.textSecondary(context),
                                   ),
                             ),
                           ],
@@ -93,7 +93,7 @@ class ConversionOptions extends StatelessWidget {
                       Switch(
                         value: enableOcr,
                         onChanged: onOcrChanged,
-                        activeColor: AppColors.convertColor,
+                        activeColor: AppColors.convertColor(context),
                       ),
                     ],
                   ),
@@ -119,7 +119,7 @@ class ConversionOptions extends StatelessWidget {
                   min: 10,
                   max: 100,
                   divisions: 9,
-                  activeColor: AppColors.convertColor,
+                  activeColor: AppColors.convertColor(context),
                   onChanged: (value) => onQualityChanged(value.round()),
                 ),
                 Row(
@@ -128,13 +128,13 @@ class ConversionOptions extends StatelessWidget {
                     Text(
                       'Low',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.textSecondary,
+                            color: AppColors.textSecondary(context),
                           ),
                     ),
                     Text(
                       'High',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.textSecondary,
+                            color: AppColors.textSecondary(context),
                           ),
                     ),
                   ],

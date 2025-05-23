@@ -87,7 +87,7 @@ class UnlockPage extends ConsumerWidget {
               children: [
                 Icon(
                   Icons.upload_file,
-                  color: AppColors.primary,
+                  color: AppColors.primary(context),
                   size: 24,
                 ),
                 const SizedBox(width: 12),
@@ -129,7 +129,7 @@ class UnlockPage extends ConsumerWidget {
               children: [
                 Icon(
                   Icons.insert_drive_file,
-                  color: AppColors.success,
+                  color: AppColors.success(context),
                   size: 24,
                 ),
                 const SizedBox(width: 12),
@@ -146,9 +146,10 @@ class UnlockPage extends ConsumerWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.warning.withOpacity(0.1),
+                color: AppColors.warning(context).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.warning.withOpacity(0.3)),
+                border: Border.all(
+                    color: AppColors.warning(context).withOpacity(0.3)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -157,7 +158,7 @@ class UnlockPage extends ConsumerWidget {
                     children: [
                       Icon(
                         Icons.lock,
-                        color: AppColors.warning,
+                        color: AppColors.warning(context),
                         size: 20,
                       ),
                       const SizedBox(width: 8),
@@ -165,7 +166,7 @@ class UnlockPage extends ConsumerWidget {
                         'Protected PDF',
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
                               fontWeight: FontWeight.w600,
-                              color: AppColors.warning,
+                              color: AppColors.warning(context),
                             ),
                       ),
                     ],
@@ -181,7 +182,7 @@ class UnlockPage extends ConsumerWidget {
                   Text(
                     'Size: ${(file.lengthSync() / (1024 * 1024)).toStringAsFixed(1)} MB',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.textSecondary,
+                          color: AppColors.textSecondary(context),
                         ),
                   ),
                 ],
@@ -217,7 +218,7 @@ class UnlockPage extends ConsumerWidget {
             label: Text(state.isLoading ? 'Unlocking...' : 'Unlock PDF'),
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
-              backgroundColor: AppColors.unlockColor,
+              backgroundColor: AppColors.unlockColor(context),
             ),
           ),
           if (!state.hasPassword && state.hasFile) ...[
@@ -225,7 +226,7 @@ class UnlockPage extends ConsumerWidget {
             Text(
               'Please enter the password for this PDF',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: AppColors.textSecondary(context),
                   ),
               textAlign: TextAlign.center,
             ),
@@ -270,7 +271,7 @@ class UnlockPage extends ConsumerWidget {
               children: [
                 Icon(
                   Icons.info_outline,
-                  color: AppColors.info,
+                  color: AppColors.info(context),
                   size: 24,
                 ),
                 const SizedBox(width: 12),
@@ -286,7 +287,7 @@ class UnlockPage extends ConsumerWidget {
             Text(
               'Remove password protection from your PDF documents:',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: AppColors.textSecondary(context),
                   ),
             ),
             const SizedBox(height: 12),
@@ -300,15 +301,16 @@ class UnlockPage extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.warning.withOpacity(0.1),
+                color: AppColors.warning(context).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.warning.withOpacity(0.3)),
+                border: Border.all(
+                    color: AppColors.warning(context).withOpacity(0.3)),
               ),
               child: Row(
                 children: [
                   Icon(
                     Icons.warning,
-                    color: AppColors.warning,
+                    color: AppColors.warning(context),
                     size: 16,
                   ),
                   const SizedBox(width: 8),
@@ -316,7 +318,7 @@ class UnlockPage extends ConsumerWidget {
                     child: Text(
                       'Only unlock PDFs that you own or have permission to unlock.',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.warning,
+                            color: AppColors.warning(context),
                             fontWeight: FontWeight.w500,
                           ),
                     ),
@@ -343,7 +345,7 @@ class UnlockPage extends ConsumerWidget {
                 width: 4,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
+                  color: AppColors.primary(context),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -352,7 +354,7 @@ class UnlockPage extends ConsumerWidget {
                 child: Text(
                   item,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
+                        color: AppColors.textSecondary(context),
                       ),
                 ),
               ),

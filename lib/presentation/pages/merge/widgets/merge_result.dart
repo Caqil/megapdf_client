@@ -26,12 +26,12 @@ class MergeResultWidget extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.success.withOpacity(0.15),
+                    color: AppColors.success(context).withOpacity(0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     Icons.check_circle,
-                    color: AppColors.success,
+                    color: AppColors.success(context),
                     size: 24,
                   ),
                 ),
@@ -44,13 +44,13 @@ class MergeResultWidget extends StatelessWidget {
                         'Merge Complete',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.bold,
-                              color: AppColors.success,
+                              color: AppColors.success(context),
                             ),
                       ),
                       Text(
                         result.message,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppColors.textSecondary,
+                              color: AppColors.textSecondary(context),
                             ),
                       ),
                     ],
@@ -66,10 +66,10 @@ class MergeResultWidget extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.mergeColor.withOpacity(0.1),
+                color: AppColors.mergeColor(context).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: AppColors.mergeColor.withOpacity(0.3),
+                  color: AppColors.mergeColor(context).withOpacity(0.3),
                 ),
               ),
               child: Column(
@@ -80,7 +80,7 @@ class MergeResultWidget extends StatelessWidget {
                     children: [
                       Icon(
                         Icons.merge,
-                        color: AppColors.mergeColor,
+                        color: AppColors.mergeColor(context),
                         size: 20,
                       ),
                       const SizedBox(width: 8),
@@ -89,7 +89,7 @@ class MergeResultWidget extends StatelessWidget {
                         style:
                             Theme.of(context).textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.bold,
-                                  color: AppColors.mergeColor,
+                                  color: AppColors.mergeColor(context),
                                 ),
                       ),
                     ],
@@ -105,13 +105,13 @@ class MergeResultWidget extends StatelessWidget {
                           'Total Input',
                           result.formattedTotalInputSize,
                           Icons.input,
-                          AppColors.textSecondary,
+                          AppColors.textSecondary(context),
                         ),
                       ),
                       const SizedBox(width: 16),
                       Icon(
                         Icons.arrow_forward,
-                        color: AppColors.textMuted,
+                        color: AppColors.textMuted(context),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -120,7 +120,7 @@ class MergeResultWidget extends StatelessWidget {
                           'Merged File',
                           result.formattedMergedSize,
                           Icons.picture_as_pdf,
-                          AppColors.success,
+                          AppColors.success(context),
                         ),
                       ),
                     ],
@@ -133,8 +133,8 @@ class MergeResultWidget extends StatelessWidget {
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: result.compressionRatio > 0
-                          ? AppColors.success.withOpacity(0.1)
-                          : AppColors.info.withOpacity(0.1),
+                          ? AppColors.success(context).withOpacity(0.1)
+                          : AppColors.info(context).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -145,8 +145,8 @@ class MergeResultWidget extends StatelessWidget {
                               ? Icons.trending_down
                               : Icons.info,
                           color: result.compressionRatio > 0
-                              ? AppColors.success
-                              : AppColors.info,
+                              ? AppColors.success(context)
+                              : AppColors.info(context),
                           size: 20,
                         ),
                         const SizedBox(width: 8),
@@ -156,8 +156,8 @@ class MergeResultWidget extends StatelessWidget {
                               Theme.of(context).textTheme.bodyMedium?.copyWith(
                                     fontWeight: FontWeight.w600,
                                     color: result.compressionRatio > 0
-                                        ? AppColors.success
-                                        : AppColors.info,
+                                        ? AppColors.success(context)
+                                        : AppColors.info(context),
                                   ),
                         ),
                       ],
@@ -175,14 +175,14 @@ class MergeResultWidget extends StatelessWidget {
                 children: [
                   Icon(
                     Icons.insert_drive_file,
-                    color: AppColors.textSecondary,
+                    color: AppColors.textSecondary(context),
                     size: 16,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     'File: ${result.filename}',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.textSecondary,
+                          color: AppColors.textSecondary(context),
                         ),
                   ),
                 ],
@@ -212,7 +212,7 @@ class MergeResultWidget extends StatelessWidget {
         Text(
           label,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.textSecondary,
+                color: AppColors.textSecondary(context),
               ),
           textAlign: TextAlign.center,
         ),

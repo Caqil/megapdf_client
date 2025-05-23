@@ -50,7 +50,7 @@ class _PasswordFormState extends State<PasswordForm> {
               children: [
                 Icon(
                   Icons.lock,
-                  color: AppColors.protectColor,
+                  color: AppColors.protectColor(context),
                   size: 24,
                 ),
                 const SizedBox(width: 12),
@@ -130,9 +130,10 @@ class _PasswordFormState extends State<PasswordForm> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.info.withOpacity(0.1),
+                color: AppColors.info(context).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.info.withOpacity(0.3)),
+                border:
+                    Border.all(color: AppColors.info(context).withOpacity(0.3)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -141,7 +142,7 @@ class _PasswordFormState extends State<PasswordForm> {
                     children: [
                       Icon(
                         Icons.tips_and_updates,
-                        color: AppColors.info,
+                        color: AppColors.info(context),
                         size: 16,
                       ),
                       const SizedBox(width: 8),
@@ -149,7 +150,7 @@ class _PasswordFormState extends State<PasswordForm> {
                         'Password Tips:',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               fontWeight: FontWeight.w600,
-                              color: AppColors.info,
+                              color: AppColors.info(context),
                             ),
                       ),
                     ],
@@ -158,7 +159,7 @@ class _PasswordFormState extends State<PasswordForm> {
                   Text(
                     '• Use at least 8 characters\n• Include uppercase and lowercase letters\n• Add numbers and special characters\n• Avoid common words or personal information',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.textSecondary,
+                          color: AppColors.textSecondary(context),
                         ),
                   ),
                 ],
@@ -199,7 +200,7 @@ class _PasswordFormState extends State<PasswordForm> {
             Text(
               'Password Strength: ',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: AppColors.textSecondary(context),
                   ),
             ),
             Text(
@@ -214,7 +215,7 @@ class _PasswordFormState extends State<PasswordForm> {
         const SizedBox(height: 4),
         LinearProgressIndicator(
           value: strength / 4,
-          backgroundColor: AppColors.border,
+          backgroundColor: AppColors.border(context),
           valueColor: AlwaysStoppedAnimation<Color>(strengthColor),
         ),
       ],
@@ -253,15 +254,15 @@ class _PasswordFormState extends State<PasswordForm> {
     switch (strength) {
       case 0:
       case 1:
-        return AppColors.error;
+        return AppColors.error(context);
       case 2:
-        return AppColors.warning;
+        return AppColors.warning(context);
       case 3:
-        return AppColors.info;
+        return AppColors.info(context);
       case 4:
-        return AppColors.success;
+        return AppColors.success(context);
       default:
-        return AppColors.error;
+        return AppColors.error(context);
     }
   }
 }

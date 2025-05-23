@@ -101,14 +101,15 @@ class _PageRangeInputState extends State<PageRangeInput> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: AppColors.splitColor.withOpacity(0.1),
+          color: AppColors.splitColor(context).withOpacity(0.1),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.splitColor.withOpacity(0.3)),
+          border:
+              Border.all(color: AppColors.splitColor(context).withOpacity(0.3)),
         ),
         child: Text(
           example,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.splitColor,
+                color: AppColors.splitColor(context),
                 fontWeight: FontWeight.w500,
               ),
         ),

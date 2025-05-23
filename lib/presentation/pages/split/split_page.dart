@@ -84,7 +84,7 @@ class SplitPage extends ConsumerWidget {
               children: [
                 Icon(
                   Icons.upload_file,
-                  color: AppColors.primary,
+                  color: AppColors.primary(context),
                   size: 24,
                 ),
                 const SizedBox(width: 12),
@@ -126,7 +126,7 @@ class SplitPage extends ConsumerWidget {
               children: [
                 Icon(
                   Icons.insert_drive_file,
-                  color: AppColors.success,
+                  color: AppColors.success(context),
                   size: 24,
                 ),
                 const SizedBox(width: 12),
@@ -143,9 +143,10 @@ class SplitPage extends ConsumerWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.success.withOpacity(0.1),
+                color: AppColors.success(context).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.success.withOpacity(0.3)),
+                border: Border.all(
+                    color: AppColors.success(context).withOpacity(0.3)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -160,7 +161,7 @@ class SplitPage extends ConsumerWidget {
                   Text(
                     'Size: ${(file.lengthSync() / (1024 * 1024)).toStringAsFixed(1)} MB',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.textSecondary,
+                          color: AppColors.textSecondary(context),
                         ),
                   ),
                 ],
@@ -185,7 +186,7 @@ class SplitPage extends ConsumerWidget {
               children: [
                 Icon(
                   Icons.settings,
-                  color: AppColors.splitColor,
+                  color: AppColors.splitColor(context),
                   size: 24,
                 ),
                 const SizedBox(width: 12),
@@ -270,7 +271,7 @@ class SplitPage extends ConsumerWidget {
             Text(
               'pages',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: AppColors.textSecondary(context),
                   ),
             ),
           ],
@@ -298,10 +299,10 @@ class SplitPage extends ConsumerWidget {
                           ? Icons.error
                           : Icons.hourglass_empty,
                   color: jobStatus.isCompleted
-                      ? AppColors.success
+                      ? AppColors.success(context)
                       : jobStatus.isError
-                          ? AppColors.error
-                          : AppColors.warning,
+                          ? AppColors.error(context)
+                          : AppColors.warning(context),
                   size: 24,
                 ),
                 const SizedBox(width: 12),
@@ -319,14 +320,15 @@ class SplitPage extends ConsumerWidget {
               const SizedBox(height: 16),
               LinearProgressIndicator(
                 value: jobStatus.progressPercentage,
-                backgroundColor: AppColors.border,
-                valueColor: AlwaysStoppedAnimation<Color>(AppColors.splitColor),
+                backgroundColor: AppColors.border(context),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                    AppColors.splitColor(context)),
               ),
               const SizedBox(height: 8),
               Text(
                 'Progress: ${jobStatus.progress}%',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSecondary,
+                      color: AppColors.textSecondary(context),
                     ),
               ),
             ],
@@ -362,7 +364,7 @@ class SplitPage extends ConsumerWidget {
             label: Text(state.isLoading ? 'Splitting...' : 'Split PDF'),
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
-              backgroundColor: AppColors.splitColor,
+              backgroundColor: AppColors.splitColor(context),
             ),
           ),
         ],
@@ -394,7 +396,7 @@ class SplitPage extends ConsumerWidget {
               children: [
                 Icon(
                   Icons.info_outline,
-                  color: AppColors.info,
+                  color: AppColors.info(context),
                   size: 24,
                 ),
                 const SizedBox(width: 12),
@@ -410,7 +412,7 @@ class SplitPage extends ConsumerWidget {
             Text(
               'Split PDFs into smaller files using different methods:',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: AppColors.textSecondary(context),
                   ),
             ),
             const SizedBox(height: 12),
@@ -455,7 +457,7 @@ class SplitPage extends ConsumerWidget {
         children: [
           Icon(
             icon,
-            color: AppColors.splitColor,
+            color: AppColors.splitColor(context),
             size: 20,
           ),
           const SizedBox(width: 12),
@@ -473,7 +475,7 @@ class SplitPage extends ConsumerWidget {
                 Text(
                   description,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
+                        color: AppColors.textSecondary(context),
                       ),
                 ),
               ],

@@ -37,7 +37,7 @@ class TextWatermarkForm extends StatelessWidget {
               children: [
                 Icon(
                   Icons.text_fields,
-                  color: AppColors.watermarkColor,
+                  color: AppColors.watermarkColor(context),
                   size: 24,
                 ),
                 const SizedBox(width: 12),
@@ -76,7 +76,7 @@ class TextWatermarkForm extends StatelessWidget {
                         ),
                   ),
                 ),
-                _buildColorPicker(),
+                _buildColorPicker(context),
               ],
             ),
 
@@ -100,7 +100,7 @@ class TextWatermarkForm extends StatelessWidget {
                     min: 8,
                     max: 120,
                     divisions: 28,
-                    activeColor: AppColors.watermarkColor,
+                    activeColor: AppColors.watermarkColor(context),
                     onChanged: (value) => onFontSizeChanged(value.round()),
                   ),
                 ),
@@ -134,7 +134,7 @@ class TextWatermarkForm extends StatelessWidget {
     );
   }
 
-  Widget _buildColorPicker() {
+  Widget _buildColorPicker(BuildContext context) {
     final colors = [
       '#FF0000',
       '#00FF00',
@@ -159,7 +159,9 @@ class TextWatermarkForm extends StatelessWidget {
               color:
                   Color(int.parse(color.substring(1), radix: 16) + 0xFF000000),
               border: Border.all(
-                color: isSelected ? AppColors.watermarkColor : AppColors.border,
+                color: isSelected
+                    ? AppColors.watermarkColor(context)
+                    : AppColors.border(context),
                 width: isSelected ? 3 : 1,
               ),
               borderRadius: BorderRadius.circular(16),
@@ -178,9 +180,9 @@ class TextWatermarkForm extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceVariant,
+        color: AppColors.surfaceVariant(context),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.border(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -188,7 +190,7 @@ class TextWatermarkForm extends StatelessWidget {
           Text(
             'Preview:',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textSecondary,
+                  color: AppColors.textSecondary(context),
                 ),
           ),
           const SizedBox(height: 8),

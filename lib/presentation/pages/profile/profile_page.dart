@@ -10,16 +10,16 @@ class ProfilePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.background(context),
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
+        backgroundColor: AppColors.surface(context),
         elevation: 0,
         automaticallyImplyLeading: false,
         title: Text(
           'Profile',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: AppColors.textPrimary(context),
               ),
         ),
       ),
@@ -33,7 +33,7 @@ class ProfilePage extends ConsumerWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                gradient: AppColors.primaryGradient,
+                gradient: AppColors.primaryGradient(context),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
@@ -71,9 +71,9 @@ class ProfilePage extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: AppColors.surface(context),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: AppColors.border(context)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -82,7 +82,7 @@ class ProfilePage extends ConsumerWidget {
                     'Usage Statistics',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
+                          color: AppColors.textPrimary(context),
                         ),
                   ),
                   const SizedBox(height: 16),
@@ -93,7 +93,7 @@ class ProfilePage extends ConsumerWidget {
                           icon: Icons.compress,
                           label: 'Files Compressed',
                           value: '23',
-                          color: AppColors.compressColor,
+                          color: AppColors.compressColor(context),
                         ),
                       ),
                       Expanded(
@@ -101,7 +101,7 @@ class ProfilePage extends ConsumerWidget {
                           icon: Icons.merge,
                           label: 'Files Merged',
                           value: '12',
-                          color: AppColors.mergeColor,
+                          color: AppColors.mergeColor(context),
                         ),
                       ),
                     ],
@@ -114,7 +114,7 @@ class ProfilePage extends ConsumerWidget {
                           icon: Icons.call_split,
                           label: 'Files Split',
                           value: '8',
-                          color: AppColors.splitColor,
+                          color: AppColors.splitColor(context),
                         ),
                       ),
                       Expanded(
@@ -122,7 +122,7 @@ class ProfilePage extends ConsumerWidget {
                           icon: Icons.transform,
                           label: 'Files Converted',
                           value: '15',
-                          color: AppColors.convertColor,
+                          color: AppColors.convertColor(context),
                         ),
                       ),
                     ],
@@ -154,15 +154,15 @@ class ProfilePage extends ConsumerWidget {
           'Settings',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: AppColors.textPrimary(context),
               ),
         ),
         const SizedBox(height: 12),
         Container(
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: AppColors.surface(context),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: AppColors.border(context)),
           ),
           child: Column(
             children: [
@@ -212,15 +212,15 @@ class ProfilePage extends ConsumerWidget {
           'About',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: AppColors.textPrimary(context),
               ),
         ),
         const SizedBox(height: 12),
         Container(
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: AppColors.surface(context),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: AppColors.border(context)),
           ),
           child: Column(
             children: [
@@ -290,7 +290,7 @@ class _StatItem extends StatelessWidget {
         Text(
           label,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.textSecondary,
+                color: AppColors.textSecondary(context),
               ),
           textAlign: TextAlign.center,
         ),
@@ -321,25 +321,25 @@ class _SettingsTile extends StatelessWidget {
         ListTile(
           leading: Icon(
             icon,
-            color: AppColors.textSecondary,
+            color: AppColors.textSecondary(context),
             size: 24,
           ),
           title: Text(
             title,
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   fontWeight: FontWeight.w500,
-                  color: AppColors.textPrimary,
+                  color: AppColors.textPrimary(context),
                 ),
           ),
           subtitle: Text(
             subtitle,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textSecondary,
+                  color: AppColors.textSecondary(context),
                 ),
           ),
           trailing: Icon(
             Icons.chevron_right,
-            color: AppColors.textSecondary,
+            color: AppColors.textSecondary(context),
             size: 20,
           ),
           onTap: onTap,

@@ -29,7 +29,7 @@ class FormatSelector extends StatelessWidget {
               children: [
                 Icon(
                   Icons.transform,
-                  color: AppColors.convertColor,
+                  color: AppColors.convertColor(context),
                   size: 24,
                 ),
                 const SizedBox(width: 12),
@@ -70,7 +70,7 @@ class FormatSelector extends StatelessWidget {
                 const SizedBox(width: 16),
                 Icon(
                   Icons.arrow_forward,
-                  color: AppColors.convertColor,
+                  color: AppColors.convertColor(context),
                   size: 24,
                 ),
                 const SizedBox(width: 16),
@@ -105,17 +105,17 @@ class FormatSelector extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.convertColor.withOpacity(0.1),
+                color: AppColors.convertColor(context).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
-                border:
-                    Border.all(color: AppColors.convertColor.withOpacity(0.3)),
+                border: Border.all(
+                    color: AppColors.convertColor(context).withOpacity(0.3)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
                     Icons.transform,
-                    color: AppColors.convertColor,
+                    color: AppColors.convertColor(context),
                     size: 20,
                   ),
                   const SizedBox(width: 8),
@@ -123,7 +123,7 @@ class FormatSelector extends StatelessWidget {
                     '${inputFormat.toUpperCase()} → ${outputFormat.toUpperCase()}',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: AppColors.convertColor,
+                          color: AppColors.convertColor(context),
                         ),
                   ),
                 ],

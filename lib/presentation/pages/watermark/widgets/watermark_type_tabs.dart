@@ -17,7 +17,7 @@ class WatermarkTypeTabs extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surfaceVariant,
+        color: AppColors.surfaceVariant(context),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -43,15 +43,18 @@ class WatermarkTypeTabs extends StatelessWidget {
     );
   }
 
-  Widget _buildTab(BuildContext context, WatermarkType type, String label, IconData icon) {
+  Widget _buildTab(
+      BuildContext context, WatermarkType type, String label, IconData icon) {
     final isSelected = selectedType == type;
-    
+
     return GestureDetector(
       onTap: () => onTypeChanged(type),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.watermarkColor : Colors.transparent,
+          color: isSelected
+              ? AppColors.watermarkColor(context)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
@@ -59,16 +62,20 @@ class WatermarkTypeTabs extends StatelessWidget {
           children: [
             Icon(
               icon,
-              color: isSelected ? Colors.white : AppColors.textSecondary,
+              color:
+                  isSelected ? Colors.white : AppColors.textSecondary(context),
               size: 20,
             ),
             const SizedBox(width: 8),
             Text(
               label,
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: isSelected ? Colors.white : AppColors.textSecondary,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              ),
+                    color: isSelected
+                        ? Colors.white
+                        : AppColors.textSecondary(context),
+                    fontWeight:
+                        isSelected ? FontWeight.bold : FontWeight.normal,
+                  ),
             ),
           ],
         ),

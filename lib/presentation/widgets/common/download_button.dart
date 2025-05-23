@@ -23,25 +23,25 @@ class SaveButton extends StatelessWidget {
     }
 
     if (isLoading) {
-      return _buildLoadingState();
+      return _buildLoadingState(context);
     }
 
-    return _buildInitialState();
+    return _buildInitialState(context);
   }
 
   Widget _buildSuccessState(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.success.withOpacity(0.1),
+        color: AppColors.success(context).withOpacity(0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.success.withOpacity(0.3)),
+        border: Border.all(color: AppColors.success(context).withOpacity(0.3)),
       ),
       child: Row(
         children: [
           Icon(
             Icons.check_circle,
-            color: AppColors.success,
+            color: AppColors.success(context),
             size: 24,
           ),
           const SizedBox(width: 12),
@@ -53,14 +53,14 @@ class SaveButton extends StatelessWidget {
                   'File Saved Successfully!',
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: AppColors.success,
+                        color: AppColors.success(context),
                       ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'File saved to app storage',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
+                        color: AppColors.textSecondary(context),
                       ),
                 ),
               ],
@@ -71,7 +71,7 @@ class SaveButton extends StatelessWidget {
     );
   }
 
-  Widget _buildLoadingState() {
+  Widget _buildLoadingState(BuildContext context) {
     return ElevatedButton.icon(
       onPressed: null,
       icon: const SizedBox(
@@ -82,22 +82,22 @@ class SaveButton extends StatelessWidget {
           valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
         ),
       ),
-      label: const Text('Saving...'),
+      label: Text('Saving...'),
       style: ElevatedButton.styleFrom(
         padding: const EdgeInsets.symmetric(vertical: 16),
-        backgroundColor: AppColors.success,
+        backgroundColor: AppColors.success(context),
       ),
     );
   }
 
-  Widget _buildInitialState() {
+  Widget _buildInitialState(BuildContext context) {
     return ElevatedButton.icon(
       onPressed: onPressed,
       icon: const Icon(Icons.save),
       label: Text(buttonText),
       style: ElevatedButton.styleFrom(
         padding: const EdgeInsets.symmetric(vertical: 16),
-        backgroundColor: AppColors.success,
+        backgroundColor: AppColors.success(context),
       ),
     );
   }

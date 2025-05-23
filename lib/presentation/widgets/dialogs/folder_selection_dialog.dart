@@ -87,7 +87,7 @@ class _FolderSelectionDialogState extends ConsumerState<FolderSelectionDialog> {
             children: [
               Icon(
                 Icons.folder_outlined,
-                color: AppColors.primary,
+                color: AppColors.primary(context),
                 size: 24,
               ),
               const SizedBox(width: 8),
@@ -106,7 +106,7 @@ class _FolderSelectionDialogState extends ConsumerState<FolderSelectionDialog> {
             Text(
               widget.subtitle!,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: AppColors.textSecondary(context),
                   ),
             ),
           ],
@@ -123,9 +123,9 @@ class _FolderSelectionDialogState extends ConsumerState<FolderSelectionDialog> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.background,
+                  color: AppColors.background(context),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.border),
+                  border: Border.all(color: AppColors.border(context)),
                 ),
                 child: Row(
                   children: [
@@ -144,7 +144,7 @@ class _FolderSelectionDialogState extends ConsumerState<FolderSelectionDialog> {
                       child: Text(
                         _folderPath.map((f) => f.name).join(' / '),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.textSecondary,
+                              color: AppColors.textSecondary(context),
                             ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -178,7 +178,7 @@ class _FolderSelectionDialogState extends ConsumerState<FolderSelectionDialog> {
             icon: const Icon(Icons.check),
             label: const Text('Select This Folder'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: AppColors.primary(context),
             ),
           ),
       ],
@@ -194,20 +194,20 @@ class _FolderSelectionDialogState extends ConsumerState<FolderSelectionDialog> {
             Icon(
               Icons.folder_open_outlined,
               size: 48,
-              color: AppColors.textSecondary.withOpacity(0.5),
+              color: AppColors.textSecondary(context).withOpacity(0.5),
             ),
             const SizedBox(height: 16),
             Text(
               'No subfolders',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: AppColors.textSecondary(context),
                   ),
             ),
             const SizedBox(height: 8),
             Text(
               'You can select the current folder or go back',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: AppColors.textSecondary(context),
                   ),
               textAlign: TextAlign.center,
             ),
@@ -225,12 +225,12 @@ class _FolderSelectionDialogState extends ConsumerState<FolderSelectionDialog> {
           leading: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
+              color: AppColors.primary(context).withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
               Icons.folder,
-              color: AppColors.primary,
+              color: AppColors.primary(context),
               size: 20,
             ),
           ),
@@ -243,7 +243,7 @@ class _FolderSelectionDialogState extends ConsumerState<FolderSelectionDialog> {
           subtitle: Text(
             'Created ${_formatDate(folder.createdAt)}',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textSecondary,
+                  color: AppColors.textSecondary(context),
                 ),
           ),
           trailing: Row(
@@ -256,14 +256,14 @@ class _FolderSelectionDialogState extends ConsumerState<FolderSelectionDialog> {
                   Navigator.pop(context);
                 },
                 icon: const Icon(Icons.check_circle_outline),
-                color: AppColors.success,
+                color: AppColors.success(context),
                 tooltip: 'Select this folder',
               ),
               // Navigate into folder button
               IconButton(
                 onPressed: () => _loadFolder(folder.id!),
                 icon: const Icon(Icons.chevron_right),
-                color: AppColors.textSecondary,
+                color: AppColors.textSecondary(context),
                 tooltip: 'Open folder',
               ),
             ],

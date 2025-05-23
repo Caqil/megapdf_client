@@ -29,7 +29,7 @@ class FileListWidget extends StatelessWidget {
               children: [
                 Icon(
                   Icons.list,
-                  color: AppColors.mergeColor,
+                  color: AppColors.mergeColor(context),
                   size: 24,
                 ),
                 const SizedBox(width: 12),
@@ -43,7 +43,7 @@ class FileListWidget extends StatelessWidget {
                 Text(
                   '${files.length} files',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
+                        color: AppColors.textSecondary(context),
                       ),
                 ),
               ],
@@ -54,15 +54,16 @@ class FileListWidget extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.info.withOpacity(0.1),
+                color: AppColors.info(context).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.info.withOpacity(0.3)),
+                border:
+                    Border.all(color: AppColors.info(context).withOpacity(0.3)),
               ),
               child: Row(
                 children: [
                   Icon(
                     Icons.drag_indicator,
-                    color: AppColors.info,
+                    color: AppColors.info(context),
                     size: 20,
                   ),
                   const SizedBox(width: 8),
@@ -70,7 +71,7 @@ class FileListWidget extends StatelessWidget {
                     child: Text(
                       'Drag to reorder files. Files will be merged in this order.',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.info,
+                            color: AppColors.info(context),
                           ),
                     ),
                   ),
@@ -103,9 +104,10 @@ class FileListWidget extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.mergeColor.withOpacity(0.05),
+        color: AppColors.mergeColor(context).withOpacity(0.05),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.mergeColor.withOpacity(0.2)),
+        border:
+            Border.all(color: AppColors.mergeColor(context).withOpacity(0.2)),
       ),
       child: Row(
         children: [
@@ -114,7 +116,7 @@ class FileListWidget extends StatelessWidget {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: AppColors.mergeColor,
+              color: AppColors.mergeColor(context),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Center(
@@ -133,7 +135,7 @@ class FileListWidget extends StatelessWidget {
           // File Icon
           Icon(
             Icons.picture_as_pdf,
-            color: AppColors.mergeColor,
+            color: AppColors.mergeColor(context),
             size: 24,
           ),
 
@@ -156,7 +158,7 @@ class FileListWidget extends StatelessWidget {
                 Text(
                   'Size: ${file.formattedSize}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
+                        color: AppColors.textSecondary(context),
                       ),
                 ),
               ],
@@ -166,7 +168,7 @@ class FileListWidget extends StatelessWidget {
           // Drag Handle
           Icon(
             Icons.drag_handle,
-            color: AppColors.textMuted,
+            color: AppColors.textMuted(context),
           ),
 
           const SizedBox(width: 8),
@@ -176,7 +178,7 @@ class FileListWidget extends StatelessWidget {
             onPressed: () => onRemoveFile(index),
             icon: Icon(
               Icons.close,
-              color: AppColors.error,
+              color: AppColors.error(context),
               size: 20,
             ),
             tooltip: 'Remove file',

@@ -108,7 +108,7 @@ class ProtectPage extends ConsumerWidget {
               children: [
                 Icon(
                   Icons.upload_file,
-                  color: AppColors.primary,
+                  color: AppColors.primary(context),
                   size: 24,
                 ),
                 const SizedBox(width: 12),
@@ -150,7 +150,7 @@ class ProtectPage extends ConsumerWidget {
               children: [
                 Icon(
                   Icons.insert_drive_file,
-                  color: AppColors.success,
+                  color: AppColors.success(context),
                   size: 24,
                 ),
                 const SizedBox(width: 12),
@@ -167,9 +167,10 @@ class ProtectPage extends ConsumerWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.success.withOpacity(0.1),
+                color: AppColors.success(context).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.success.withOpacity(0.3)),
+                border: Border.all(
+                    color: AppColors.success(context).withOpacity(0.3)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -184,7 +185,7 @@ class ProtectPage extends ConsumerWidget {
                   Text(
                     'Size: ${(file.lengthSync() / (1024 * 1024)).toStringAsFixed(1)} MB',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.textSecondary,
+                          color: AppColors.textSecondary(context),
                         ),
                   ),
                 ],
@@ -220,7 +221,7 @@ class ProtectPage extends ConsumerWidget {
             label: Text(state.isLoading ? 'Protecting...' : 'Protect PDF'),
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
-              backgroundColor: AppColors.protectColor,
+              backgroundColor: AppColors.protectColor(context),
             ),
           ),
           if (!state.hasPassword && state.hasFile) ...[
@@ -228,7 +229,7 @@ class ProtectPage extends ConsumerWidget {
             Text(
               'Please enter a password (minimum 4 characters)',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: AppColors.textSecondary(context),
                   ),
               textAlign: TextAlign.center,
             ),
@@ -273,7 +274,7 @@ class ProtectPage extends ConsumerWidget {
               children: [
                 Icon(
                   Icons.info_outline,
-                  color: AppColors.info,
+                  color: AppColors.info(context),
                   size: 24,
                 ),
                 const SizedBox(width: 12),
@@ -289,7 +290,7 @@ class ProtectPage extends ConsumerWidget {
             Text(
               'Secure your PDFs with password protection and permissions:',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: AppColors.textSecondary(context),
                   ),
             ),
             const SizedBox(height: 12),
@@ -318,7 +319,7 @@ class ProtectPage extends ConsumerWidget {
                 width: 4,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
+                  color: AppColors.primary(context),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -327,7 +328,7 @@ class ProtectPage extends ConsumerWidget {
                 child: Text(
                   item,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
+                        color: AppColors.textSecondary(context),
                       ),
                 ),
               ),

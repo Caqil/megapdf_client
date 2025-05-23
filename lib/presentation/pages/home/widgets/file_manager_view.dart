@@ -32,7 +32,7 @@ class FileManagerView extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(fileManagerState.successMessage!),
-            backgroundColor: AppColors.success,
+            backgroundColor: AppColors.success(context),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -70,20 +70,20 @@ class FileManagerView extends ConsumerWidget {
             Icon(
               Icons.folder_open_outlined,
               size: 64,
-              color: AppColors.textSecondary.withOpacity(0.5),
+              color: AppColors.textSecondary(context).withOpacity(0.5),
             ),
             const SizedBox(height: 16),
             Text(
               'No files yet',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: AppColors.textSecondary(context),
                   ),
             ),
             const SizedBox(height: 8),
             Text(
               'Create a folder or import files to get started',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: AppColors.textSecondary(context),
                   ),
               textAlign: TextAlign.center,
             ),
@@ -195,7 +195,7 @@ class FileManagerView extends ConsumerWidget {
               Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
+              backgroundColor: AppColors.error(context),
             ),
             child: const Text('Delete'),
           ),
@@ -246,7 +246,7 @@ class FileItemTile extends StatelessWidget {
         item.name,
         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
               fontWeight: FontWeight.w500,
-              color: AppColors.textPrimary,
+              color: AppColors.textPrimary(context),
             ),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
@@ -257,7 +257,7 @@ class FileItemTile extends StatelessWidget {
             Text(
               item.formattedSize,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: AppColors.textSecondary(context),
                   ),
             ),
             const Text(' • '),
@@ -265,7 +265,7 @@ class FileItemTile extends StatelessWidget {
           Text(
             item.formattedDate,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textSecondary,
+                  color: AppColors.textSecondary(context),
                 ),
           ),
         ],
@@ -277,7 +277,7 @@ class FileItemTile extends StatelessWidget {
             value: 'move',
             child: ListTile(
               leading: Icon(Icons.drive_file_move,
-                  size: 20, color: AppColors.primary),
+                  size: 20, color: AppColors.primary(context)),
               title: const Text('Move'),
               contentPadding: EdgeInsets.zero,
             ),
@@ -293,15 +293,17 @@ class FileItemTile extends StatelessWidget {
           PopupMenuItem(
             value: 'delete',
             child: ListTile(
-              leading: Icon(Icons.delete, size: 20, color: AppColors.error),
-              title: Text('Delete', style: TextStyle(color: AppColors.error)),
+              leading:
+                  Icon(Icons.delete, size: 20, color: AppColors.error(context)),
+              title: Text('Delete',
+                  style: TextStyle(color: AppColors.error(context))),
               contentPadding: EdgeInsets.zero,
             ),
           ),
         ],
         child: Icon(
           Icons.more_vert,
-          color: AppColors.textSecondary,
+          color: AppColors.textSecondary(context),
           size: 20,
         ),
       ),

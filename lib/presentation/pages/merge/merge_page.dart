@@ -75,7 +75,7 @@ class MergePage extends ConsumerWidget {
               onPressed: () => _showFilePickerDialog(context, ref),
               icon: const Icon(Icons.add),
               label: const Text('Add Files'),
-              backgroundColor: AppColors.mergeColor,
+              backgroundColor: AppColors.mergeColor(context),
             )
           : null,
     );
@@ -94,7 +94,7 @@ class MergePage extends ConsumerWidget {
               children: [
                 Icon(
                   Icons.upload_file,
-                  color: AppColors.primary,
+                  color: AppColors.primary(context),
                   size: 24,
                 ),
                 const SizedBox(width: 12),
@@ -112,7 +112,7 @@ class MergePage extends ConsumerWidget {
                 height: 120,
                 decoration: BoxDecoration(
                   border: Border.all(
-                    color: AppColors.border,
+                    color: AppColors.border(context),
                     style: BorderStyle.solid,
                     width: 2,
                   ),
@@ -129,14 +129,14 @@ class MergePage extends ConsumerWidget {
                         Icon(
                           Icons.cloud_upload_outlined,
                           size: 40,
-                          color: AppColors.primary,
+                          color: AppColors.primary(context),
                         ),
                         const SizedBox(height: 8),
                         Text(
                           'Choose PDF Files',
                           style:
                               Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    color: AppColors.primary,
+                                    color: AppColors.primary(context),
                                     fontWeight: FontWeight.w600,
                                   ),
                         ),
@@ -145,7 +145,7 @@ class MergePage extends ConsumerWidget {
                           'Select multiple PDF files to merge',
                           style:
                               Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: AppColors.textSecondary,
+                                    color: AppColors.textSecondary(context),
                                   ),
                           textAlign: TextAlign.center,
                         ),
@@ -158,15 +158,16 @@ class MergePage extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.success.withOpacity(0.1),
+                  color: AppColors.success(context).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.success.withOpacity(0.3)),
+                  border: Border.all(
+                      color: AppColors.success(context).withOpacity(0.3)),
                 ),
                 child: Row(
                   children: [
                     Icon(
                       Icons.check_circle,
-                      color: AppColors.success,
+                      color: AppColors.success(context),
                       size: 20,
                     ),
                     const SizedBox(width: 8),
@@ -215,7 +216,7 @@ class MergePage extends ConsumerWidget {
             label: Text(state.isLoading ? 'Merging...' : 'Merge PDFs'),
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
-              backgroundColor: AppColors.mergeColor,
+              backgroundColor: AppColors.mergeColor(context),
             ),
           ),
           if (!state.hasEnoughFiles) ...[
@@ -223,7 +224,7 @@ class MergePage extends ConsumerWidget {
             Text(
               'Please select at least 2 PDF files to merge',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: AppColors.textSecondary(context),
                   ),
               textAlign: TextAlign.center,
             ),
@@ -268,7 +269,7 @@ class MergePage extends ConsumerWidget {
               children: [
                 Icon(
                   Icons.info_outline,
-                  color: AppColors.info,
+                  color: AppColors.info(context),
                   size: 24,
                 ),
                 const SizedBox(width: 12),
@@ -284,7 +285,7 @@ class MergePage extends ConsumerWidget {
             Text(
               'Combine multiple PDF files into a single document:',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: AppColors.textSecondary(context),
                   ),
             ),
             const SizedBox(height: 12),
@@ -313,7 +314,7 @@ class MergePage extends ConsumerWidget {
                 width: 4,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
+                  color: AppColors.primary(context),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -322,7 +323,7 @@ class MergePage extends ConsumerWidget {
                 child: Text(
                   item,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
+                        color: AppColors.textSecondary(context),
                       ),
                 ),
               ),

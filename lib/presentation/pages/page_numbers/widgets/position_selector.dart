@@ -25,7 +25,7 @@ class PositionSelector extends StatelessWidget {
               children: [
                 Icon(
                   Icons.place,
-                  color: AppColors.pageNumbersColor,
+                  color: AppColors.pageNumbersColor(context),
                   size: 24,
                 ),
                 const SizedBox(width: 12),
@@ -43,9 +43,9 @@ class PositionSelector extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.surfaceVariant,
+                color: AppColors.surfaceVariant(context),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: AppColors.border(context)),
               ),
               child: Column(
                 children: [
@@ -54,15 +54,15 @@ class PositionSelector extends StatelessWidget {
                     children: [
                       Expanded(
                           child: _buildPositionOption(
-                              'top-left', Icons.north_west)),
-                      const SizedBox(width: 8),
-                      Expanded(
-                          child:
-                              _buildPositionOption('top-center', Icons.north)),
+                              'top-left', Icons.north_west, context)),
                       const SizedBox(width: 8),
                       Expanded(
                           child: _buildPositionOption(
-                              'top-right', Icons.north_east)),
+                              'top-center', Icons.north, context)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                          child: _buildPositionOption(
+                              'top-right', Icons.north_east, context)),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -71,15 +71,15 @@ class PositionSelector extends StatelessWidget {
                     children: [
                       Expanded(
                           child: _buildPositionOption(
-                              'bottom-left', Icons.south_west)),
+                              'bottom-left', Icons.south_west, context)),
                       const SizedBox(width: 8),
                       Expanded(
                           child: _buildPositionOption(
-                              'bottom-center', Icons.south)),
+                              'bottom-center', Icons.south, context)),
                       const SizedBox(width: 8),
                       Expanded(
                           child: _buildPositionOption(
-                              'bottom-right', Icons.south_east)),
+                              'bottom-right', Icons.south_east, context)),
                     ],
                   ),
                 ],
@@ -93,17 +93,18 @@ class PositionSelector extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.pageNumbersColor.withOpacity(0.1),
+                color: AppColors.pageNumbersColor(context).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                    color: AppColors.pageNumbersColor.withOpacity(0.3)),
+                    color:
+                        AppColors.pageNumbersColor(context).withOpacity(0.3)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
                     _getPositionIcon(selectedPosition),
-                    color: AppColors.pageNumbersColor,
+                    color: AppColors.pageNumbersColor(context),
                     size: 20,
                   ),
                   const SizedBox(width: 8),
@@ -111,7 +112,7 @@ class PositionSelector extends StatelessWidget {
                     _getPositionDisplayName(selectedPosition),
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w600,
-                          color: AppColors.pageNumbersColor,
+                          color: AppColors.pageNumbersColor(context),
                         ),
                   ),
                 ],
@@ -123,7 +124,8 @@ class PositionSelector extends StatelessWidget {
     );
   }
 
-  Widget _buildPositionOption(String position, IconData icon) {
+  Widget _buildPositionOption(
+      String position, IconData icon, BuildContext context) {
     final isSelected = selectedPosition == position;
 
     return GestureDetector(
@@ -132,11 +134,13 @@ class PositionSelector extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.pageNumbersColor.withOpacity(0.15)
+              ? AppColors.pageNumbersColor(context).withOpacity(0.15)
               : Colors.white,
           borderRadius: BorderRadius.circular(6),
           border: Border.all(
-            color: isSelected ? AppColors.pageNumbersColor : AppColors.border,
+            color: isSelected
+                ? AppColors.pageNumbersColor(context)
+                : AppColors.border(context),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -145,8 +149,9 @@ class PositionSelector extends StatelessWidget {
           children: [
             Icon(
               icon,
-              color:
-                  isSelected ? AppColors.pageNumbersColor : AppColors.textMuted,
+              color: isSelected
+                  ? AppColors.pageNumbersColor(context)
+                  : AppColors.textMuted(context),
               size: 20,
             ),
             const SizedBox(height: 4),
@@ -156,8 +161,8 @@ class PositionSelector extends StatelessWidget {
                 fontSize: 10,
                 fontWeight: FontWeight.w500,
                 color: isSelected
-                    ? AppColors.pageNumbersColor
-                    : AppColors.textMuted,
+                    ? AppColors.pageNumbersColor(context)
+                    : AppColors.textMuted(context),
               ),
               textAlign: TextAlign.center,
             ),

@@ -69,9 +69,8 @@ class _MainNavigationPageState extends ConsumerState<MainNavigationPage> {
             }
           },
           type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.white,
-          selectedItemColor: AppColors.primary,
-          unselectedItemColor: AppColors.textSecondary,
+          selectedItemColor: AppColors.primary(context),
+          unselectedItemColor: AppColors.textSecondary(context),
           selectedLabelStyle: const TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,

@@ -74,7 +74,7 @@ class _PermissionRequestWidgetState extends State<PermissionRequestWidget> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to request permissions: $e'),
-            backgroundColor: AppColors.error,
+            backgroundColor: AppColors.error(context),
           ),
         );
       }
@@ -105,14 +105,14 @@ class _PermissionRequestWidgetState extends State<PermissionRequestWidget> {
           Icon(
             Icons.folder_open,
             size: 80,
-            color: AppColors.primary.withOpacity(0.5),
+            color: AppColors.primary(context).withOpacity(0.5),
           ),
           const SizedBox(height: 24),
           Text(
             widget.title ?? 'Storage Permission Required',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+                  color: AppColors.textPrimary(context),
                 ),
             textAlign: TextAlign.center,
           ),
@@ -121,7 +121,7 @@ class _PermissionRequestWidgetState extends State<PermissionRequestWidget> {
             widget.message ??
                 'This app needs storage permission to download and save PDF files to your device. Please grant storage permission to continue.',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textSecondary,
+                  color: AppColors.textSecondary(context),
                 ),
             textAlign: TextAlign.center,
           ),
@@ -143,7 +143,7 @@ class _PermissionRequestWidgetState extends State<PermissionRequestWidget> {
               label: Text(_isRequesting ? 'Requesting...' : 'Grant Permission'),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                backgroundColor: AppColors.primary,
+                backgroundColor: AppColors.primary(context),
               ),
             ),
           ),
@@ -153,8 +153,8 @@ class _PermissionRequestWidgetState extends State<PermissionRequestWidget> {
             icon: const Icon(Icons.refresh),
             label: const Text('Check Again'),
             style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.primary,
-              side: BorderSide(color: AppColors.primary),
+              foregroundColor: AppColors.primary(context),
+              side: BorderSide(color: AppColors.primary(context)),
             ),
           ),
         ],

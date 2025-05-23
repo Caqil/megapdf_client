@@ -77,12 +77,12 @@ class _PDFViewerPageState extends ConsumerState<PDFViewerPage> {
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      backgroundColor: AppColors.surface,
+      backgroundColor: AppColors.surface(context),
       elevation: 0,
       leading: IconButton(
         onPressed: () => context.pop(),
         icon: const Icon(Icons.arrow_back),
-        color: AppColors.textPrimary,
+        color: AppColors.textPrimary(context),
       ),
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -91,7 +91,7 @@ class _PDFViewerPageState extends ConsumerState<PDFViewerPage> {
             widget.fileName ?? 'PDF Viewer',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+                  color: AppColors.textPrimary(context),
                 ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -100,7 +100,7 @@ class _PDFViewerPageState extends ConsumerState<PDFViewerPage> {
             Text(
               'Page $_currentPageNumber of $_totalPages',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: AppColors.textSecondary(context),
                   ),
             ),
         ],
@@ -109,12 +109,12 @@ class _PDFViewerPageState extends ConsumerState<PDFViewerPage> {
         IconButton(
           onPressed: _shareFile,
           icon: const Icon(Icons.share),
-          color: AppColors.textSecondary,
+          color: AppColors.textSecondary(context),
         ),
         IconButton(
           onPressed: _printDocument,
           icon: const Icon(Icons.print),
-          color: AppColors.textSecondary,
+          color: AppColors.textSecondary(context),
         ),
       ],
     );
@@ -139,13 +139,14 @@ class _PDFViewerPageState extends ConsumerState<PDFViewerPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, size: 64, color: AppColors.error),
+            Icon(Icons.error_outline,
+                size: 64, color: AppColors.error(context)),
             const SizedBox(height: 16),
             Text('Unable to load PDF',
                 style: Theme.of(context)
                     .textTheme
                     .headlineSmall
-                    ?.copyWith(color: AppColors.error)),
+                    ?.copyWith(color: AppColors.error(context))),
             const SizedBox(height: 8),
             Text(_errorMessage ?? 'An unknown error occurred'),
             const SizedBox(height: 24),
@@ -203,8 +204,8 @@ class _PDFViewerPageState extends ConsumerState<PDFViewerPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border(top: BorderSide(color: AppColors.border)),
+        color: AppColors.surface(context),
+        border: Border(top: BorderSide(color: AppColors.border(context))),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -222,7 +223,7 @@ class _PDFViewerPageState extends ConsumerState<PDFViewerPage> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
-              color: AppColors.background,
+              color: AppColors.background(context),
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text('$_currentPageNumber / $_totalPages'),
@@ -261,7 +262,7 @@ class _PDFViewerPageState extends ConsumerState<PDFViewerPage> {
 
     return FloatingActionButton(
       onPressed: _printDocument,
-      backgroundColor: AppColors.primary,
+      backgroundColor: AppColors.primary(context),
       child: const Icon(Icons.print, color: Colors.white),
     );
   }
@@ -292,7 +293,7 @@ class _PDFViewerPageState extends ConsumerState<PDFViewerPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: isError ? AppColors.error : null,
+        backgroundColor: isError ? AppColors.error(context) : null,
         behavior: SnackBarBehavior.floating,
       ),
     );

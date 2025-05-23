@@ -32,7 +32,7 @@ class FilePickerButton extends StatelessWidget {
           height: 120,
           decoration: BoxDecoration(
             border: Border.all(
-              color: AppColors.border,
+              color: AppColors.border(context),
               style: BorderStyle.solid,
               width: 2,
             ),
@@ -49,13 +49,13 @@ class FilePickerButton extends StatelessWidget {
                   Icon(
                     Icons.cloud_upload_outlined,
                     size: 40,
-                    color: AppColors.primary,
+                    color: AppColors.primary(context),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     buttonText ?? 'Choose File',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: AppColors.primary,
+                          color: AppColors.primary(context),
                           fontWeight: FontWeight.w600,
                         ),
                   ),
@@ -64,7 +64,7 @@ class FilePickerButton extends StatelessWidget {
                     Text(
                       helperText!,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.textSecondary,
+                            color: AppColors.textSecondary(context),
                           ),
                       textAlign: TextAlign.center,
                     ),

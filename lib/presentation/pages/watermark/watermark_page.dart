@@ -121,7 +121,7 @@ class WatermarkPage extends ConsumerWidget {
               children: [
                 Icon(
                   Icons.upload_file,
-                  color: AppColors.primary,
+                  color: AppColors.primary(context),
                   size: 24,
                 ),
                 const SizedBox(width: 12),
@@ -163,7 +163,7 @@ class WatermarkPage extends ConsumerWidget {
               children: [
                 Icon(
                   Icons.insert_drive_file,
-                  color: AppColors.success,
+                  color: AppColors.success(context),
                   size: 24,
                 ),
                 const SizedBox(width: 12),
@@ -180,9 +180,10 @@ class WatermarkPage extends ConsumerWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.success.withOpacity(0.1),
+                color: AppColors.success(context).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.success.withOpacity(0.3)),
+                border: Border.all(
+                    color: AppColors.success(context).withOpacity(0.3)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -197,7 +198,7 @@ class WatermarkPage extends ConsumerWidget {
                   Text(
                     'Size: ${(file.lengthSync() / (1024 * 1024)).toStringAsFixed(1)} MB',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.textSecondary,
+                          color: AppColors.textSecondary(context),
                         ),
                   ),
                 ],
@@ -222,7 +223,7 @@ class WatermarkPage extends ConsumerWidget {
               children: [
                 Icon(
                   Icons.branding_watermark,
-                  color: AppColors.watermarkColor,
+                  color: AppColors.watermarkColor(context),
                   size: 24,
                 ),
                 const SizedBox(width: 12),
@@ -304,7 +305,7 @@ class WatermarkPage extends ConsumerWidget {
                 Text(state.isLoading ? 'Adding Watermark...' : 'Add Watermark'),
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
-              backgroundColor: AppColors.watermarkColor,
+              backgroundColor: AppColors.watermarkColor(context),
             ),
           ),
         ],
@@ -349,7 +350,7 @@ class WatermarkPage extends ConsumerWidget {
               children: [
                 Icon(
                   Icons.info_outline,
-                  color: AppColors.info,
+                  color: AppColors.info(context),
                   size: 24,
                 ),
                 const SizedBox(width: 12),
@@ -365,7 +366,7 @@ class WatermarkPage extends ConsumerWidget {
             Text(
               'Add watermarks to protect and brand your documents:',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: AppColors.textSecondary(context),
                   ),
             ),
             const SizedBox(height: 12),
@@ -394,7 +395,7 @@ class WatermarkPage extends ConsumerWidget {
                 width: 4,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
+                  color: AppColors.primary(context),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -403,7 +404,7 @@ class WatermarkPage extends ConsumerWidget {
                 child: Text(
                   item,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
+                        color: AppColors.textSecondary(context),
                       ),
                 ),
               ),

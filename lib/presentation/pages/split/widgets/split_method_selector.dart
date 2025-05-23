@@ -21,11 +21,10 @@ class SplitMethodSelector extends StatelessWidget {
         Text(
           'Split Method:',
           style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+                fontWeight: FontWeight.w600,
+              ),
         ),
         const SizedBox(height: 12),
-        
         Column(
           children: SplitMethod.values.map((method) {
             return Padding(
@@ -40,19 +39,18 @@ class SplitMethodSelector extends StatelessWidget {
 
   Widget _buildMethodOption(BuildContext context, SplitMethod method) {
     final isSelected = selectedMethod == method;
-    
+
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: isSelected 
-            ? AppColors.splitColor 
-            : AppColors.border,
+          color: isSelected
+              ? AppColors.splitColor(context)
+              : AppColors.border(context),
           width: isSelected ? 2 : 1,
         ),
-        color: isSelected 
-          ? AppColors.splitColor.withOpacity(0.1) 
-          : null,
+        color:
+            isSelected ? AppColors.splitColor(context).withOpacity(0.1) : null,
       ),
       child: RadioListTile<SplitMethod>(
         value: method,
@@ -61,17 +59,17 @@ class SplitMethodSelector extends StatelessWidget {
         title: Text(
           method.displayName,
           style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: isSelected ? AppColors.splitColor : null,
-          ),
+                fontWeight: FontWeight.w600,
+                color: isSelected ? AppColors.splitColor(context) : null,
+              ),
         ),
         subtitle: Text(
           method.description,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: AppColors.textSecondary,
-          ),
+                color: AppColors.textSecondary(context),
+              ),
         ),
-        activeColor: AppColors.splitColor,
+        activeColor: AppColors.splitColor(context),
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       ),
     );

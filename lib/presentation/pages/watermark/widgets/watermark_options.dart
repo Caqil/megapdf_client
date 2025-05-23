@@ -52,7 +52,7 @@ class WatermarkOptions extends StatelessWidget {
               children: [
                 Icon(
                   Icons.tune,
-                  color: AppColors.watermarkColor,
+                  color: AppColors.watermarkColor(context),
                   size: 24,
                 ),
                 const SizedBox(width: 12),
@@ -165,7 +165,7 @@ class WatermarkOptions extends StatelessWidget {
             Text(
               '${rotation}°',
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: AppColors.watermarkColor,
+                    color: AppColors.watermarkColor(context),
                     fontWeight: FontWeight.w600,
                   ),
             ),
@@ -177,7 +177,7 @@ class WatermarkOptions extends StatelessWidget {
           min: -180,
           max: 180,
           divisions: 36,
-          activeColor: AppColors.watermarkColor,
+          activeColor: AppColors.watermarkColor(context),
           onChanged: (value) => onRotationChanged(value.round()),
         ),
         Row(
@@ -186,13 +186,13 @@ class WatermarkOptions extends StatelessWidget {
             Text(
               '-180°',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: AppColors.textSecondary(context),
                   ),
             ),
             Text(
               '180°',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: AppColors.textSecondary(context),
                   ),
             ),
           ],
@@ -217,7 +217,7 @@ class WatermarkOptions extends StatelessWidget {
             Text(
               '${opacity}%',
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: AppColors.watermarkColor,
+                    color: AppColors.watermarkColor(context),
                     fontWeight: FontWeight.w600,
                   ),
             ),
@@ -229,7 +229,7 @@ class WatermarkOptions extends StatelessWidget {
           min: 10,
           max: 100,
           divisions: 18,
-          activeColor: AppColors.watermarkColor,
+          activeColor: AppColors.watermarkColor(context),
           onChanged: (value) => onOpacityChanged(value.round()),
         ),
         Row(
@@ -238,13 +238,13 @@ class WatermarkOptions extends StatelessWidget {
             Text(
               'Transparent',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: AppColors.textSecondary(context),
                   ),
             ),
             Text(
               'Opaque',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: AppColors.textSecondary(context),
                   ),
             ),
           ],
@@ -269,7 +269,7 @@ class WatermarkOptions extends StatelessWidget {
             Text(
               '${scale}%',
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: AppColors.watermarkColor,
+                    color: AppColors.watermarkColor(context),
                     fontWeight: FontWeight.w600,
                   ),
             ),
@@ -281,7 +281,7 @@ class WatermarkOptions extends StatelessWidget {
           min: 10,
           max: 200,
           divisions: 19,
-          activeColor: AppColors.watermarkColor,
+          activeColor: AppColors.watermarkColor(context),
           onChanged: (value) => onScaleChanged(value.round()),
         ),
         Row(
@@ -290,13 +290,13 @@ class WatermarkOptions extends StatelessWidget {
             Text(
               'Small',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: AppColors.textSecondary(context),
                   ),
             ),
             Text(
               'Large',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: AppColors.textSecondary(context),
                   ),
             ),
           ],
@@ -323,7 +323,7 @@ class WatermarkOptions extends StatelessWidget {
           value: 'all',
           groupValue: pages,
           onChanged: (value) => onPagesChanged(value!),
-          activeColor: AppColors.watermarkColor,
+          activeColor: AppColors.watermarkColor(context),
           contentPadding: EdgeInsets.zero,
         ),
 
@@ -333,7 +333,7 @@ class WatermarkOptions extends StatelessWidget {
           value: 'custom',
           groupValue: pages,
           onChanged: (value) => onPagesChanged(value!),
-          activeColor: AppColors.watermarkColor,
+          activeColor: AppColors.watermarkColor(context),
           contentPadding: EdgeInsets.zero,
         ),
 
@@ -404,15 +404,15 @@ class WatermarkOptions extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: AppColors.info.withOpacity(0.1),
+            color: AppColors.info(context).withOpacity(0.1),
             borderRadius: BorderRadius.circular(4),
-            border: Border.all(color: AppColors.info.withOpacity(0.3)),
+            border: Border.all(color: AppColors.info(context).withOpacity(0.3)),
           ),
           child: Row(
             children: [
               Icon(
                 Icons.info,
-                color: AppColors.info,
+                color: AppColors.info(context),
                 size: 16,
               ),
               const SizedBox(width: 8),
@@ -420,7 +420,7 @@ class WatermarkOptions extends StatelessWidget {
                 child: Text(
                   'Position from top-left corner. (0,0) = top-left, negative values move outside page.',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.info,
+                        color: AppColors.info(context),
                       ),
                 ),
               ),

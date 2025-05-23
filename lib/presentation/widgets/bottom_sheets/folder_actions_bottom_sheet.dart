@@ -37,7 +37,7 @@ class FolderActionsBottomSheet extends StatelessWidget {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: AppColors.border,
+              color: AppColors.border(context),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -53,14 +53,14 @@ class FolderActionsBottomSheet extends StatelessWidget {
                   'Folder Actions',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
+                        color: AppColors.textPrimary(context),
                       ),
                 ),
                 const Spacer(),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
                   icon: const Icon(Icons.close),
-                  color: AppColors.textSecondary,
+                  color: AppColors.textSecondary(context),
                 ),
               ],
             ),
@@ -71,7 +71,7 @@ class FolderActionsBottomSheet extends StatelessWidget {
           // Action items
           _ActionTile(
             icon: Icons.create_new_folder,
-            iconColor: AppColors.primary,
+            iconColor: AppColors.primary(context),
             title: 'Create Folder',
             subtitle: 'Create a new folder to organize files',
             onTap: () {
@@ -82,7 +82,7 @@ class FolderActionsBottomSheet extends StatelessWidget {
 
           _ActionTile(
             icon: Icons.upload_file,
-            iconColor: AppColors.secondary,
+            iconColor: AppColors.secondary(context),
             title: 'Import Files',
             subtitle: 'Import files from your device',
             onTap: () {
@@ -94,7 +94,7 @@ class FolderActionsBottomSheet extends StatelessWidget {
           if (onSortFiles != null)
             _ActionTile(
               icon: Icons.sort,
-              iconColor: AppColors.warning,
+              iconColor: AppColors.warning(context),
               title: 'Sort Files',
               subtitle: 'Change file sorting order',
               onTap: () {
@@ -106,7 +106,7 @@ class FolderActionsBottomSheet extends StatelessWidget {
           if (onSelectFiles != null)
             _ActionTile(
               icon: Icons.checklist,
-              iconColor: AppColors.info,
+              iconColor: AppColors.info(context),
               title: 'Select Files',
               subtitle: 'Select multiple files for batch operations',
               onTap: () {
@@ -119,7 +119,7 @@ class FolderActionsBottomSheet extends StatelessWidget {
 
           _ActionTile(
             icon: Icons.settings,
-            iconColor: AppColors.textSecondary,
+            iconColor: AppColors.textSecondary(context),
             title: 'Settings',
             subtitle: 'App preferences and settings',
             onTap: () {
@@ -173,18 +173,18 @@ class _ActionTile extends StatelessWidget {
         title,
         style: Theme.of(context).textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+              color: AppColors.textPrimary(context),
             ),
       ),
       subtitle: Text(
         subtitle,
         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppColors.textSecondary,
+              color: AppColors.textSecondary(context),
             ),
       ),
       trailing: Icon(
         Icons.chevron_right,
-        color: AppColors.textSecondary,
+        color: AppColors.textSecondary(context),
         size: 20,
       ),
     );

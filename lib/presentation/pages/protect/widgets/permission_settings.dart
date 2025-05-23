@@ -37,7 +37,7 @@ class PermissionSettings extends StatelessWidget {
               children: [
                 Icon(
                   Icons.security,
-                  color: AppColors.protectColor,
+                  color: AppColors.protectColor(context),
                   size: 24,
                 ),
                 const SizedBox(width: 12),
@@ -137,15 +137,15 @@ class PermissionSettings extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceVariant,
+        color: AppColors.surfaceVariant(context),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.border(context)),
       ),
       child: Row(
         children: [
           Icon(
             icon,
-            color: value ? AppColors.protectColor : AppColors.textMuted,
+            color: value ? AppColors.protectColor(context) : AppColors.textMuted(context),
             size: 20,
           ),
           const SizedBox(width: 12),
@@ -162,7 +162,7 @@ class PermissionSettings extends StatelessWidget {
                 Text(
                   description,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
+                        color: AppColors.textSecondary(context),
                       ),
                 ),
               ],
@@ -171,7 +171,7 @@ class PermissionSettings extends StatelessWidget {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: AppColors.protectColor,
+            activeColor: AppColors.protectColor(context),
           ),
         ],
       ),

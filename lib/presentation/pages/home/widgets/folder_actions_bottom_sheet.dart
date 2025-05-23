@@ -25,7 +25,7 @@ class FolderActionsBottomSheet extends StatelessWidget {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: AppColors.border,
+              color: AppColors.border(context),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -34,12 +34,12 @@ class FolderActionsBottomSheet extends StatelessWidget {
             leading: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
+                color: AppColors.primary(context).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
                 Icons.create_new_folder,
-                color: AppColors.primary,
+                color: AppColors.primary(context),
                 size: 20,
               ),
             ),
@@ -54,12 +54,12 @@ class FolderActionsBottomSheet extends StatelessWidget {
             leading: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppColors.secondary.withOpacity(0.1),
+                color: AppColors.secondary(context).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
                 Icons.upload_file,
-                color: AppColors.secondary,
+                color: AppColors.secondary(context),
                 size: 20,
               ),
             ),
@@ -74,12 +74,12 @@ class FolderActionsBottomSheet extends StatelessWidget {
             leading: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppColors.textSecondary.withOpacity(0.1),
+                color: AppColors.textSecondary(context).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
                 Icons.settings,
-                color: AppColors.textSecondary,
+                color: AppColors.textSecondary(context),
                 size: 20,
               ),
             ),

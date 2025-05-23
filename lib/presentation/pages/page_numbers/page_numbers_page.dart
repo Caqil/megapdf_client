@@ -129,7 +129,7 @@ class PageNumbersPage extends ConsumerWidget {
               children: [
                 Icon(
                   Icons.upload_file,
-                  color: AppColors.primary,
+                  color: AppColors.primary(context),
                   size: 24,
                 ),
                 const SizedBox(width: 12),
@@ -171,7 +171,7 @@ class PageNumbersPage extends ConsumerWidget {
               children: [
                 Icon(
                   Icons.insert_drive_file,
-                  color: AppColors.success,
+                  color: AppColors.success(context),
                   size: 24,
                 ),
                 const SizedBox(width: 12),
@@ -188,9 +188,10 @@ class PageNumbersPage extends ConsumerWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.success.withOpacity(0.1),
+                color: AppColors.success(context).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.success.withOpacity(0.3)),
+                border: Border.all(
+                    color: AppColors.success(context).withOpacity(0.3)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -205,7 +206,7 @@ class PageNumbersPage extends ConsumerWidget {
                   Text(
                     'Size: ${(file.lengthSync() / (1024 * 1024)).toStringAsFixed(1)} MB',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.textSecondary,
+                          color: AppColors.textSecondary(context),
                         ),
                   ),
                   const SizedBox(height: 8),
@@ -213,7 +214,8 @@ class PageNumbersPage extends ConsumerWidget {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.pageNumbersColor.withOpacity(0.1),
+                      color:
+                          AppColors.pageNumbersColor(context).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Row(
@@ -221,7 +223,7 @@ class PageNumbersPage extends ConsumerWidget {
                       children: [
                         Icon(
                           Icons.format_list_numbered,
-                          color: AppColors.pageNumbersColor,
+                          color: AppColors.pageNumbersColor(context),
                           size: 16,
                         ),
                         const SizedBox(width: 4),
@@ -229,7 +231,7 @@ class PageNumbersPage extends ConsumerWidget {
                           'Preview: ${state.previewText}',
                           style:
                               Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: AppColors.pageNumbersColor,
+                                    color: AppColors.pageNumbersColor(context),
                                     fontWeight: FontWeight.w500,
                                   ),
                         ),
@@ -272,7 +274,7 @@ class PageNumbersPage extends ConsumerWidget {
                 state.isLoading ? 'Adding Numbers...' : 'Add Page Numbers'),
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
-              backgroundColor: AppColors.pageNumbersColor,
+              backgroundColor: AppColors.pageNumbersColor(context),
             ),
           ),
         ],
@@ -281,7 +283,8 @@ class PageNumbersPage extends ConsumerWidget {
         if (state.hasResult) ...[
           SaveButton(
             onPressed: state.canSave
-                ? () => ref.read(pageNumbersNotifierProvider.notifier).saveResult()
+                ? () =>
+                    ref.read(pageNumbersNotifierProvider.notifier).saveResult()
                 : null,
             isLoading: state.isSaving,
             savedPath: state.savedPath,
@@ -316,7 +319,7 @@ class PageNumbersPage extends ConsumerWidget {
               children: [
                 Icon(
                   Icons.info_outline,
-                  color: AppColors.info,
+                  color: AppColors.info(context),
                   size: 24,
                 ),
                 const SizedBox(width: 12),
@@ -332,7 +335,7 @@ class PageNumbersPage extends ConsumerWidget {
             Text(
               'Add professional page numbers to your PDF documents:',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: AppColors.textSecondary(context),
                   ),
             ),
             const SizedBox(height: 12),
@@ -362,7 +365,7 @@ class PageNumbersPage extends ConsumerWidget {
                 width: 4,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
+                  color: AppColors.primary(context),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -371,7 +374,7 @@ class PageNumbersPage extends ConsumerWidget {
                 child: Text(
                   item,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
+                        color: AppColors.textSecondary(context),
                       ),
                 ),
               ),

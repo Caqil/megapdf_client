@@ -26,12 +26,12 @@ class WatermarkResultWidget extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.success.withOpacity(0.15),
+                    color: AppColors.success(context).withOpacity(0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     Icons.check_circle,
-                    color: AppColors.success,
+                    color: AppColors.success(context),
                     size: 24,
                   ),
                 ),
@@ -44,13 +44,13 @@ class WatermarkResultWidget extends StatelessWidget {
                         'Watermark Added',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.bold,
-                              color: AppColors.success,
+                              color: AppColors.success(context),
                             ),
                       ),
                       Text(
                         result.message,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppColors.textSecondary,
+                              color: AppColors.textSecondary(context),
                             ),
                       ),
                     ],
@@ -66,16 +66,16 @@ class WatermarkResultWidget extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.watermarkColor.withOpacity(0.1),
+                color: AppColors.watermarkColor(context).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                    color: AppColors.watermarkColor.withOpacity(0.3)),
+                    color: AppColors.watermarkColor(context).withOpacity(0.3)),
               ),
               child: Column(
                 children: [
                   Icon(
                     Icons.branding_watermark,
-                    color: AppColors.watermarkColor,
+                    color: AppColors.watermarkColor(context),
                     size: 48,
                   ),
                   const SizedBox(height: 12),
@@ -83,7 +83,7 @@ class WatermarkResultWidget extends StatelessWidget {
                     'Watermark Applied Successfully',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: AppColors.watermarkColor,
+                          color: AppColors.watermarkColor(context),
                         ),
                     textAlign: TextAlign.center,
                   ),
@@ -92,7 +92,7 @@ class WatermarkResultWidget extends StatelessWidget {
                     Text(
                       'File Size: ${result.formattedFileSize}',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.textSecondary,
+                            color: AppColors.textSecondary(context),
                           ),
                     ),
                   ],
@@ -108,14 +108,14 @@ class WatermarkResultWidget extends StatelessWidget {
                 children: [
                   Icon(
                     Icons.insert_drive_file,
-                    color: AppColors.textSecondary,
+                    color: AppColors.textSecondary(context),
                     size: 16,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     'File: ${result.filename}',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.textSecondary,
+                          color: AppColors.textSecondary(context),
                         ),
                   ),
                 ],

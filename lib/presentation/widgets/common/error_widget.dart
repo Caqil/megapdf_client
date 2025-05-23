@@ -1,4 +1,3 @@
-
 // lib/presentation/widgets/common/error_widget.dart
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
@@ -18,9 +17,9 @@ class CustomErrorWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.error.withOpacity(0.1),
+        color: AppColors.error(context).withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.error.withOpacity(0.3)),
+        border: Border.all(color: AppColors.error(context).withOpacity(0.3)),
       ),
       child: Column(
         children: [
@@ -28,7 +27,7 @@ class CustomErrorWidget extends StatelessWidget {
             children: [
               Icon(
                 Icons.error_outline,
-                color: AppColors.error,
+                color: AppColors.error(context),
                 size: 24,
               ),
               const SizedBox(width: 12),
@@ -36,22 +35,20 @@ class CustomErrorWidget extends StatelessWidget {
                 child: Text(
                   'Error',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.error,
-                  ),
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.error(context),
+                      ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          
           Text(
             message,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppColors.textSecondary,
-            ),
+                  color: AppColors.textSecondary(context),
+                ),
           ),
-          
           if (onRetry != null) ...[
             const SizedBox(height: 16),
             SizedBox(
@@ -61,8 +58,8 @@ class CustomErrorWidget extends StatelessWidget {
                 icon: const Icon(Icons.refresh),
                 label: const Text('Try Again'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.error,
-                  side: BorderSide(color: AppColors.error),
+                  foregroundColor: AppColors.error(context),
+                  side: BorderSide(color: AppColors.error(context)),
                 ),
               ),
             ),

@@ -26,12 +26,12 @@ class PageNumbersResultWidget extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.success.withOpacity(0.15),
+                    color: AppColors.success(context).withOpacity(0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     Icons.check_circle,
-                    color: AppColors.success,
+                    color: AppColors.success(context),
                     size: 24,
                   ),
                 ),
@@ -44,13 +44,13 @@ class PageNumbersResultWidget extends StatelessWidget {
                         'Page Numbers Added',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.bold,
-                              color: AppColors.success,
+                              color: AppColors.success(context),
                             ),
                       ),
                       Text(
                         result.message,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppColors.textSecondary,
+                              color: AppColors.textSecondary(context),
                             ),
                       ),
                     ],
@@ -66,16 +66,17 @@ class PageNumbersResultWidget extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.pageNumbersColor.withOpacity(0.1),
+                color: AppColors.pageNumbersColor(context).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                    color: AppColors.pageNumbersColor.withOpacity(0.3)),
+                    color:
+                        AppColors.pageNumbersColor(context).withOpacity(0.3)),
               ),
               child: Column(
                 children: [
                   Icon(
                     Icons.format_list_numbered,
-                    color: AppColors.pageNumbersColor,
+                    color: AppColors.pageNumbersColor(context),
                     size: 48,
                   ),
                   const SizedBox(height: 12),
@@ -83,7 +84,7 @@ class PageNumbersResultWidget extends StatelessWidget {
                     'Page Numbers Added Successfully',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: AppColors.pageNumbersColor,
+                          color: AppColors.pageNumbersColor(context),
                         ),
                     textAlign: TextAlign.center,
                   ),
@@ -93,7 +94,7 @@ class PageNumbersResultWidget extends StatelessWidget {
                     Text(
                       '${result.numberedPages} of ${result.totalPages} pages numbered',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.textSecondary,
+                            color: AppColors.textSecondary(context),
                           ),
                       textAlign: TextAlign.center,
                     ),
@@ -101,7 +102,7 @@ class PageNumbersResultWidget extends StatelessWidget {
                     Text(
                       'Your PDF now has professional page numbers',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.textSecondary,
+                            color: AppColors.textSecondary(context),
                           ),
                       textAlign: TextAlign.center,
                     ),
@@ -118,14 +119,14 @@ class PageNumbersResultWidget extends StatelessWidget {
                 children: [
                   Icon(
                     Icons.insert_drive_file,
-                    color: AppColors.textSecondary,
+                    color: AppColors.textSecondary(context),
                     size: 16,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     'File: ${result.fileName}',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.textSecondary,
+                          color: AppColors.textSecondary(context),
                         ),
                   ),
                 ],
