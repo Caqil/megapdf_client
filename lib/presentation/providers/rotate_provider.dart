@@ -2,6 +2,7 @@
 import 'dart:io';
 import 'package:megapdf_client/data/repositories/pdf_repository_impl.dart';
 import 'package:megapdf_client/data/services/recent_files_service.dart';
+import 'package:megapdf_client/presentation/providers/file_operation_notifier.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../data/models/rotate_result.dart';
@@ -103,6 +104,10 @@ class RotateNotifier extends _$RotateNotifier {
           angle: state.angle,
           pagesRotated: state.pages == 'all' ? null : state.pages,
         );
+
+        ref
+            .read(fileOperationNotifierProvider.notifier)
+            .notifyFileOperationCompleted();
       }
 
       state = state.copyWith(

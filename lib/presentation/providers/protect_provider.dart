@@ -2,6 +2,7 @@
 import 'dart:io';
 import 'package:megapdf_client/data/repositories/pdf_repository_impl.dart';
 import 'package:megapdf_client/data/services/recent_files_service.dart';
+import 'package:megapdf_client/presentation/providers/file_operation_notifier.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../data/models/protect_result.dart';
@@ -114,8 +115,11 @@ class ProtectNotifier extends _$ProtectNotifier {
           resultFilePath: localPath,
           permissionLevel: state.permission,
         );
-      }
 
+        ref
+            .read(fileOperationNotifierProvider.notifier)
+            .notifyFileOperationCompleted();
+      }
       state = state.copyWith(
         isSaving: false,
         savedPath: localPath,

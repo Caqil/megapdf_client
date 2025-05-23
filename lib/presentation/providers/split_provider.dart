@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:async';
 import 'package:megapdf_client/data/repositories/pdf_repository_impl.dart';
 import 'package:megapdf_client/data/services/recent_files_service.dart';
+import 'package:megapdf_client/presentation/providers/file_operation_notifier.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../data/models/split_result.dart';
@@ -143,6 +144,10 @@ class SplitNotifier extends _$SplitNotifier {
           splitCount: splitParts.length,
           splitFileNames: splitParts.map((p) => p.filename).toList(),
         );
+
+        ref
+            .read(fileOperationNotifierProvider.notifier)
+            .notifyFileOperationCompleted();
       }
     } finally {
       state = state.copyWith(isSaving: false);

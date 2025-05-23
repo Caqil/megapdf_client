@@ -1,4 +1,4 @@
-// lib/data/services/recent_files_service.dart
+// lib/data/services/recent_files_service.dart - Debug Version
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -31,7 +31,15 @@ class RecentFilesService {
       final originalFileName = originalFile.path.split('/').last;
       final originalSize = FileUtils.formatFileSize(originalFile.lengthSync());
 
-      await _repository.addRecentFile(
+      print('🔧 RecentFilesService: Tracking operation');
+      print('🔧   Operation: $operation ($operationType)');
+      print('🔧   Original file: $originalFileName');
+      print('🔧   Result file: $resultFileName');
+      print('🔧   Original size: $originalSize');
+      print('🔧   Result size: $resultSize');
+      print('🔧   Metadata: $metadata');
+
+      final id = await _repository.addRecentFile(
         originalFileName: originalFileName,
         resultFileName: resultFileName ?? originalFileName,
         operation: operation,
@@ -43,12 +51,14 @@ class RecentFilesService {
         metadata: metadata,
       );
 
+      print('🔧 RecentFilesService: Operation tracked with ID: $id');
+
       // Notify that a new file operation has been completed
-      // This will trigger any listeners to refresh
-      print('File operation tracked: $operation - $originalFileName');
+      print(
+          '🔧 RecentFilesService: File operation tracked successfully: $operation - $originalFileName');
     } catch (e) {
       // Log error but don't throw to avoid disrupting main operations
-      print('Failed to track file operation: $e');
+      print('🔧 RecentFilesService: Failed to track file operation: $e');
     }
   }
 
@@ -60,6 +70,8 @@ class RecentFilesService {
     int? originalSizeBytes,
     int? compressedSizeBytes,
   }) async {
+    print('🔧 RecentFilesService: trackCompress called');
+
     final metadata = <String, dynamic>{
       'compression_ratio': compressionRatio,
       'original_size_bytes': originalSizeBytes,
@@ -89,6 +101,8 @@ class RecentFilesService {
     int? mergedSizeBytes,
     int? totalInputSizeBytes,
   }) async {
+    print('🔧 RecentFilesService: trackMerge called');
+
     final metadata = <String, dynamic>{
       'file_count': originalFiles.length,
       'file_names': originalFiles.map((f) => f.path.split('/').last).toList(),
@@ -118,6 +132,8 @@ class RecentFilesService {
     required int splitCount,
     List<String>? splitFileNames,
   }) async {
+    print('🔧 RecentFilesService: trackSplit called');
+
     final metadata = <String, dynamic>{
       'split_count': splitCount,
       'split_file_names': splitFileNames,
@@ -141,6 +157,8 @@ class RecentFilesService {
     bool? ocrEnabled,
     int? quality,
   }) async {
+    print('🔧 RecentFilesService: trackConvert called');
+
     final metadata = <String, dynamic>{
       'input_format': inputFormat,
       'output_format': outputFormat,
@@ -164,6 +182,8 @@ class RecentFilesService {
     String? resultFilePath,
     String? permissionLevel,
   }) async {
+    print('🔧 RecentFilesService: trackProtect called');
+
     final metadata = <String, dynamic>{
       'permission_level': permissionLevel,
     };
@@ -183,6 +203,8 @@ class RecentFilesService {
     required String resultFileName,
     String? resultFilePath,
   }) async {
+    print('🔧 RecentFilesService: trackUnlock called');
+
     await trackFileOperation(
       originalFile: originalFile,
       operation: 'Unlocked',
@@ -199,6 +221,8 @@ class RecentFilesService {
     required int angle,
     String? pagesRotated,
   }) async {
+    print('🔧 RecentFilesService: trackRotate called');
+
     final metadata = <String, dynamic>{
       'rotation_angle': angle,
       'pages_rotated': pagesRotated,
@@ -222,6 +246,8 @@ class RecentFilesService {
     String? watermarkText,
     String? position,
   }) async {
+    print('🔧 RecentFilesService: trackWatermark called');
+
     final metadata = <String, dynamic>{
       'watermark_type': watermarkType,
       'watermark_text': watermarkText,
@@ -247,6 +273,8 @@ class RecentFilesService {
     int? totalPages,
     int? numberedPages,
   }) async {
+    print('🔧 RecentFilesService: trackPageNumbers called');
+
     final metadata = <String, dynamic>{
       'position': position,
       'format': format,

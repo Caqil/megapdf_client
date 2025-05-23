@@ -2,6 +2,7 @@
 import 'dart:io';
 import 'package:megapdf_client/data/repositories/pdf_repository_impl.dart';
 import 'package:megapdf_client/data/services/recent_files_service.dart';
+import 'package:megapdf_client/presentation/providers/file_operation_notifier.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../data/models/watermark_result.dart';
@@ -181,6 +182,10 @@ class WatermarkNotifier extends _$WatermarkNotifier {
               state.watermarkType == WatermarkType.text ? state.text : null,
           position: state.position.name,
         );
+
+        ref
+            .read(fileOperationNotifierProvider.notifier)
+            .notifyFileOperationCompleted();
       }
 
       state = state.copyWith(

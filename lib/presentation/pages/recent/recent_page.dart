@@ -1,8 +1,8 @@
-// lib/presentation/pages/recent/recent_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:megapdf_client/data/database/database_helper.dart';
 import 'package:megapdf_client/data/models/recent_file_model.dart';
-import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'dart:convert';
 
 import '../../../core/theme/app_colors.dart';
 import '../../providers/recent_files_provider.dart';
@@ -19,12 +19,11 @@ class _RecentPageState extends ConsumerState<RecentPage>
   String? _selectedFilter;
 
   @override
-  bool get wantKeepAlive => true; // Keep the state alive
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
-    // Load recent files when page loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(recentFilesNotifierProvider.notifier).loadRecentFiles();
       ref.read(recentFilesNotifierProvider.notifier).loadStats();
@@ -33,26 +32,9 @@ class _RecentPageState extends ConsumerState<RecentPage>
 
   @override
   Widget build(BuildContext context) {
-    super.build(context); // Required for AutomaticKeepAliveClientMixin
+    super.build(context);
 
     final state = ref.watch(recentFilesNotifierProvider);
-
-    // Listen for app lifecycle changes to refresh when app becomes active
-    ref.listen<bool>(
-      appLifecycleProvider,
-      (previous, next) {
-        if (next) {
-          // App became active, refresh recent files
-          Future.delayed(const Duration(milliseconds: 500), () {
-            if (mounted) {
-              ref
-                  .read(recentFilesNotifierProvider.notifier)
-                  .refreshRecentFiles();
-            }
-          });
-        }
-      },
-    );
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -77,49 +59,6 @@ class _RecentPageState extends ConsumerState<RecentPage>
             icon: const Icon(Icons.refresh),
             tooltip: 'Refresh',
           ),
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              switch (value) {
-                case 'clear':
-                  _showClearRecentDialog();
-                  break;
-                case 'filter':
-                  _showFilterOptions();
-                  break;
-                case 'refresh':
-                  ref
-                      .read(recentFilesNotifierProvider.notifier)
-                      .refreshRecentFiles();
-                  break;
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'refresh',
-                child: ListTile(
-                  leading: Icon(Icons.refresh, size: 20),
-                  title: Text('Refresh'),
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'filter',
-                child: ListTile(
-                  leading: Icon(Icons.filter_list, size: 20),
-                  title: Text('Filter'),
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'clear',
-                child: ListTile(
-                  leading: Icon(Icons.clear_all, size: 20),
-                  title: Text('Clear All'),
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ),
-            ],
-          ),
         ],
       ),
       body: RefreshIndicator(
@@ -131,8 +70,7 @@ class _RecentPageState extends ConsumerState<RecentPage>
         child: state.isLoading
             ? const Center(child: CircularProgressIndicator())
             : SingleChildScrollView(
-                physics:
-                    const AlwaysScrollableScrollPhysics(), // Enable pull-to-refresh even when content is short
+                physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -158,43 +96,6 @@ class _RecentPageState extends ConsumerState<RecentPage>
                               color: AppColors.secondary,
                             ),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                    ],
-
-                    // Filter chips
-                    if (state.operationTypes.isNotEmpty) ...[
-                      Wrap(
-                        spacing: 8,
-                        children: [
-                          FilterChip(
-                            label: const Text('All'),
-                            selected: _selectedFilter == null,
-                            onSelected: (selected) {
-                              if (selected) {
-                                setState(() => _selectedFilter = null);
-                                ref
-                                    .read(recentFilesNotifierProvider.notifier)
-                                    .loadRecentFiles();
-                              }
-                            },
-                          ),
-                          ...state.operationTypes.map((type) {
-                            return FilterChip(
-                              label: Text(_getOperationDisplayName(type)),
-                              selected: _selectedFilter == type,
-                              onSelected: (selected) {
-                                setState(() {
-                                  _selectedFilter = selected ? type : null;
-                                });
-                                ref
-                                    .read(recentFilesNotifierProvider.notifier)
-                                    .loadRecentFiles(
-                                        operationType: selected ? type : null);
-                              },
-                            );
-                          }).toList(),
                         ],
                       ),
                       const SizedBox(height: 24),
@@ -264,193 +165,10 @@ class _RecentPageState extends ConsumerState<RecentPage>
                   color: AppColors.textSecondary,
                 ),
           ),
-          const SizedBox(height: 20),
-          ElevatedButton.icon(
-            onPressed: () {
-              ref
-                  .read(recentFilesNotifierProvider.notifier)
-                  .refreshRecentFiles();
-            },
-            icon: const Icon(Icons.refresh),
-            label: const Text('Refresh'),
-          ),
         ],
       ),
     );
   }
-
-  void _showClearRecentDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Clear Recent Files'),
-        content: const Text(
-            'Are you sure you want to clear all recent files? This action cannot be undone.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await ref
-                  .read(recentFilesNotifierProvider.notifier)
-                  .clearAllRecentFiles();
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Recent files cleared')),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-            ),
-            child: const Text('Clear All'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showFilterOptions() {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Filter by Operation',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 8,
-              children: [
-                FilterChip(
-                  label: const Text('All'),
-                  selected: _selectedFilter == null,
-                  onSelected: (selected) {
-                    setState(() => _selectedFilter = null);
-                    ref
-                        .read(recentFilesNotifierProvider.notifier)
-                        .loadRecentFiles();
-                    Navigator.pop(context);
-                  },
-                ),
-                ...ref
-                    .read(recentFilesNotifierProvider)
-                    .operationTypes
-                    .map((type) {
-                  return FilterChip(
-                    label: Text(_getOperationDisplayName(type)),
-                    selected: _selectedFilter == type,
-                    onSelected: (selected) {
-                      setState(() {
-                        _selectedFilter = selected ? type : null;
-                      });
-                      ref
-                          .read(recentFilesNotifierProvider.notifier)
-                          .loadRecentFiles(
-                              operationType: selected ? type : null);
-                      Navigator.pop(context);
-                    },
-                  );
-                }).toList(),
-              ],
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _getOperationDisplayName(String operationType) {
-    switch (operationType) {
-      case 'compress':
-        return 'Compress';
-      case 'merge':
-        return 'Merge';
-      case 'split':
-        return 'Split';
-      case 'convert':
-        return 'Convert';
-      case 'protect':
-        return 'Protect';
-      case 'unlock':
-        return 'Unlock';
-      case 'rotate':
-        return 'Rotate';
-      case 'watermark':
-        return 'Watermark';
-      case 'page_numbers':
-        return 'Page Numbers';
-      default:
-        return operationType.toUpperCase();
-    }
-  }
-
-  Color _getOperationColor(String operationType) {
-    switch (operationType) {
-      case 'compress':
-        return AppColors.compressColor;
-      case 'merge':
-        return AppColors.mergeColor;
-      case 'split':
-        return AppColors.splitColor;
-      case 'convert':
-        return AppColors.convertColor;
-      case 'protect':
-        return AppColors.protectColor;
-      case 'unlock':
-        return AppColors.unlockColor;
-      case 'rotate':
-        return AppColors.rotateColor;
-      case 'watermark':
-        return AppColors.watermarkColor;
-      case 'page_numbers':
-        return AppColors.pageNumbersColor;
-      default:
-        return AppColors.primary;
-    }
-  }
-
-  IconData _getOperationIcon(String operationType) {
-    switch (operationType) {
-      case 'compress':
-        return Icons.compress;
-      case 'merge':
-        return Icons.merge;
-      case 'split':
-        return Icons.call_split;
-      case 'convert':
-        return Icons.transform;
-      case 'protect':
-        return Icons.lock;
-      case 'unlock':
-        return Icons.lock_open;
-      case 'rotate':
-        return Icons.rotate_right;
-      case 'watermark':
-        return Icons.branding_watermark;
-      case 'page_numbers':
-        return Icons.format_list_numbered;
-      default:
-        return Icons.description;
-    }
-  }
-}
-
-// App lifecycle provider to detect when app becomes active
-@riverpod
-bool appLifecycle(Ref ref) {
-  return true;
 }
 
 class _StatsCard extends StatelessWidget {
@@ -580,39 +298,11 @@ class _RecentFileCard extends ConsumerWidget {
               ],
             ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                item.timeAgo,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              PopupMenuButton<String>(
-                onSelected: (value) async {
-                  if (value == 'delete') {
-                    // TODO: Implement delete single item
-                  }
-                },
-                itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: 'delete',
-                    child: ListTile(
-                      leading: Icon(Icons.delete, size: 16),
-                      title: Text('Remove'),
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
-                ],
-                child: Icon(
-                  Icons.more_vert,
+          Text(
+            item.timeAgo,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: AppColors.textSecondary,
-                  size: 16,
                 ),
-              ),
-            ],
           ),
         ],
       ),

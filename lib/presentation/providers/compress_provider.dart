@@ -5,6 +5,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../data/models/compress_result.dart';
 import '../../core/errors/api_exception.dart';
+import 'file_operation_notifier.dart'; // Add this import
 
 part 'compress_provider.g.dart';
 
@@ -71,6 +72,11 @@ class CompressNotifier extends _$CompressNotifier {
           originalSizeBytes: result.originalSize,
           compressedSizeBytes: result.compressedSize,
         );
+
+        // ADD THIS LINE HERE:
+        ref
+            .read(fileOperationNotifierProvider.notifier)
+            .notifyFileOperationCompleted();
       }
 
       state = state.copyWith(

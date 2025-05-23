@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:megapdf_client/data/models/rotate_result.dart';
 import 'package:megapdf_client/data/repositories/pdf_repository_impl.dart';
 import 'package:megapdf_client/data/services/recent_files_service.dart';
+import 'package:megapdf_client/presentation/providers/file_operation_notifier.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../core/errors/api_exception.dart';
@@ -167,6 +168,10 @@ class PageNumbersNotifier extends _$PageNumbersNotifier {
           totalPages: result.totalPages,
           numberedPages: result.numberedPages,
         );
+
+        ref
+            .read(fileOperationNotifierProvider.notifier)
+            .notifyFileOperationCompleted();
       }
 
       state = state.copyWith(
