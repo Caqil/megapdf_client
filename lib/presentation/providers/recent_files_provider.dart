@@ -1,4 +1,5 @@
 // lib/presentation/providers/recent_files_provider.dart
+import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../data/models/recent_file_model.dart';
 import '../../data/repositories/recent_files_repository.dart';
@@ -9,6 +10,11 @@ part 'recent_files_provider.g.dart';
 class RecentFilesNotifier extends _$RecentFilesNotifier {
   @override
   RecentFilesState build() {
+    // Auto-load recent files when provider is created
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      loadRecentFiles();
+      loadStats();
+    });
     return const RecentFilesState();
   }
 
@@ -49,6 +55,12 @@ class RecentFilesNotifier extends _$RecentFilesNotifier {
       // Don't update error state for stats failure
       print('Failed to load stats: $e');
     }
+  }
+
+  // Add this method to refresh after new files are added
+  Future<void> refreshRecentFiles() async {
+    await loadRecentFiles(operationType: state.currentFilter);
+    await loadStats();
   }
 
   Future<void> clearAllRecentFiles() async {

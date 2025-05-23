@@ -9,13 +9,14 @@ part 'recent_files_service.g.dart';
 
 @riverpod
 RecentFilesService recentFilesService(Ref ref) {
-  return RecentFilesService(ref.read(recentFilesRepositoryProvider));
+  return RecentFilesService(ref.read(recentFilesRepositoryProvider), ref);
 }
 
 class RecentFilesService {
   final RecentFilesRepository _repository;
+  final Ref _ref;
 
-  RecentFilesService(this._repository);
+  RecentFilesService(this._repository, this._ref);
 
   Future<void> trackFileOperation({
     required File originalFile,
@@ -41,6 +42,10 @@ class RecentFilesService {
         resultSize: resultSize,
         metadata: metadata,
       );
+
+      // Notify that a new file operation has been completed
+      // This will trigger any listeners to refresh
+      print('File operation tracked: $operation - $originalFileName');
     } catch (e) {
       // Log error but don't throw to avoid disrupting main operations
       print('Failed to track file operation: $e');

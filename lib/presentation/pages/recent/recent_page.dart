@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:megapdf_client/data/models/recent_file_model.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../providers/recent_files_provider.dart';
@@ -13,8 +14,12 @@ class RecentPage extends ConsumerStatefulWidget {
   ConsumerState<RecentPage> createState() => _RecentPageState();
 }
 
-class _RecentPageState extends ConsumerState<RecentPage> {
+class _RecentPageState extends ConsumerState<RecentPage>
+    with AutomaticKeepAliveClientMixin {
   String? _selectedFilter;
+
+  @override
+  bool get wantKeepAlive => true; // Keep the state alive
 
   @override
   void initState() {
@@ -28,7 +33,26 @@ class _RecentPageState extends ConsumerState<RecentPage> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
+
     final state = ref.watch(recentFilesNotifierProvider);
+
+    // Listen for app lifecycle changes to refresh when app becomes active
+    ref.listen<bool>(
+      appLifecycleProvider,
+      (previous, next) {
+        if (next) {
+          // App became active, refresh recent files
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (mounted) {
+              ref
+                  .read(recentFilesNotifierProvider.notifier)
+                  .refreshRecentFiles();
+            }
+          });
+        }
+      },
+    );
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -44,6 +68,15 @@ class _RecentPageState extends ConsumerState<RecentPage> {
               ),
         ),
         actions: [
+          IconButton(
+            onPressed: () {
+              ref
+                  .read(recentFilesNotifierProvider.notifier)
+                  .refreshRecentFiles();
+            },
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh',
+          ),
           PopupMenuButton<String>(
             onSelected: (value) {
               switch (value) {
@@ -56,7 +89,7 @@ class _RecentPageState extends ConsumerState<RecentPage> {
                 case 'refresh':
                   ref
                       .read(recentFilesNotifierProvider.notifier)
-                      .loadRecentFiles();
+                      .refreshRecentFiles();
                   break;
               }
             },
@@ -89,81 +122,90 @@ class _RecentPageState extends ConsumerState<RecentPage> {
           ),
         ],
       ),
-      body: state.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Stats cards
-                  if (state.stats.isNotEmpty) ...[
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _StatsCard(
-                            title: 'Today',
-                            count: state.stats['today']?.toString() ?? '0',
-                            subtitle: 'files processed',
-                            color: AppColors.primary,
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await ref
+              .read(recentFilesNotifierProvider.notifier)
+              .refreshRecentFiles();
+        },
+        child: state.isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
+                physics:
+                    const AlwaysScrollableScrollPhysics(), // Enable pull-to-refresh even when content is short
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Stats cards
+                    if (state.stats.isNotEmpty) ...[
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _StatsCard(
+                              title: 'Today',
+                              count: state.stats['today']?.toString() ?? '0',
+                              subtitle: 'files processed',
+                              color: AppColors.primary,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _StatsCard(
-                            title: 'This Week',
-                            count: state.stats['thisWeek']?.toString() ?? '0',
-                            subtitle: 'files processed',
-                            color: AppColors.secondary,
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _StatsCard(
+                              title: 'This Week',
+                              count: state.stats['thisWeek']?.toString() ?? '0',
+                              subtitle: 'files processed',
+                              color: AppColors.secondary,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                  ],
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                    ],
 
-                  // Filter chips
-                  if (state.operationTypes.isNotEmpty) ...[
-                    Wrap(
-                      spacing: 8,
-                      children: [
-                        FilterChip(
-                          label: const Text('All'),
-                          selected: _selectedFilter == null,
-                          onSelected: (selected) {
-                            if (selected) {
-                              setState(() => _selectedFilter = null);
-                              ref
-                                  .read(recentFilesNotifierProvider.notifier)
-                                  .loadRecentFiles();
-                            }
-                          },
-                        ),
-                        ...state.operationTypes.map((type) {
-                          return FilterChip(
-                            label: Text(_getOperationDisplayName(type)),
-                            selected: _selectedFilter == type,
+                    // Filter chips
+                    if (state.operationTypes.isNotEmpty) ...[
+                      Wrap(
+                        spacing: 8,
+                        children: [
+                          FilterChip(
+                            label: const Text('All'),
+                            selected: _selectedFilter == null,
                             onSelected: (selected) {
-                              setState(() {
-                                _selectedFilter = selected ? type : null;
-                              });
-                              ref
-                                  .read(recentFilesNotifierProvider.notifier)
-                                  .loadRecentFiles(
-                                      operationType: selected ? type : null);
+                              if (selected) {
+                                setState(() => _selectedFilter = null);
+                                ref
+                                    .read(recentFilesNotifierProvider.notifier)
+                                    .loadRecentFiles();
+                              }
                             },
-                          );
-                        }).toList(),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                  ],
+                          ),
+                          ...state.operationTypes.map((type) {
+                            return FilterChip(
+                              label: Text(_getOperationDisplayName(type)),
+                              selected: _selectedFilter == type,
+                              onSelected: (selected) {
+                                setState(() {
+                                  _selectedFilter = selected ? type : null;
+                                });
+                                ref
+                                    .read(recentFilesNotifierProvider.notifier)
+                                    .loadRecentFiles(
+                                        operationType: selected ? type : null);
+                              },
+                            );
+                          }).toList(),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                    ],
 
-                  // Recent files list
-                  _buildRecentFilesList(state),
-                ],
+                    // Recent files list
+                    _buildRecentFilesList(state),
+                  ],
+                ),
               ),
-            ),
+      ),
     );
   }
 
@@ -221,6 +263,16 @@ class _RecentPageState extends ConsumerState<RecentPage> {
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: AppColors.textSecondary,
                 ),
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton.icon(
+            onPressed: () {
+              ref
+                  .read(recentFilesNotifierProvider.notifier)
+                  .refreshRecentFiles();
+            },
+            icon: const Icon(Icons.refresh),
+            label: const Text('Refresh'),
           ),
         ],
       ),
@@ -393,6 +445,12 @@ class _RecentPageState extends ConsumerState<RecentPage> {
         return Icons.description;
     }
   }
+}
+
+// App lifecycle provider to detect when app becomes active
+@riverpod
+bool appLifecycle(Ref ref) {
+  return true;
 }
 
 class _StatsCard extends StatelessWidget {

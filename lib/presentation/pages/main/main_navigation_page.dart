@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../providers/recent_files_provider.dart';
 import '../home/home_page.dart';
 import '../tools/tools_page.dart';
 import '../recent/recent_page.dart';
@@ -17,6 +18,7 @@ class MainNavigationPage extends ConsumerStatefulWidget {
 
 class _MainNavigationPageState extends ConsumerState<MainNavigationPage> {
   int _currentIndex = 0;
+  int _lastRecentTabVisit = 0;
 
   final List<Widget> _pages = [
     const HomePage(),
@@ -49,6 +51,22 @@ class _MainNavigationPageState extends ConsumerState<MainNavigationPage> {
             setState(() {
               _currentIndex = index;
             });
+
+            // If user navigated to recent tab, refresh the recent files
+            if (index == 2) {
+              // Check if it's been more than 5 seconds since last visit
+              final now = DateTime.now().millisecondsSinceEpoch;
+              if (now - _lastRecentTabVisit > 5000) {
+                Future.delayed(const Duration(milliseconds: 300), () {
+                  if (mounted) {
+                    ref
+                        .read(recentFilesNotifierProvider.notifier)
+                        .refreshRecentFiles();
+                  }
+                });
+              }
+              _lastRecentTabVisit = now;
+            }
           },
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,

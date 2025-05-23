@@ -6,6 +6,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../data/models/file_item.dart';
 import '../../data/models/folder_model.dart';
 import '../../data/repositories/folder_repository.dart';
+import '../../data/database/database_helper.dart';
 import '../../core/errors/api_exception.dart';
 
 part 'file_manager_provider.g.dart';
@@ -47,6 +48,8 @@ class FileManagerNotifier extends _$FileManagerNotifier {
 
     try {
       final folderRepo = ref.read(folderRepositoryProvider);
+      final dbHelper = DatabaseHelper();
+
       final currentFolder = await folderRepo.getFolderById(folderId);
 
       if (currentFolder == null) {
@@ -56,8 +59,8 @@ class FileManagerNotifier extends _$FileManagerNotifier {
       // Get subfolders
       final subfolders = await folderRepo.getFolders(parentId: folderId);
 
-      // Get physical files in this folder (if any)
-      final physicalFiles = await _getPhysicalFiles(currentFolder.path);
+      // Get files linked to this folder
+      final linkedFiles = await dbHelper.getFilesInFolder(folderId);
 
       // Combine folders and files
       final List<FileItem> fileItems = [];
@@ -74,8 +77,21 @@ class FileManagerNotifier extends _$FileManagerNotifier {
         ));
       }
 
-      // Add physical files
-      fileItems.addAll(physicalFiles);
+      // Add linked files
+      for (final fileLink in linkedFiles) {
+        final file = File(fileLink.filePath);
+        if (await file.exists()) {
+          final stat = file.statSync();
+          fileItems.add(FileItem(
+            name: fileLink.fileName,
+            path: fileLink.filePath,
+            isDirectory: false,
+            size: stat.size,
+            lastModified: stat.modified,
+            extension: path.extension(fileLink.filePath).toLowerCase(),
+          ));
+        }
+      }
 
       // Get folder path for breadcrumb
       final folderPath = await folderRepo.getFolderPath(folderId);
@@ -91,16 +107,6 @@ class FileManagerNotifier extends _$FileManagerNotifier {
         isLoading: false,
         error: e.toString(),
       );
-    }
-  }
-
-  Future<List<FileItem>> _getPhysicalFiles(String folderPath) async {
-    try {
-      // This would be used if you want to also show actual files from device storage
-      // For now, we'll just return empty list since we're managing virtual folders
-      return [];
-    } catch (e) {
-      return [];
     }
   }
 
@@ -141,17 +147,110 @@ class FileManagerNotifier extends _$FileManagerNotifier {
     }
   }
 
+  Future<void> moveFileToFolder(FileItem file, FolderModel targetFolder) async {
+    try {
+      final dbHelper = DatabaseHelper();
+
+      if (file.isDirectory) {
+        // Moving folder - update parent_id
+        final folderRepo = ref.read(folderRepositoryProvider);
+        final folderToMove = await folderRepo.getFolderById(file.folderId!);
+
+        if (folderToMove != null) {
+          final updatedFolder = folderToMove.copyWith(
+            parentId: targetFolder.id,
+            updatedAt: DateTime.now(),
+          );
+         // await folderRepo.updateFolder(updatedFolder);
+        }
+      } else {
+        // Moving file - check if file is already linked to a folder
+        final existingLink = await dbHelper.getFileLocation(file.path);
+
+        if (existingLink != null) {
+          // Update existing link to new folder
+          await dbHelper.moveFileToFolder(
+            filePath: file.path,
+            newFolderId: targetFolder.id!,
+          );
+        } else {
+          // Create new link
+          await dbHelper.addFileToFolder(
+            filePath: file.path,
+            fileName: file.name,
+            folderId: targetFolder.id!,
+          );
+        }
+      }
+
+      // Reload current folder to reflect changes
+      if (state.currentFolder != null) {
+        await loadFolder(state.currentFolder!.id!);
+      }
+
+      state = state.copyWith(
+        successMessage:
+            '${file.isDirectory ? 'Folder' : 'File'} moved successfully',
+      );
+    } catch (e) {
+      state = state.copyWith(
+          error: 'Failed to move ${file.isDirectory ? 'folder' : 'file'}: $e');
+    }
+  }
+
+  Future<void> addFileToCurrentFolder(String filePath) async {
+    final currentFolder = state.currentFolder;
+    if (currentFolder == null) {
+      state = state.copyWith(error: 'No current folder selected');
+      return;
+    }
+
+    try {
+      final dbHelper = DatabaseHelper();
+      final file = File(filePath);
+
+      if (!await file.exists()) {
+        throw Exception('File does not exist');
+      }
+
+      await dbHelper.addFileToFolder(
+        filePath: filePath,
+        fileName: path.basename(filePath),
+        folderId: currentFolder.id!,
+      );
+
+      // Reload current folder
+      await loadFolder(currentFolder.id!);
+
+      state = state.copyWith(
+        successMessage: 'File added to folder successfully',
+      );
+    } catch (e) {
+      state = state.copyWith(error: 'Failed to add file to folder: $e');
+    }
+  }
+
   Future<void> deleteItem(FileItem item) async {
     try {
+      final dbHelper = DatabaseHelper();
+
       if (item.isDirectory && item.folderId != null) {
         final folderRepo = ref.read(folderRepositoryProvider);
+
+        // Remove all files from folder first
+        await dbHelper.removeFilesFromFolder(item.folderId!);
+
+        // Delete the folder
         await folderRepo.deleteFolder(item.folderId!);
       } else {
-        // Delete physical file if it exists
-        final file = File(item.path);
-        if (await file.exists()) {
-          await file.delete();
-        }
+        // Remove file link from folder
+        await dbHelper.removeFileFromFolder(item.path);
+
+        // Optionally delete physical file (be careful with this)
+        // final file = File(item.path);
+        // if (await file.exists()) {
+        //   await file.delete();
+        // }
       }
 
       // Reload current folder
@@ -174,13 +273,29 @@ class FileManagerNotifier extends _$FileManagerNotifier {
         final folderRepo = ref.read(folderRepositoryProvider);
         await folderRepo.renameFolder(item.folderId!, newName.trim());
       } else {
-        // Rename physical file
-        final oldFile = File(item.path);
-        if (await oldFile.exists()) {
-          final directory = path.dirname(item.path);
-          final extension = path.extension(item.path);
-          final newPath = path.join(directory, '$newName$extension');
-          await oldFile.rename(newPath);
+        // For files, we need to update the file link
+        final dbHelper = DatabaseHelper();
+        final fileLink = await dbHelper.getFileLocation(item.path);
+
+        if (fileLink != null) {
+          // Remove old link and add new one with updated name
+          await dbHelper.removeFileFromFolder(item.path);
+
+          // If renaming involves changing the actual file, handle that here
+          final oldFile = File(item.path);
+          if (await oldFile.exists()) {
+            final directory = path.dirname(item.path);
+            final extension = path.extension(item.path);
+            final newPath = path.join(directory, '$newName$extension');
+            final newFile = await oldFile.rename(newPath);
+
+            // Add new link with new path and name
+            await dbHelper.addFileToFolder(
+              filePath: newFile.path,
+              fileName: path.basename(newFile.path),
+              folderId: fileLink.folderId,
+            );
+          }
         }
       }
 
@@ -216,6 +331,10 @@ class FileManagerNotifier extends _$FileManagerNotifier {
     state = state.copyWith(error: null);
   }
 
+  void clearSuccessMessage() {
+    state = state.copyWith(successMessage: null);
+  }
+
   String getCurrentPath() {
     return state.folderPath.map((f) => f.name).join(' / ');
   }
@@ -232,6 +351,7 @@ class FileManagerState {
   final List<FileItem> selectedItems;
   final bool isLoading;
   final String? error;
+  final String? successMessage;
   final bool isSelectionMode;
 
   const FileManagerState({
@@ -241,6 +361,7 @@ class FileManagerState {
     this.selectedItems = const [],
     this.isLoading = false,
     this.error,
+    this.successMessage,
     this.isSelectionMode = false,
   });
 
@@ -251,6 +372,7 @@ class FileManagerState {
     List<FileItem>? selectedItems,
     bool? isLoading,
     String? error,
+    String? successMessage,
     bool? isSelectionMode,
   }) {
     return FileManagerState(
@@ -260,6 +382,7 @@ class FileManagerState {
       selectedItems: selectedItems ?? this.selectedItems,
       isLoading: isLoading ?? this.isLoading,
       error: error,
+      successMessage: successMessage,
       isSelectionMode: isSelectionMode ?? this.isSelectionMode,
     );
   }

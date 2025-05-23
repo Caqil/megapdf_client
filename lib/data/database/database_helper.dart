@@ -6,6 +6,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/folder_model.dart';
 import '../models/recent_file_model.dart';
+import '../models/file_folder_link.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
@@ -27,7 +28,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2, // Increment version for schema change
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -47,7 +48,7 @@ class DatabaseHelper {
       )
     ''');
 
-    // Create index for faster queries
+    // Create indexes for folders
     await db
         .execute('CREATE INDEX idx_folders_parent_id ON folders(parent_id)');
     await db.execute('CREATE INDEX idx_folders_path ON folders(path)');
@@ -69,11 +70,31 @@ class DatabaseHelper {
       )
     ''');
 
-    // Create index for recent files
+    // Create indexes for recent files
     await db.execute(
         'CREATE INDEX idx_recent_files_processed_at ON recent_files(processed_at DESC)');
     await db.execute(
         'CREATE INDEX idx_recent_files_operation_type ON recent_files(operation_type)');
+
+    // Create file_folder_links table
+    await db.execute('''
+      CREATE TABLE file_folder_links (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        file_path TEXT NOT NULL,
+        file_name TEXT NOT NULL,
+        folder_id INTEGER NOT NULL,
+        added_at INTEGER NOT NULL,
+        metadata TEXT,
+        FOREIGN KEY (folder_id) REFERENCES folders (id) ON DELETE CASCADE,
+        UNIQUE(file_path, folder_id)
+      )
+    ''');
+
+    // Create indexes for file_folder_links
+    await db.execute(
+        'CREATE INDEX idx_file_folder_links_folder_id ON file_folder_links(folder_id)');
+    await db.execute(
+        'CREATE INDEX idx_file_folder_links_file_path ON file_folder_links(file_path)');
 
     // Insert default root folder
     final now = DateTime.now().millisecondsSinceEpoch;
@@ -87,9 +108,25 @@ class DatabaseHelper {
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    // Handle database upgrades here
-    if (oldVersion < newVersion) {
-      // Add upgrade logic here when needed
+    if (oldVersion < 2) {
+      // Add file_folder_links table
+      await db.execute('''
+        CREATE TABLE file_folder_links (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          file_path TEXT NOT NULL,
+          file_name TEXT NOT NULL,
+          folder_id INTEGER NOT NULL,
+          added_at INTEGER NOT NULL,
+          metadata TEXT,
+          FOREIGN KEY (folder_id) REFERENCES folders (id) ON DELETE CASCADE,
+          UNIQUE(file_path, folder_id)
+        )
+      ''');
+
+      await db.execute(
+          'CREATE INDEX idx_file_folder_links_folder_id ON file_folder_links(folder_id)');
+      await db.execute(
+          'CREATE INDEX idx_file_folder_links_file_path ON file_folder_links(file_path)');
     }
   }
 
@@ -190,6 +227,112 @@ class DatabaseHelper {
   Future<bool> folderExists(String path) async {
     final folder = await getFolderByPath(path);
     return folder != null;
+  }
+
+  // File-Folder Link operations
+  Future<int> addFileToFolder({
+    required String filePath,
+    required String fileName,
+    required int folderId,
+    Map<String, dynamic>? metadata,
+  }) async {
+    final db = await database;
+    final link = FileFolderLink(
+      filePath: filePath,
+      fileName: fileName,
+      folderId: folderId,
+      addedAt: DateTime.now(),
+      metadata: metadata,
+    );
+
+    final map = link.toMap();
+    if (map['metadata'] != null) {
+      map['metadata'] = jsonEncode(map['metadata']);
+    }
+
+    return await db.insert(
+      'file_folder_links',
+      map,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<List<FileFolderLink>> getFilesInFolder(int folderId) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'file_folder_links',
+      where: 'folder_id = ?',
+      whereArgs: [folderId],
+      orderBy: 'file_name ASC',
+    );
+
+    return maps.map((map) {
+      if (map['metadata'] != null && map['metadata'].isNotEmpty) {
+        try {
+          map['metadata'] = jsonDecode(map['metadata']);
+        } catch (e) {
+          map['metadata'] = null;
+        }
+      }
+      return FileFolderLink.fromMap(map);
+    }).toList();
+  }
+
+  Future<FileFolderLink?> getFileLocation(String filePath) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'file_folder_links',
+      where: 'file_path = ?',
+      whereArgs: [filePath],
+      limit: 1,
+    );
+
+    if (maps.isNotEmpty) {
+      final map = maps.first;
+      if (map['metadata'] != null && map['metadata'].isNotEmpty) {
+        try {
+          map['metadata'] = jsonDecode(map['metadata']);
+        } catch (e) {
+          map['metadata'] = null;
+        }
+      }
+      return FileFolderLink.fromMap(map);
+    }
+    return null;
+  }
+
+  Future<int> moveFileToFolder({
+    required String filePath,
+    required int newFolderId,
+  }) async {
+    final db = await database;
+    return await db.update(
+      'file_folder_links',
+      {
+        'folder_id': newFolderId,
+        'added_at': DateTime.now().millisecondsSinceEpoch,
+      },
+      where: 'file_path = ?',
+      whereArgs: [filePath],
+    );
+  }
+
+  Future<int> removeFileFromFolder(String filePath) async {
+    final db = await database;
+    return await db.delete(
+      'file_folder_links',
+      where: 'file_path = ?',
+      whereArgs: [filePath],
+    );
+  }
+
+  Future<int> removeFilesFromFolder(int folderId) async {
+    final db = await database;
+    return await db.delete(
+      'file_folder_links',
+      where: 'folder_id = ?',
+      whereArgs: [folderId],
+    );
   }
 
   // Recent files operations
