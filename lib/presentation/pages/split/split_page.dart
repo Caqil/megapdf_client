@@ -1,3 +1,4 @@
+// lib/presentation/pages/split/split_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -45,6 +46,29 @@ class SplitPage extends ConsumerWidget {
               if (state.isAsyncJob && state.jobStatus != null) ...[
                 const SizedBox(height: 24),
                 _buildJobStatusSection(context, state),
+              ],
+
+              // Results Section
+              if (state.hasResult && state.result!.splitParts != null) ...[
+                const SizedBox(height: 24),
+                SplitResults(
+                  result: state.result!,
+                  savedPaths: state.savedPaths,
+                  onOpenPart: (path) {
+                    context.go('/pdfViewer', extra: {
+                      'filePath': path,
+                      'title': path.split('/').last,
+                    });
+                  },
+                  onDownloadAll: () {
+                    // Open the directory containing the split files
+                    if (state.savedPaths.isNotEmpty) {
+                      final directory = state.savedPaths.first.substring(
+                          0, state.savedPaths.first.lastIndexOf('/'));
+                      context.go('/storage', extra: {'path': directory});
+                    }
+                  },
+                ),
               ],
 
               if (state.hasError) ...[

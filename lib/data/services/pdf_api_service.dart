@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:megapdf_client/data/models/pdf_file.dart';
 import 'package:retrofit/retrofit.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -148,7 +147,10 @@ abstract class PdfApiService {
 
   // Download processed file
   @GET(ApiConstants.serveFile)
-  Future<FileDownloadResult> downloadFile(
+  @GET(ApiConstants.serveFile)
+  @DioResponseType(
+      ResponseType.bytes) // Important: specify response type as bytes
+  Future<HttpResponse<List<int>>> downloadFile(
     @Query('folder') String folder,
     @Query('filename') String filename,
   );

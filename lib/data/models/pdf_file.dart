@@ -61,8 +61,3 @@ class PdfFile extends Equatable {
   @override
   List<Object?> get props => [file.path, name, sizeInBytes, lastModified];
 }
-
-class FileDownloadResult {
-  final String url; // Adjust based on actual response
-  FileDownloadResult.fromJson(Map<String, dynamic> json) : url = json['url'];
-}

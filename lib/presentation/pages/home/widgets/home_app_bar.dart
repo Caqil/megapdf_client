@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:megapdf_client/core/theme/app_colors.dart';
+
 class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   final int currentTabIndex;
   final bool isGridView;
@@ -57,54 +58,54 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
           ),
         ],
       ),
-      actions: [
-        IconButton(
-          onPressed: () => _showSearchDialog(context),
-          icon: const Icon(Icons.search),
-          color: AppColors.textSecondary(context),
-          tooltip: 'Search Files',
-        ),
-        if (currentTabIndex == 1) // Files tab
-          IconButton(
-            onPressed: onToggleView,
-            icon: Icon(isGridView ? Icons.list : Icons.grid_view),
-            color: AppColors.textSecondary(context),
-            tooltip: isGridView ? 'List View' : 'Grid View',
-          ),
-        IconButton(
-          onPressed: onProfileTap,
-          icon: const Icon(Icons.account_circle),
-          color: AppColors.textSecondary(context),
-          tooltip: 'Profile',
-        ),
-      ],
+      // actions: [
+      //   IconButton(
+      //     onPressed: () => _showSearchDialog(context),
+      //     icon: const Icon(Icons.search),
+      //     color: AppColors.textSecondary(context),
+      //     tooltip: 'Search Files',
+      //   ),
+      //   if (currentTabIndex == 1) // Files tab
+      //     IconButton(
+      //       onPressed: onToggleView,
+      //       icon: Icon(isGridView ? Icons.list : Icons.grid_view),
+      //       color: AppColors.textSecondary(context),
+      //       tooltip: isGridView ? 'List View' : 'Grid View',
+      //     ),
+      //   IconButton(
+      //     onPressed: onProfileTap,
+      //     icon: const Icon(Icons.account_circle),
+      //     color: AppColors.textSecondary(context),
+      //     tooltip: 'Profile',
+      //   ),
+      // ],
     );
   }
 
-  void _showSearchDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Search Files'),
-        content: TextField(
-          decoration: const InputDecoration(
-            hintText: 'Enter file name...',
-            prefixIcon: Icon(Icons.search),
-          ),
-          onChanged: (value) {
-            onSearch(value);
-            Navigator.pop(context);
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-        ],
-      ),
-    );
-  }
+  // void _showSearchDialog(BuildContext context) {
+  //   showDialog(
+  //     context: context,
+  //     builder: (context) => AlertDialog(
+  //       title: const Text('Search Files'),
+  //       content: TextField(
+  //         decoration: const InputDecoration(
+  //           hintText: 'Enter file name...',
+  //           prefixIcon: Icon(Icons.search),
+  //         ),
+  //         onChanged: (value) {
+  //           onSearch(value);
+  //           Navigator.pop(context);
+  //         },
+  //       ),
+  //       actions: [
+  //         TextButton(
+  //           onPressed: () => Navigator.pop(context),
+  //           child: const Text('Cancel'),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);

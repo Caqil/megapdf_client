@@ -1,257 +1,233 @@
+// lib/presentation/providers/split_provider.dart
 import 'dart:io';
-import 'dart:async';
-import 'package:megapdf_client/data/repositories/pdf_repository_impl.dart';
-import 'package:megapdf_client/data/services/recent_files_service.dart';
-import 'package:megapdf_client/presentation/providers/file_operation_notifier.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-
-import '../../data/models/split_result.dart';
 import '../../data/models/split_options.dart';
+import '../../data/models/split_result.dart';
 import '../../data/models/job_status.dart';
-import '../../core/errors/api_exception.dart';
+import '../../data/repositories/pdf_repository.dart';
+import '../../data/repositories/pdf_repository_impl.dart';
+import '../../data/services/recent_files_service.dart';
 
 part 'split_provider.g.dart';
 
 @riverpod
 class SplitNotifier extends _$SplitNotifier {
-  Timer? _jobStatusTimer;
-
   @override
   SplitState build() {
     return const SplitState();
   }
 
-  Future<void> splitPdf(File file, SplitOptions options) async {
+  void selectFile(File file) {
     state = state.copyWith(
-      isLoading: true,
+      selectedFile: file,
       error: null,
       result: null,
-      jobStatus: null,
+      savedPaths: [],
     );
+
+    // Default to range split method if not already set
+    if (state.splitOptions == null) {
+      updateSplitOptions(SplitOptions.byRange(''));
+    }
+  }
+
+  void updateSplitOptions(SplitOptions options) {
+    state = state.copyWith(splitOptions: options);
+  }
+
+  Future<void> splitPdf(File file, SplitOptions options) async {
+    state = state.copyWith(isLoading: true, error: null, jobStatus: null);
 
     try {
       final repository = ref.read(pdfRepositoryProvider);
       final result = await repository.splitPdf(file, options);
 
-      if (result.isAsyncJob) {
+      print('Split result received: ${result.toString()}');
+
+      // Check if this is an async job that needs to be polled
+      if (result.isLargeJob == true && result.jobId != null) {
+        state = state.copyWith(
+          isLoading: false,
+          isAsyncJob: true,
+          jobId: result.jobId,
+        );
         // Start polling for job status
-        state = state.copyWith(
-          isLoading: false,
-          result: result,
-          selectedFile: file,
-          splitOptions: options,
-        );
-        _startJobStatusPolling(result.jobId!);
+        _pollJobStatus(result.jobId!);
       } else {
-        // Immediate result
+        // Handle immediate result - this is the important part for single-page PDFs
+        if (result.success &&
+            result.splitParts != null &&
+            result.splitParts!.isNotEmpty) {
+          print('Successful split with ${result.splitParts!.length} parts');
+
+          // Save the split parts
+          await _saveSplitParts(file, result);
+
+          // Track the operation
+          final recentFilesService = ref.read(recentFilesServiceProvider);
+          await recentFilesService.trackSplit(
+            originalFile: file,
+            splitCount: result.splitParts!.length,
+            splitFileNames: result.splitParts!
+                .map((part) => part.filename ?? 'unknown.pdf')
+                .toList(),
+          );
+
+          // Update state with result
+          state = state.copyWith(
+            isLoading: false,
+            result: result,
+          );
+        } else {
+          // Handle error case
+          state = state.copyWith(
+            isLoading: false,
+            error: result.message ?? 'Failed to split PDF',
+          );
+        }
+      }
+    } catch (e) {
+      print('Error splitting PDF: $e');
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+      );
+    }
+  }
+
+  Future<void> _saveSplitParts(File originalFile, SplitResult result) async {
+    if (result.splitParts == null || result.splitParts!.isEmpty) return;
+
+    final repository = ref.read(pdfRepositoryProvider);
+    final savedPaths = <String>[];
+
+    for (final part in result.splitParts!) {
+      if (part.fileUrl != null) {
+        try {
+          final savedPath = await repository.saveProcessedFile(
+            fileUrl: part.fileUrl!,
+            filename: part.filename ?? 'split_part.pdf',
+            customFileName: 'Split_${part.filename ?? 'part'}',
+            subfolder: 'Split',
+          );
+
+          if (savedPath.isNotEmpty) {
+            savedPaths.add(savedPath);
+          }
+        } catch (e) {
+          print('Error saving split part: $e');
+        }
+      }
+    }
+
+    // Update saved paths in state if any were saved
+    if (savedPaths.isNotEmpty) {
+      state = state.copyWith(
+        savedPaths: savedPaths,
+      );
+    }
+  }
+
+  Future<void> _pollJobStatus(String jobId) async {
+    bool isComplete = false;
+    int attempts = 0;
+    const maxAttempts = 60; // 5 minutes with 5-second interval
+
+    while (!isComplete && attempts < maxAttempts) {
+      await Future.delayed(const Duration(seconds: 5));
+
+      try {
+        final repository = ref.read(pdfRepositoryProvider);
+        final status = await repository.getSplitJobStatus(jobId);
+
         state = state.copyWith(
-          isLoading: false,
-          result: result,
-          selectedFile: file,
-          splitOptions: options,
-        );
-      }
-    } on ApiException catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.userFriendlyMessage,
-      );
-    } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: 'An unexpected error occurred: ${e.toString()}',
-      );
-    }
-  }
-
-  void _startJobStatusPolling(String jobId) {
-    _jobStatusTimer?.cancel();
-    _jobStatusTimer = Timer.periodic(
-      const Duration(seconds: 2),
-      (_) => _checkJobStatus(jobId),
-    );
-  }
-
-  Future<void> _checkJobStatus(String jobId) async {
-    try {
-      final repository = ref.read(pdfRepositoryProvider);
-      final jobStatus = await repository.getSplitJobStatus(jobId);
-
-      state = state.copyWith(jobStatus: jobStatus);
-
-      if (jobStatus.isCompleted || jobStatus.isError) {
-        _jobStatusTimer?.cancel();
-        _jobStatusTimer = null;
-      }
-    } catch (e) {
-      // Continue polling on error, but update error state
-      state = state.copyWith(
-        error: 'Failed to check job status: ${e.toString()}',
-      );
-    }
-  }
-
-  Future<void> saveSplitPart(SplitPart part) async {
-    state = state.copyWith(isSaving: true);
-
-    try {
-      final repository = ref.read(pdfRepositoryProvider);
-
-      final localPath = await repository.saveProcessedFile(
-        fileUrl: part.fileUrl,
-        filename: part.filename,
-        customFileName: part.filename,
-        subfolder: 'split',
-      );
-
-      // Add to saved parts
-      final savedParts = Map<String, String>.from(state.savedParts);
-      savedParts[part.filename] = localPath;
-
-      state = state.copyWith(
-        isSaving: false,
-        savedParts: savedParts,
-      );
-    } on ApiException catch (e) {
-      state = state.copyWith(
-        isSaving: false,
-        error: e.userFriendlyMessage,
-      );
-    } catch (e) {
-      state = state.copyWith(
-        isSaving: false,
-        error: 'Failed to save file: ${e.toString()}',
-      );
-    }
-  }
-
-  Future<void> saveAllParts() async {
-    final splitParts = state.finalSplitParts;
-    if (splitParts.isEmpty) return;
-
-    state = state.copyWith(isSaving: true);
-
-    try {
-      for (final part in splitParts) {
-        await saveSplitPart(part);
-      }
-
-      // Track in recent files
-      if (state.selectedFile != null) {
-        final recentFilesService = ref.read(recentFilesServiceProvider);
-        await recentFilesService.trackSplit(
-          originalFile: state.selectedFile!,
-          splitCount: splitParts.length,
-          splitFileNames: splitParts.map((p) => p.filename).toList(),
+          jobStatus: status,
         );
 
-        ref
-            .read(fileOperationNotifierProvider.notifier)
-            .notifyFileOperationCompleted();
+        // if (status.isCompleted || status.isError) {
+        //   isComplete = true;
+
+        //   if (status.isCompleted) {
+        //     // Process completed job result
+        //     final result = status.splitResult!;
+
+        //     if (state.selectedFile != null) {
+        //       await _saveSplitParts(state.selectedFile!, result);
+        //     }
+
+        //     state = state.copyWith(
+        //       result: result,
+        //     );
+        //   }
+        // }
+      } catch (e) {
+        print('Error polling job status: $e');
+        attempts++;
       }
-    } finally {
-      state = state.copyWith(isSaving: false);
     }
-  }
 
-  void updateSplitOptions(SplitOptions options) {
-    state = state.copyWith(
-      splitOptions: options,
-      result: null,
-      jobStatus: null,
-      error: null,
-    );
-  }
-
-  void selectFile(File file) {
-    state = state.copyWith(
-      selectedFile: file,
-      result: null,
-      jobStatus: null,
-      error: null,
-      savedParts: {},
-    );
+    if (!isComplete) {
+      state = state.copyWith(
+        error: 'Operation timed out. Please try again.',
+      );
+    }
   }
 
   void reset() {
-    _jobStatusTimer?.cancel();
-    _jobStatusTimer = null;
     state = const SplitState();
-  }
-
-  void clearError() {
-    state = state.copyWith(error: null);
-  }
-
-  void dispose() {
-    _jobStatusTimer?.cancel();
   }
 }
 
 class SplitState {
   final File? selectedFile;
   final SplitOptions? splitOptions;
-  final bool isLoading;
-  final bool isSaving;
   final SplitResult? result;
-  final JobStatus? jobStatus;
   final String? error;
-  final Map<String, String> savedParts;
+  final bool isLoading;
+  final bool isAsyncJob;
+  final String? jobId;
+  final JobStatus? jobStatus;
+  final List<String> savedPaths;
 
   const SplitState({
     this.selectedFile,
     this.splitOptions,
-    this.isLoading = false,
-    this.isSaving = false,
     this.result,
-    this.jobStatus,
     this.error,
-    this.savedParts = const {},
+    this.isLoading = false,
+    this.isAsyncJob = false,
+    this.jobId,
+    this.jobStatus,
+    this.savedPaths = const [],
   });
 
   SplitState copyWith({
     File? selectedFile,
     SplitOptions? splitOptions,
-    bool? isLoading,
-    bool? isSaving,
     SplitResult? result,
-    JobStatus? jobStatus,
     String? error,
-    Map<String, String>? savedParts,
+    bool? isLoading,
+    bool? isAsyncJob,
+    String? jobId,
+    JobStatus? jobStatus,
+    List<String>? savedPaths,
   }) {
     return SplitState(
       selectedFile: selectedFile ?? this.selectedFile,
       splitOptions: splitOptions ?? this.splitOptions,
-      isLoading: isLoading ?? this.isLoading,
-      isSaving: isSaving ?? this.isSaving,
       result: result ?? this.result,
-      jobStatus: jobStatus,
       error: error,
-      savedParts: savedParts ?? this.savedParts,
+      isLoading: isLoading ?? this.isLoading,
+      isAsyncJob: isAsyncJob ?? this.isAsyncJob,
+      jobId: jobId ?? this.jobId,
+      jobStatus: jobStatus ?? this.jobStatus,
+      savedPaths: savedPaths ?? this.savedPaths,
     );
   }
 
   bool get hasFile => selectedFile != null;
-  bool get hasOptions => splitOptions != null;
-  bool get hasResult => result != null;
+  bool get hasResult => result != null && result!.success;
   bool get hasError => error != null;
-  bool get isProcessing => isLoading || isSaving;
-  bool get canSplit => hasFile && hasOptions && !isProcessing;
-  bool get isAsyncJob => result?.isAsyncJob == true;
-  bool get isJobCompleted => jobStatus?.isCompleted == true;
-  bool get isJobError => jobStatus?.isError == true;
-
-  List<SplitPart> get finalSplitParts {
-    if (isAsyncJob && jobStatus != null) {
-      return jobStatus!.results;
-    }
-    return result?.splitParts ?? [];
-  }
-
-  double? get jobProgress {
-    if (jobStatus != null) {
-      return jobStatus!.progressPercentage;
-    }
-    return null;
-  }
+  bool get canSplit => hasFile && splitOptions != null && !isLoading;
 }

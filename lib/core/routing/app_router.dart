@@ -24,7 +24,6 @@ import '../../presentation/pages/storage/storage_browser_page.dart';
 import '../../presentation/pages/storage/storage_management_page.dart';
 import '../../presentation/pages/common/file_operation_success_page.dart';
 import '../../presentation/pages/pdf_viewer/pdf_viewer_page.dart';
-import '../../presentation/providers/permission_provider.dart';
 
 part 'app_router.g.dart';
 

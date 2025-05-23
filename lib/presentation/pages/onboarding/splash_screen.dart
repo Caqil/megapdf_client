@@ -229,19 +229,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                                     color: AppColors.textSecondary(context),
                                   ),
                         ),
-                        // Debug info (remove in production)
-                        if (permissionState.isLoading == false) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            'First launch: ${permissionState.isFirstLaunch}\nHas permission: ${permissionState.hasPermission}',
-                            style:
-                                Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: AppColors.textSecondary(context)
-                                          .withOpacity(0.7),
-                                    ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
                       ],
                     ),
                   );

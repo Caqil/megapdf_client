@@ -34,19 +34,11 @@ class QuickAccessTab extends ConsumerWidget {
                 color: AppColors.primary(context),
                 onTap: () => _showSnackBar(context, 'File picker coming soon!'),
               ),
-             
               QuickActionCard(
                 title: 'Scan to PDF',
                 icon: Icons.document_scanner,
                 color: AppColors.warning(context),
                 onTap: () => _showSnackBar(context, 'Scan to PDF coming soon!'),
-              ),
-              QuickActionCard(
-                title: 'Import Files',
-                icon: Icons.folder_open,
-                color: AppColors.info(context),
-                onTap: () =>
-                    _showSnackBar(context, 'Import files coming soon!'),
               ),
             ],
           ),
@@ -58,7 +50,6 @@ class QuickAccessTab extends ConsumerWidget {
       ),
     );
   }
-
 
   void _showSnackBar(BuildContext context, String message,
       {bool isError = false}) {
