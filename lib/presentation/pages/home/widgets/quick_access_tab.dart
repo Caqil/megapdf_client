@@ -1,6 +1,7 @@
 // lib/presentation/pages/home/widgets/quick_access_tab.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:megapdf_client/core/theme/app_colors.dart';
 import 'package:megapdf_client/presentation/pages/home/widgets/tips_section.dart';
 import '../../../widgets/common/custom_snackbar.dart';
@@ -29,7 +30,7 @@ class QuickAccessTab extends ConsumerWidget {
             childAspectRatio: 2.5,
             children: [
               QuickActionCard(
-                title: 'Select File',
+                title: 'Import File',
                 icon: Icons.upload_file,
                 color: AppColors.primary(context),
                 onTap: () => _showSnackBar(context, 'File picker coming soon!'),
@@ -38,7 +39,7 @@ class QuickAccessTab extends ConsumerWidget {
                 title: 'Scan to PDF',
                 icon: Icons.document_scanner,
                 color: AppColors.warning(context),
-                onTap: () => _showSnackBar(context, 'Scan to PDF coming soon!'),
+                onTap: () => context.push('/scanner'),
               ),
             ],
           ),

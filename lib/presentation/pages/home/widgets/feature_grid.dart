@@ -77,6 +77,14 @@ class FeatureGrid extends StatelessWidget {
         color: primaryColor,
         route: '/page-numbers',
       ),
+      Feature(
+        title: 'Document Scanner',
+        description: 'Scan and save',
+        icon: Icons.document_scanner,
+        color: mutedColor,
+        route: '/scanner',
+        badge: 'New',
+      ),
     ];
   }
 

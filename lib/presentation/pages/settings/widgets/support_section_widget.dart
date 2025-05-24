@@ -1,6 +1,7 @@
 // lib/presentation/pages/settings/widgets/support_section_widget.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:megapdf_client/core/theme/app_colors.dart';
 import 'package:megapdf_client/presentation/widgets/common/custom_snackbar.dart';
 import 'package:megapdf_client/presentation/pages/settings/widgets/section_card_widget.dart';
@@ -43,11 +44,7 @@ class SupportSectionWidget extends ConsumerWidget {
             color: AppColors.textSecondary(context),
           ),
           onTap: () {
-            CustomSnackbar.show(
-              context: context,
-              message: 'Help Center coming soon!',
-              type: SnackbarType.info,
-            );
+            context.push('/faq');
           },
         ),
         const Divider(height: 1, indent: 20, endIndent: 20),
@@ -79,11 +76,7 @@ class SupportSectionWidget extends ConsumerWidget {
             color: AppColors.textSecondary(context),
           ),
           onTap: () {
-            CustomSnackbar.show(
-              context: context,
-              message: 'Contact form coming soon!',
-              type: SnackbarType.info,
-            );
+            context.push('/contact');
           },
         ),
         const Divider(height: 1, indent: 20, endIndent: 20),

@@ -51,6 +51,8 @@ dependencies:
   flutter_file_downloader: ^2.1.0
   app_settings: ^6.1.1
   shared_preferences: ^2.5.3
+  flutter_doc_scanner: ^0.0.16
+  mailer: ^6.4.1
 
 dev_dependencies:
   flutter_test:

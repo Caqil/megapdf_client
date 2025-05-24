@@ -4,10 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../presentation/pages/contact/contact_page.dart';
+import '../../presentation/pages/faq/faq_page.dart';
 import '../../presentation/pages/main/main_navigation_page.dart';
 import '../../presentation/pages/onboarding/permission_initialization_page.dart';
 import '../../presentation/pages/onboarding/splash_screen.dart';
 import '../../presentation/pages/home/home_page.dart';
+import '../../presentation/pages/scanner/scanner_page.dart';
 import '../../presentation/pages/tools/tools_page.dart';
 import '../../presentation/pages/recent/recent_page.dart';
 import '../../presentation/pages/settings/settings_page.dart';
@@ -73,7 +76,11 @@ GoRouter router(Ref ref) {
         name: 'profile',
         builder: (context, state) => const SettingsPage(),
       ),
-
+      GoRoute(
+        path: '/scanner',
+        name: 'scanner',
+        builder: (context, state) => const ScannerPage(),
+      ),
       // PDF Operations
       GoRoute(
         path: '/compress',
@@ -129,8 +136,16 @@ GoRouter router(Ref ref) {
           return StorageBrowserPage();
         },
       ),
-     
-
+      GoRoute(
+        path: '/faq',
+        name: 'faq',
+        builder: (context, state) => const FaqPage(),
+      ),
+      GoRoute(
+        path: '/contact',
+        name: 'contact',
+        builder: (context, state) => const ContactPage(),
+      ),
       // Success page
       GoRoute(
         path: '/success',

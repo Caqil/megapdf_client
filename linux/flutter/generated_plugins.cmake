@@ -3,6 +3,7 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  flutter_doc_scanner
   open_file_linux
   printing
   url_launcher_linux

@@ -1,7 +1,9 @@
-// lib/data/services/recent_files_service.dart - Debug Version
+// lib/data/services/recent_files_service.dart
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as path;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+
 import '../repositories/recent_files_repository.dart';
 import '../../core/utils/file_utils.dart';
 
@@ -9,286 +11,301 @@ part 'recent_files_service.g.dart';
 
 @riverpod
 RecentFilesService recentFilesService(Ref ref) {
-  return RecentFilesService(ref.read(recentFilesRepositoryProvider), ref);
+  final repository = ref.watch(recentFilesRepositoryProvider);
+  return RecentFilesService(repository);
 }
 
 class RecentFilesService {
   final RecentFilesRepository _repository;
-  final Ref _ref;
 
-  RecentFilesService(this._repository, this._ref);
+  RecentFilesService(this._repository);
 
-  Future<void> trackFileOperation({
-    required File originalFile,
-    required String operation,
-    required String operationType,
-    String? resultFileName,
-    String? resultFilePath,
-    String? resultSize,
-    Map<String, dynamic>? metadata,
+  Future<void> trackScan({
+    required String resultFilePath,
+    required String resultFileName,
+    required int originalSize,
+    bool isImage = false,
   }) async {
-    try {
-      final originalFileName = originalFile.path.split('/').last;
-      final originalSize = FileUtils.formatFileSize(originalFile.lengthSync());
+    final originalFileName = isImage ? 'Scanned Image' : 'Scanned Document';
+    final operation = isImage ? 'Scan to Image' : 'Scan to PDF';
+    final resultSize =
+        FileUtils.formatFileSize(File(resultFilePath).lengthSync());
 
-      print('🔧 RecentFilesService: Tracking operation');
-      print('🔧   Operation: $operation ($operationType)');
-      print('🔧   Original file: $originalFileName');
-      print('🔧   Result file: $resultFileName');
-      print('🔧   Original size: $originalSize');
-      print('🔧   Result size: $resultSize');
-      print('🔧   Metadata: $metadata');
-
-      final id = await _repository.addRecentFile(
-        originalFileName: originalFileName,
-        resultFileName: resultFileName ?? originalFileName,
-        operation: operation,
-        operationType: operationType,
-        originalFilePath: originalFile.path,
-        resultFilePath: resultFilePath,
-        originalSize: originalSize,
-        resultSize: resultSize,
-        metadata: metadata,
-      );
-
-      print('🔧 RecentFilesService: Operation tracked with ID: $id');
-
-      // Notify that a new file operation has been completed
-      print(
-          '🔧 RecentFilesService: File operation tracked successfully: $operation - $originalFileName');
-    } catch (e) {
-      // Log error but don't throw to avoid disrupting main operations
-      print('🔧 RecentFilesService: Failed to track file operation: $e');
-    }
+    await _repository.addRecentFile(
+      originalFileName: originalFileName,
+      resultFileName: resultFileName,
+      operation: operation,
+      operationType: 'scan',
+      originalFilePath: 'N/A', // No original file for scans
+      resultFilePath: resultFilePath,
+      originalSize: FileUtils.formatFileSize(originalSize),
+      resultSize: resultSize,
+      metadata: {
+        'scan_type': isImage ? 'image' : 'pdf',
+        'scan_date': DateTime.now().toIso8601String(),
+      },
+    );
   }
 
+  // Existing methods for other operations...
   Future<void> trackCompress({
     required File originalFile,
     required String resultFileName,
-    String? resultFilePath,
+    required String resultFilePath,
     String? compressionRatio,
     int? originalSizeBytes,
     int? compressedSizeBytes,
   }) async {
-    print('🔧 RecentFilesService: trackCompress called');
+    final originalFileName = path.basename(originalFile.path);
+    final originalSize = FileUtils.formatFileSize(originalFile.lengthSync());
+    final resultSize = compressedSizeBytes != null
+        ? FileUtils.formatFileSize(compressedSizeBytes)
+        : 'Unknown';
 
-    final metadata = <String, dynamic>{
-      'compression_ratio': compressionRatio,
-      'original_size_bytes': originalSizeBytes,
-      'compressed_size_bytes': compressedSizeBytes,
-    };
-
-    String? resultSize;
-    if (compressedSizeBytes != null) {
-      resultSize = FileUtils.formatFileSize(compressedSizeBytes);
-    }
-
-    await trackFileOperation(
-      originalFile: originalFile,
-      operation: 'Compressed',
+    await _repository.addRecentFile(
+      originalFileName: originalFileName,
+      resultFileName: resultFileName,
+      operation: 'Compress PDF',
       operationType: 'compress',
-      resultFileName: resultFileName,
+      originalFilePath: originalFile.path,
       resultFilePath: resultFilePath,
+      originalSize: originalSize,
       resultSize: resultSize,
-      metadata: metadata,
-    );
-  }
-
-  Future<void> trackMerge({
-    required List<File> originalFiles,
-    required String resultFileName,
-    String? resultFilePath,
-    int? mergedSizeBytes,
-    int? totalInputSizeBytes,
-  }) async {
-    print('🔧 RecentFilesService: trackMerge called');
-
-    final metadata = <String, dynamic>{
-      'file_count': originalFiles.length,
-      'file_names': originalFiles.map((f) => f.path.split('/').last).toList(),
-      'merged_size_bytes': mergedSizeBytes,
-      'total_input_size_bytes': totalInputSizeBytes,
-    };
-
-    String? resultSize;
-    if (mergedSizeBytes != null) {
-      resultSize = FileUtils.formatFileSize(mergedSizeBytes);
-    }
-
-    // Use first file as primary, but track all files in metadata
-    await trackFileOperation(
-      originalFile: originalFiles.first,
-      operation: 'Merged',
-      operationType: 'merge',
-      resultFileName: resultFileName,
-      resultFilePath: resultFilePath,
-      resultSize: resultSize,
-      metadata: metadata,
+      metadata: {
+        'compression_ratio': compressionRatio,
+        'original_size_bytes': originalSizeBytes,
+        'compressed_size_bytes': compressedSizeBytes,
+      },
     );
   }
 
   Future<void> trackSplit({
     required File originalFile,
     required int splitCount,
-    List<String>? splitFileNames,
+    required List<String> splitFileNames,
   }) async {
-    print('🔧 RecentFilesService: trackSplit called');
+    final originalFileName = path.basename(originalFile.path);
+    final originalSize = FileUtils.formatFileSize(originalFile.lengthSync());
 
-    final metadata = <String, dynamic>{
-      'split_count': splitCount,
-      'split_file_names': splitFileNames,
-    };
-
-    await trackFileOperation(
-      originalFile: originalFile,
-      operation: 'Split',
+    await _repository.addRecentFile(
+      originalFileName: originalFileName,
+      resultFileName: 'Multiple Files',
+      operation: 'Split PDF',
       operationType: 'split',
-      resultFileName: '$splitCount parts',
-      metadata: metadata,
+      originalFilePath: originalFile.path,
+      resultFilePath: null, // Multiple files
+      originalSize: originalSize,
+      resultSize: null,
+      metadata: {
+        'split_count': splitCount,
+        'split_file_names': splitFileNames,
+      },
     );
   }
 
-  Future<void> trackConvert({
-    required File originalFile,
+  Future<void> trackMerge({
+    required List<File> originalFiles,
     required String resultFileName,
-    String? resultFilePath,
-    required String inputFormat,
-    required String outputFormat,
-    bool? ocrEnabled,
-    int? quality,
+    required String resultFilePath,
+    int? mergedSize,
+    int? totalInputSize,
   }) async {
-    print('🔧 RecentFilesService: trackConvert called');
+    final originalFileNames =
+        originalFiles.map((f) => path.basename(f.path)).join(', ');
+    final originalSize = totalInputSize != null
+        ? FileUtils.formatFileSize(totalInputSize)
+        : 'Unknown';
+    final resultSize =
+        mergedSize != null ? FileUtils.formatFileSize(mergedSize) : 'Unknown';
 
-    final metadata = <String, dynamic>{
-      'input_format': inputFormat,
-      'output_format': outputFormat,
-      'ocr_enabled': ocrEnabled,
-      'quality': quality,
-    };
-
-    await trackFileOperation(
-      originalFile: originalFile,
-      operation: 'Converted',
-      operationType: 'convert',
+    await _repository.addRecentFile(
+      originalFileName: originalFileNames,
       resultFileName: resultFileName,
+      operation: 'Merge PDFs',
+      operationType: 'merge',
+      originalFilePath: originalFiles.first.path, // Use first file path
       resultFilePath: resultFilePath,
-      metadata: metadata,
-    );
-  }
-
-  Future<void> trackProtect({
-    required File originalFile,
-    required String resultFileName,
-    String? resultFilePath,
-    String? permissionLevel,
-  }) async {
-    print('🔧 RecentFilesService: trackProtect called');
-
-    final metadata = <String, dynamic>{
-      'permission_level': permissionLevel,
-    };
-
-    await trackFileOperation(
-      originalFile: originalFile,
-      operation: 'Protected',
-      operationType: 'protect',
-      resultFileName: resultFileName,
-      resultFilePath: resultFilePath,
-      metadata: metadata,
-    );
-  }
-
-  Future<void> trackUnlock({
-    required File originalFile,
-    required String resultFileName,
-    String? resultFilePath,
-  }) async {
-    print('🔧 RecentFilesService: trackUnlock called');
-
-    await trackFileOperation(
-      originalFile: originalFile,
-      operation: 'Unlocked',
-      operationType: 'unlock',
-      resultFileName: resultFileName,
-      resultFilePath: resultFilePath,
-    );
-  }
-
-  Future<void> trackRotate({
-    required File originalFile,
-    required String resultFileName,
-    String? resultFilePath,
-    required int angle,
-    String? pagesRotated,
-  }) async {
-    print('🔧 RecentFilesService: trackRotate called');
-
-    final metadata = <String, dynamic>{
-      'rotation_angle': angle,
-      'pages_rotated': pagesRotated,
-    };
-
-    await trackFileOperation(
-      originalFile: originalFile,
-      operation: 'Rotated',
-      operationType: 'rotate',
-      resultFileName: resultFileName,
-      resultFilePath: resultFilePath,
-      metadata: metadata,
+      originalSize: originalSize,
+      resultSize: resultSize,
+      metadata: {
+        'file_count': originalFiles.length,
+        'merged_size': mergedSize,
+        'total_input_size': totalInputSize,
+      },
     );
   }
 
   Future<void> trackWatermark({
     required File originalFile,
     required String resultFileName,
-    String? resultFilePath,
+    required String resultFilePath,
     required String watermarkType,
     String? watermarkText,
-    String? position,
+    required String position,
   }) async {
-    print('🔧 RecentFilesService: trackWatermark called');
+    final originalFileName = path.basename(originalFile.path);
+    final originalSize = FileUtils.formatFileSize(originalFile.lengthSync());
+    final resultFile = File(resultFilePath);
+    final resultSize = FileUtils.formatFileSize(resultFile.lengthSync());
+    final operation =
+        watermarkType == 'text' ? 'Add Text Watermark' : 'Add Image Watermark';
 
-    final metadata = <String, dynamic>{
-      'watermark_type': watermarkType,
-      'watermark_text': watermarkText,
-      'position': position,
-    };
-
-    await trackFileOperation(
-      originalFile: originalFile,
-      operation: 'Watermarked',
-      operationType: 'watermark',
+    await _repository.addRecentFile(
+      originalFileName: originalFileName,
       resultFileName: resultFileName,
+      operation: operation,
+      operationType: 'watermark',
+      originalFilePath: originalFile.path,
       resultFilePath: resultFilePath,
-      metadata: metadata,
+      originalSize: originalSize,
+      resultSize: resultSize,
+      metadata: {
+        'watermark_type': watermarkType,
+        'watermark_text': watermarkText,
+        'position': position,
+      },
+    );
+  }
+
+  Future<void> trackConvert({
+    required File originalFile,
+    required String resultFileName,
+    required String resultFilePath,
+    required String inputFormat,
+    required String outputFormat,
+    required bool ocrEnabled,
+    required int quality,
+  }) async {
+    final originalFileName = path.basename(originalFile.path);
+    final originalSize = FileUtils.formatFileSize(originalFile.lengthSync());
+    final resultFile = File(resultFilePath);
+    final resultSize = FileUtils.formatFileSize(resultFile.lengthSync());
+    final operation =
+        'Convert ${inputFormat.toUpperCase()} to ${outputFormat.toUpperCase()}';
+
+    await _repository.addRecentFile(
+      originalFileName: originalFileName,
+      resultFileName: resultFileName,
+      operation: operation,
+      operationType: 'convert',
+      originalFilePath: originalFile.path,
+      resultFilePath: resultFilePath,
+      originalSize: originalSize,
+      resultSize: resultSize,
+      metadata: {
+        'input_format': inputFormat,
+        'output_format': outputFormat,
+        'ocr_enabled': ocrEnabled,
+        'quality': quality,
+      },
+    );
+  }
+
+  Future<void> trackProtect({
+    required File originalFile,
+    required String resultFileName,
+    required String resultFilePath,
+    required String permissionLevel,
+  }) async {
+    final originalFileName = path.basename(originalFile.path);
+    final originalSize = FileUtils.formatFileSize(originalFile.lengthSync());
+    final resultFile = File(resultFilePath);
+    final resultSize = FileUtils.formatFileSize(resultFile.lengthSync());
+
+    await _repository.addRecentFile(
+      originalFileName: originalFileName,
+      resultFileName: resultFileName,
+      operation: 'Protect PDF',
+      operationType: 'protect',
+      originalFilePath: originalFile.path,
+      resultFilePath: resultFilePath,
+      originalSize: originalSize,
+      resultSize: resultSize,
+      metadata: {
+        'permission_level': permissionLevel,
+      },
+    );
+  }
+
+  Future<void> trackUnlock({
+    required File originalFile,
+    required String resultFileName,
+    required String resultFilePath,
+  }) async {
+    final originalFileName = path.basename(originalFile.path);
+    final originalSize = FileUtils.formatFileSize(originalFile.lengthSync());
+    final resultFile = File(resultFilePath);
+    final resultSize = FileUtils.formatFileSize(resultFile.lengthSync());
+
+    await _repository.addRecentFile(
+      originalFileName: originalFileName,
+      resultFileName: resultFileName,
+      operation: 'Unlock PDF',
+      operationType: 'unlock',
+      originalFilePath: originalFile.path,
+      resultFilePath: resultFilePath,
+      originalSize: originalSize,
+      resultSize: resultSize,
+    );
+  }
+
+  Future<void> trackRotate({
+    required File originalFile,
+    required String resultFileName,
+    required String resultFilePath,
+    required int angle,
+    String? pagesRotated,
+  }) async {
+    final originalFileName = path.basename(originalFile.path);
+    final originalSize = FileUtils.formatFileSize(originalFile.lengthSync());
+    final resultFile = File(resultFilePath);
+    final resultSize = FileUtils.formatFileSize(resultFile.lengthSync());
+
+    await _repository.addRecentFile(
+      originalFileName: originalFileName,
+      resultFileName: resultFileName,
+      operation: 'Rotate PDF',
+      operationType: 'rotate',
+      originalFilePath: originalFile.path,
+      resultFilePath: resultFilePath,
+      originalSize: originalSize,
+      resultSize: resultSize,
+      metadata: {
+        'angle': angle,
+        'pages_rotated': pagesRotated ?? 'all',
+      },
     );
   }
 
   Future<void> trackPageNumbers({
     required File originalFile,
     required String resultFileName,
-    String? resultFilePath,
-    String? position,
-    String? format,
+    required String resultFilePath,
+    required String position,
+    required String format,
     int? totalPages,
     int? numberedPages,
   }) async {
-    print('🔧 RecentFilesService: trackPageNumbers called');
+    final originalFileName = path.basename(originalFile.path);
+    final originalSize = FileUtils.formatFileSize(originalFile.lengthSync());
+    final resultFile = File(resultFilePath);
+    final resultSize = FileUtils.formatFileSize(resultFile.lengthSync());
 
-    final metadata = <String, dynamic>{
-      'position': position,
-      'format': format,
-      'total_pages': totalPages,
-      'numbered_pages': numberedPages,
-    };
-
-    await trackFileOperation(
-      originalFile: originalFile,
-      operation: 'Page Numbers Added',
-      operationType: 'page_numbers',
+    await _repository.addRecentFile(
+      originalFileName: originalFileName,
       resultFileName: resultFileName,
+      operation: 'Add Page Numbers',
+      operationType: 'pagenumbers',
+      originalFilePath: originalFile.path,
       resultFilePath: resultFilePath,
-      metadata: metadata,
+      originalSize: originalSize,
+      resultSize: resultSize,
+      metadata: {
+        'position': position,
+        'format': format,
+        'total_pages': totalPages,
+        'numbered_pages': numberedPages,
+      },
     );
   }
 }
