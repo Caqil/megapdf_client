@@ -24,7 +24,7 @@ class SplitPage extends ConsumerWidget {
       appBar: CustomAppBar(
         title: 'Split PDF',
         subtitle: 'Extract pages or split into multiple files',
-        onBack: () => context.go('/'),
+        onBack: () => context.pop('/'),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -55,7 +55,7 @@ class SplitPage extends ConsumerWidget {
                   result: state.result!,
                   savedPaths: state.savedPaths,
                   onOpenPart: (path) {
-                    context.go('/pdfViewer', extra: {
+                    context.push('/pdfViewer', extra: {
                       'filePath': path,
                       'title': path.split('/').last,
                     });
@@ -65,7 +65,7 @@ class SplitPage extends ConsumerWidget {
                     if (state.savedPaths.isNotEmpty) {
                       final directory = state.savedPaths.first.substring(
                           0, state.savedPaths.first.lastIndexOf('/'));
-                      context.go('/storage', extra: {'path': directory});
+                      context.push('/storage', extra: {'path': directory});
                     }
                   },
                 ),

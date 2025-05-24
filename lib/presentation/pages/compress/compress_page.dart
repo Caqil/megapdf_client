@@ -21,7 +21,7 @@ class CompressPage extends ConsumerWidget {
       appBar: CustomAppBar(
         title: 'Compress PDF',
         subtitle: 'Reduce file size while maintaining quality',
-        onBack: () => context.go('/'),
+        onBack: () => context.pop('/'),
       ),
       body: SafeArea(
         child: SingleChildScrollView(

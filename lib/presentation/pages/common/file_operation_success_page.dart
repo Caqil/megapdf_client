@@ -351,11 +351,10 @@ class FileOperationSuccessPage extends ConsumerWidget {
   }
 
   void _viewInStorage(BuildContext context) {
-    final directory = path.dirname(filePath);
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => StorageBrowserPage(initialPath: directory),
+        builder: (context) => StorageBrowserPage(),
       ),
     );
   }

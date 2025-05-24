@@ -76,7 +76,7 @@ class _HomePageState extends ConsumerState<HomePage>
         isGridView: _isGridView,
         onSearch: _updateSearchQuery,
         onToggleView: _toggleViewMode,
-        onProfileTap: () => context.go('/profile'),
+        onProfileTap: () => context.go('/settings'),
       ),
       body: Column(
         children: [

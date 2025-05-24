@@ -22,7 +22,8 @@ class FileUtils {
   /// Check if file is document
   static bool isDocument(String filePath) {
     final ext = getExtension(filePath);
-    return ['pdf', 'docx', 'doc', 'xlsx', 'xls', 'pptx', 'txt', 'rtf', 'html'].contains(ext);
+    return ['pdf', 'docx', 'doc', 'xlsx', 'xls', 'pptx', 'txt', 'rtf', 'html']
+        .contains(ext);
   }
 
   /// Get file size in human readable format
@@ -68,5 +69,3 @@ class FileUtils {
     return null; // Valid file
   }
 }
-
-

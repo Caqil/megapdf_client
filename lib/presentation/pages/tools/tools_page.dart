@@ -98,7 +98,7 @@ class ToolsPage extends StatelessWidget {
                         child: _QuickActionButton(
                           icon: Icons.compress,
                           label: 'Compress',
-                          onTap: () => context.go('/compress'),
+                          onTap: () => context.push('/compress'),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -106,7 +106,7 @@ class ToolsPage extends StatelessWidget {
                         child: _QuickActionButton(
                           icon: Icons.merge,
                           label: 'Merge',
-                          onTap: () => context.go('/merge'),
+                          onTap: () => context.push('/merge'),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -114,7 +114,7 @@ class ToolsPage extends StatelessWidget {
                         child: _QuickActionButton(
                           icon: Icons.call_split,
                           label: 'Split',
-                          onTap: () => context.go('/split'),
+                          onTap: () => context.push('/split'),
                         ),
                       ),
                     ],

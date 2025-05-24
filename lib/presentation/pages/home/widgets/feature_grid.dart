@@ -245,7 +245,7 @@ class _FeatureCardState extends State<_FeatureCard>
   void _onTap() {
     _tapController.forward().then((_) {
       _tapController.reverse();
-      context.go(widget.feature.route);
+      context.push(widget.feature.route);
     });
   }
 

@@ -23,7 +23,7 @@ class UnlockPage extends ConsumerWidget {
       appBar: CustomAppBar(
         title: 'Unlock PDF',
         subtitle: 'Remove password protection from PDF',
-        onBack: () => context.go('/'),
+        onBack: () => context.pop('/'),
       ),
       body: SafeArea(
         child: SingleChildScrollView(

@@ -23,7 +23,7 @@ class MergePage extends ConsumerWidget {
       appBar: CustomAppBar(
         title: 'Merge PDFs',
         subtitle: 'Combine multiple PDF files into one',
-        onBack: () => context.go('/'),
+        onBack: () => context.pop('/'),
       ),
       body: SafeArea(
         child: SingleChildScrollView(

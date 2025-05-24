@@ -24,7 +24,7 @@ class ConvertPage extends ConsumerWidget {
       appBar: CustomAppBar(
         title: 'Convert File',
         subtitle: 'Convert between different file formats',
-        onBack: () => context.go('/'),
+        onBack: () => context.pop('/'),
       ),
       body: SafeArea(
         child: SingleChildScrollView(

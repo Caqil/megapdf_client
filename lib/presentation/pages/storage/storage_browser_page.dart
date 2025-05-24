@@ -1,508 +1,755 @@
-// lib/presentation/pages/storage/storage_browser_page.dart
-import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:megapdf_client/data/services/storage_service.dart';
+import 'package:intl/intl.dart';
 import 'package:path/path.dart' as path;
-import '../../../core/theme/app_colors.dart';
-import '../../widgets/common/custom_snackbar.dart';
-import '../pdf_viewer/pdf_viewer_page.dart';
+import 'package:megapdf_client/core/theme/app_colors.dart';
+import 'package:megapdf_client/data/models/file_item.dart';
+import 'package:megapdf_client/presentation/providers/file_manager_provider.dart';
+import 'package:megapdf_client/presentation/providers/file_path_provider.dart';
+import 'package:megapdf_client/presentation/widgets/common/custom_snackbar.dart';
 
 class StorageBrowserPage extends ConsumerStatefulWidget {
-  final String? initialPath;
-
-  const StorageBrowserPage({Key? key, this.initialPath}) : super(key: key);
+  const StorageBrowserPage({Key? key}) : super(key: key);
 
   @override
   ConsumerState<StorageBrowserPage> createState() => _StorageBrowserPageState();
 }
 
 class _StorageBrowserPageState extends ConsumerState<StorageBrowserPage> {
-  String? _currentPath;
-  List<FileSystemEntity> _items = [];
-  bool _isLoading = true;
-  String? _errorMessage;
-  bool _hasPermission = false;
+  final TextEditingController _renameController = TextEditingController();
+  final GlobalKey<RefreshIndicatorState> _refreshKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
-    _initializeBrowser();
-  }
-
-  Future<void> _initializeBrowser() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
+    // Initial file load
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(fileManagerNotifierProvider.notifier).loadFiles();
     });
-
-    // Check storage permission
-    final storageService = StorageService();
-    final hasPermission = await storageService.checkPermissions();
-
-    if (!hasPermission) {
-      setState(() {
-        _isLoading = false;
-        _hasPermission = false;
-        _errorMessage = 'Storage permission required to browse files';
-      });
-      return;
-    }
-
-    setState(() {
-      _hasPermission = true;
-    });
-
-    try {
-      // Start with initial path or get MegaPDF directory
-      String? startPath;
-
-      if (widget.initialPath != null) {
-        startPath = widget.initialPath;
-      } else {
-        // Get MegaPDF directory
-        final megaPdfDir = await storageService.createMegaPDFDirectory();
-        startPath = megaPdfDir?.path;
-      }
-
-      if (startPath != null) {
-        await _loadDirectory(startPath);
-      } else {
-        setState(() {
-          _isLoading = false;
-          _errorMessage = 'Unable to access storage directory';
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Error accessing files: $e';
-      });
-    }
   }
 
-  Future<void> _loadDirectory(String dirPath) async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final directory = Directory(dirPath);
-      if (await directory.exists()) {
-        final items = await directory.list().toList();
-
-        // Sort items: directories first, then files alphabetically
-        items.sort((a, b) {
-          final aIsDir = a is Directory;
-          final bIsDir = b is Directory;
-
-          if (aIsDir && !bIsDir) return -1;
-          if (!aIsDir && bIsDir) return 1;
-
-          return path.basename(a.path).compareTo(path.basename(b.path));
-        });
-
-        setState(() {
-          _currentPath = dirPath;
-          _items = items;
-          _isLoading = false;
-        });
-      } else {
-        setState(() {
-          _isLoading = false;
-          _errorMessage = 'Directory does not exist';
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Error loading directory: $e';
-      });
-    }
-  }
-
-  bool _canNavigateUp() {
-    if (_currentPath == null) return false;
-
-    // Check if we're already at the root
-    final rootDir = path.dirname(_currentPath!);
-    return path.basename(_currentPath!) != 'MegaPDF' ||
-        !rootDir.endsWith('Download');
-  }
-
-  Future<void> _navigateUp() async {
-    if (_currentPath != null && _canNavigateUp()) {
-      final parentDir = path.dirname(_currentPath!);
-      await _loadDirectory(parentDir);
-    }
-  }
-
-  Future<void> _refresh() async {
-    if (_currentPath != null) {
-      await _loadDirectory(_currentPath!);
-    } else {
-      await _initializeBrowser();
-    }
-  }
-
-  Future<void> _requestPermission() async {
-    final storageService = StorageService();
-    final granted = await storageService.requestPermissions(context);
-
-    if (granted) {
-      setState(() {
-        _hasPermission = true;
-      });
-      await _initializeBrowser();
-    }
+  @override
+  void dispose() {
+    _renameController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final fileManagerState = ref.watch(fileManagerNotifierProvider);
+    final directoryPath = ref.watch(megaPdfDirectoryPathProvider).valueOrNull;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Storage Browser'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _refresh,
+      appBar: _buildAppBar(context, fileManagerState),
+      body: Stack(
+        children: [
+          Column(
+            children: [
+              _buildStorageInfoCard(context, directoryPath),
+              Expanded(
+                child: _buildFileList(context, fileManagerState),
+              ),
+            ],
           ),
+          if (fileManagerState.isLoading)
+            const LoadingOverlay(message: 'Processing files...'),
         ],
       ),
-      body: _hasPermission ? _buildContent() : _buildPermissionRequest(),
+      floatingActionButton: _buildFloatingActionButton(context),
     );
   }
 
-  Widget _buildContent() {
-    if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
-    }
-
-    if (_errorMessage != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 48,
-              color: AppColors.error(context),
+  AppBar _buildAppBar(BuildContext context, FileManagerState state) {
+    return AppBar(
+      backgroundColor: AppColors.surface(context),
+      elevation: 0,
+      title: Text(
+        'Storage Manager',
+        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary(context),
             ),
-            const SizedBox(height: 16),
-            Text(
-              'Error',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: AppColors.error(context),
-                  ),
-            ),
-            const SizedBox(height: 8),
-            Text(_errorMessage!),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _refresh,
-              child: const Text('Retry'),
-            ),
-          ],
+      ),
+      leading: IconButton(
+        icon: Icon(
+          Icons.arrow_back,
+          color: AppColors.textPrimary(context),
         ),
-      );
-    }
-
-    return Column(
-      children: [
-        // Path display and up button
-        if (_currentPath != null) _buildPathBar(),
-
-        // File list
-        Expanded(
-          child: _items.isEmpty ? _buildEmptyDirectory() : _buildFileList(),
-        ),
+        onPressed: () => Navigator.pop(context),
+      ),
+      actions: [
+        if (state.isSelectionMode) ...[
+          IconButton(
+            icon: const Icon(Icons.select_all),
+            color: AppColors.primary(context),
+            onPressed: () =>
+                ref.read(fileManagerNotifierProvider.notifier).selectAll(),
+            tooltip: 'Select All',
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete),
+            color: AppColors.error(context),
+            onPressed: () => _confirmDeleteSelected(context),
+            tooltip: 'Delete Selected',
+          ),
+          IconButton(
+            icon: const Icon(Icons.close),
+            color: AppColors.textPrimary(context),
+            onPressed: () =>
+                ref.read(fileManagerNotifierProvider.notifier).clearSelection(),
+            tooltip: 'Cancel Selection',
+          ),
+        ] else ...[
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            color: AppColors.primary(context),
+            onPressed: () {
+              _refreshKey.currentState?.show();
+              ref.read(fileManagerNotifierProvider.notifier).refreshFiles();
+            },
+            tooltip: 'Refresh',
+          ),
+          PopupMenuButton<String>(
+            icon: Icon(
+              Icons.more_vert,
+              color: AppColors.textPrimary(context),
+            ),
+            onSelected: (value) {
+              if (value == 'select_mode') {
+                // Toggle selection mode
+                if (!state.isSelectionMode && state.fileItems.isNotEmpty) {
+                  ref.read(fileManagerNotifierProvider.notifier).selectAll();
+                }
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem<String>(
+                value: 'select_mode',
+                child: Row(
+                  children: [
+                    Icon(Icons.select_all, size: 20),
+                    SizedBox(width: 8),
+                    Text('Select All'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }
 
-  Widget _buildPathBar() {
-    final displayPath = _getDisplayPath(_currentPath!);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.surface(context),
-        border: Border(
-          bottom: BorderSide(color: AppColors.border(context)),
-        ),
+  Widget _buildStorageInfoCard(BuildContext context, String? directoryPath) {
+    return Card(
+      margin: const EdgeInsets.all(12),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
       ),
-      child: Row(
-        children: [
-          if (_canNavigateUp())
-            IconButton(
-              icon: const Icon(Icons.arrow_upward),
-              onPressed: _navigateUp,
-              tooltip: 'Up to parent directory',
-              constraints: const BoxConstraints(
-                minWidth: 36,
-                minHeight: 36,
-              ),
-              padding: EdgeInsets.zero,
-              iconSize: 20,
-            ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              displayPath,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary(context).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+                  child: Icon(
+                    Icons.folder_open,
+                    color: AppColors.primary(context),
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'MegaPDF Files',
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary(context),
+                                ),
+                      ),
+                      if (directoryPath != null)
+                        Text(
+                          _formatPath(directoryPath),
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: AppColors.textSecondary(context),
+                                  ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildFileList() {
+  Widget _buildFileList(BuildContext context, FileManagerState state) {
+    if (state.isLoading && state.fileItems.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (state.fileItems.isEmpty) {
+      return Center(
+        child: EmptyStateWidget(
+          icon: Icons.folder_open,
+          title: 'No Files Found',
+          subtitle: 'Files you process with MegaPDF will appear here',
+          actionLabel: 'Refresh',
+          onAction: () =>
+              ref.read(fileManagerNotifierProvider.notifier).refreshFiles(),
+        ),
+      );
+    }
+
     return RefreshIndicator(
-      onRefresh: _refresh,
+      key: _refreshKey,
+      onRefresh: () async {
+        await ref.read(fileManagerNotifierProvider.notifier).refreshFiles();
+      },
       child: ListView.builder(
-        itemCount: _items.length,
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+        itemCount: state.fileItems.length,
         itemBuilder: (context, index) {
-          final item = _items[index];
-          final isDirectory = item is Directory;
-          final fileName = path.basename(item.path);
-
-          // Skip hidden files
-          if (fileName.startsWith('.')) {
-            return const SizedBox.shrink();
-          }
-
-          return ListTile(
-            leading: Icon(
-              isDirectory ? Icons.folder : _getFileIcon(fileName),
-              color: isDirectory
-                  ? AppColors.warning(context)
-                  : _getFileColor(fileName, context),
-            ),
-            title: Text(
-              fileName,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            subtitle: isDirectory
-                ? const Text('Folder')
-                : FutureBuilder<FileStat>(
-                    future: File(item.path).stat(),
-                    builder: (context, snapshot) {
-                      if (!snapshot.hasData) {
-                        return const Text('Loading...');
-                      }
-
-                      final stat = snapshot.data!;
-                      return Text(
-                        '${_formatFileSize(stat.size)} • ${_formatDate(stat.modified)}',
-                      );
-                    },
-                  ),
-            onTap: () => _handleItemTap(item),
-          );
+          final file = state.fileItems[index];
+          return _buildFileCard(context, file, state, index);
         },
       ),
     );
   }
 
-  Widget _buildEmptyDirectory() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.folder_open,
-            size: 48,
-            color: AppColors.textSecondary(context),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Empty Folder',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'This folder has no files or subfolders',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textSecondary(context),
-                ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _buildFileCard(
+      BuildContext context, FileItem file, FileManagerState state, int index) {
+    final isSelected = state.selectedItems.contains(file);
 
-  Widget _buildPermissionRequest() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.folder_off,
-            size: 64,
-            color: AppColors.textSecondary(context),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            'Storage Permission Required',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: 16),
+    // Group files by date
+    final DateTime fileDate = file.lastModified;
+    final String dateGroup = _getDateGroup(fileDate);
+
+    // Show date header for the first file of each date group
+    final bool showHeader = index == 0 ||
+        _getDateGroup(state.fileItems[index - 1].lastModified) != dateGroup;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (showHeader)
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
+            padding: const EdgeInsets.only(left: 8, top: 16, bottom: 8),
             child: Text(
-              'This app needs permission to access your device storage to browse and manage files.',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              dateGroup,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
                     color: AppColors.textSecondary(context),
+                    fontWeight: FontWeight.bold,
                   ),
             ),
           ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: _requestPermission,
-            icon: const Icon(Icons.folder_open),
-            label: const Text('Grant Permission'),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24,
-                vertical: 12,
+        Card(
+          margin: const EdgeInsets.symmetric(vertical: 4),
+          elevation: 1,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: isSelected
+                ? BorderSide(color: AppColors.primary(context), width: 2)
+                : BorderSide.none,
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () {
+              if (state.isSelectionMode) {
+                ref
+                    .read(fileManagerNotifierProvider.notifier)
+                    .toggleFileSelection(file);
+              } else {
+                _openFile(context, file);
+              }
+            },
+            onLongPress: () {
+              if (!state.isSelectionMode) {
+                ref
+                    .read(fileManagerNotifierProvider.notifier)
+                    .toggleFileSelection(file);
+              }
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // File type icon
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color:
+                          _getFileIconColor(file.extension!).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Center(
+                      child: _getFileIcon(file.extension!),
+                    ),
+                  ),
+
+                  const SizedBox(width: 16),
+
+                  // File info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          file.name,
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w500,
+                                    color: AppColors.textPrimary(context),
+                                  ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Text(
+                              FileUtils.formatFileSize(file.size),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
+                                    color: AppColors.textSecondary(context),
+                                  ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              width: 4,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: AppColors.textSecondary(context),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              _formatTime(file.lastModified),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
+                                    color: AppColors.textSecondary(context),
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Selection indicator or actions
+                  if (state.isSelectionMode)
+                    Checkbox(
+                      value: isSelected,
+                      onChanged: (value) {
+                        ref
+                            .read(fileManagerNotifierProvider.notifier)
+                            .toggleFileSelection(file);
+                      },
+                      activeColor: AppColors.primary(context),
+                    )
+                  else
+                    PopupMenuButton<String>(
+                      icon: Icon(
+                        Icons.more_vert,
+                        color: AppColors.textSecondary(context),
+                      ),
+                      onSelected: (value) =>
+                          _handleFileAction(context, value, file),
+                      itemBuilder: (context) => [
+                        const PopupMenuItem<String>(
+                          value: 'open',
+                          child: Row(
+                            children: [
+                              Icon(Icons.open_in_new, size: 20),
+                              SizedBox(width: 8),
+                              Text('Open'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem<String>(
+                          value: 'rename',
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit, size: 20),
+                              SizedBox(width: 8),
+                              Text('Rename'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem<String>(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete, size: 20, color: Colors.red),
+                              SizedBox(width: 8),
+                              Text('Delete',
+                                  style: TextStyle(color: Colors.red)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
               ),
             ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFloatingActionButton(BuildContext context) {
+    return FloatingActionButton.extended(
+      onPressed: () {
+        // Import file functionality
+        // You would typically show a file picker here
+      },
+      label: const Text('Import File'),
+      icon: const Icon(Icons.add),
+      backgroundColor: AppColors.primary(context),
+    );
+  }
+
+  void _handleFileAction(BuildContext context, String action, FileItem file) {
+    switch (action) {
+      case 'open':
+        _openFile(context, file);
+        break;
+      case 'rename':
+        _showRenameDialog(context, file);
+        break;
+      case 'delete':
+        _confirmDeleteFile(context, file);
+        break;
+    }
+  }
+
+  void _openFile(BuildContext context, FileItem file) {
+    // Implement file opening logic here
+    // This would typically use a PDF viewer or system intent
+    CustomSnackbar.show(
+      context: context,
+      message: 'Opening ${file.name}...',
+      type: SnackbarType.info,
+    );
+  }
+
+  void _showRenameDialog(BuildContext context, FileItem file) {
+    final fileName = path.basenameWithoutExtension(file.name);
+    _renameController.text = fileName;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Rename File'),
+        content: TextField(
+          controller: _renameController,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'New Name',
+            hintText: 'Enter new file name',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final newName = _renameController.text.trim();
+              Navigator.pop(context);
+
+              if (newName.isNotEmpty && newName != fileName) {
+                ref.read(fileManagerNotifierProvider.notifier).renameFile(
+                      file,
+                      newName,
+                      context: context,
+                    );
+              }
+            },
+            child: const Text('Rename'),
           ),
         ],
       ),
     );
   }
 
-  void _handleItemTap(FileSystemEntity item) {
-    if (item is Directory) {
-      _loadDirectory(item.path);
-    } else if (item is File) {
-      _openFile(item);
+  void _confirmDeleteFile(BuildContext context, FileItem file) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete File'),
+        content: Text('Are you sure you want to delete "${file.name}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ref.read(fileManagerNotifierProvider.notifier).deleteFile(
+                    file,
+                    context: context,
+                  );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteSelected(BuildContext context) {
+    final state = ref.read(fileManagerNotifierProvider);
+    if (state.selectedItems.isEmpty) return;
+
+    ref.read(fileManagerNotifierProvider.notifier).deleteSelectedFiles(context);
+  }
+
+  String _formatPath(String path) {
+    if (path.contains('/storage/emulated/0')) {
+      return path.replaceFirst('/storage/emulated/0', 'Internal Storage');
+    }
+    return path;
+  }
+
+  String _getDateGroup(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final fileDate = DateTime(date.year, date.month, date.day);
+
+    if (fileDate == today) {
+      return 'Today';
+    } else if (fileDate == yesterday) {
+      return 'Yesterday';
+    } else if (now.difference(fileDate).inDays < 7) {
+      return DateFormat('EEEE').format(date); // Day name
+    } else {
+      return DateFormat('MMMM d, yyyy').format(date); // Month day, year
     }
   }
 
-  void _openFile(File file) {
-    final extension = path.extension(file.path).toLowerCase();
+  String _formatTime(DateTime dateTime) {
+    return DateFormat('h:mm a').format(dateTime);
+  }
 
-    if (extension == '.pdf') {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => PDFViewerPage(
-            filePath: file.path,
-            fileName: path.basename(file.path),
+  Widget _getFileIcon(String extension) {
+    IconData iconData;
+
+    switch (extension.toLowerCase()) {
+      case '.pdf':
+        iconData = Icons.picture_as_pdf;
+        break;
+      case '.jpg':
+      case '.jpeg':
+      case '.png':
+        iconData = Icons.image;
+        break;
+      case '.doc':
+      case '.docx':
+        iconData = Icons.description;
+        break;
+      case '.xls':
+      case '.xlsx':
+        iconData = Icons.table_chart;
+        break;
+      case '.ppt':
+      case '.pptx':
+        iconData = Icons.slideshow;
+        break;
+      default:
+        iconData = Icons.insert_drive_file;
+    }
+
+    return Icon(
+      iconData,
+      color: _getFileIconColor(extension),
+      size: 28,
+    );
+  }
+
+  Color _getFileIconColor(String extension) {
+    switch (extension.toLowerCase()) {
+      case '.pdf':
+        return Colors.red;
+      case '.jpg':
+      case '.jpeg':
+      case '.png':
+        return Colors.blue;
+      case '.doc':
+      case '.docx':
+        return Colors.indigo;
+      case '.xls':
+      case '.xlsx':
+        return Colors.green;
+      case '.ppt':
+      case '.pptx':
+        return Colors.orange;
+      default:
+        return Colors.grey;
+    }
+  }
+}
+
+// Add this utility class if it doesn't exist yet
+class FileUtils {
+  static String formatFileSize(int sizeInBytes) {
+    if (sizeInBytes < 1024) {
+      return '$sizeInBytes B';
+    } else if (sizeInBytes < 1024 * 1024) {
+      final kb = sizeInBytes / 1024;
+      return '${kb.toStringAsFixed(1)} KB';
+    } else if (sizeInBytes < 1024 * 1024 * 1024) {
+      final mb = sizeInBytes / (1024 * 1024);
+      return '${mb.toStringAsFixed(1)} MB';
+    } else {
+      final gb = sizeInBytes / (1024 * 1024 * 1024);
+      return '${gb.toStringAsFixed(1)} GB';
+    }
+  }
+}
+
+// Add this widget if it doesn't exist yet
+class EmptyStateWidget extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+
+  const EmptyStateWidget({
+    Key? key,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    this.actionLabel,
+    this.onAction,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppColors.primary(context).withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                size: 48,
+                color: AppColors.primary(context),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary(context),
+                  ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              subtitle,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.textSecondary(context),
+                  ),
+              textAlign: TextAlign.center,
+            ),
+            if (actionLabel != null && onAction != null) ...[
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: onAction,
+                style: ElevatedButton.styleFrom(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Text(actionLabel!),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Add this widget if it doesn't exist yet
+class LoadingOverlay extends StatelessWidget {
+  final String? message;
+
+  const LoadingOverlay({Key? key, this.message}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.black.withOpacity(0.5),
+      child: Center(
+        child: Card(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(),
+                if (message != null) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    message!,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
-      );
-    } else {
-      CustomSnackbar.show(
-        context: context,
-        message: 'Cannot open ${extension.toUpperCase()} files',
-        type: SnackbarType.info,
-        duration: const Duration(seconds: 4),
-      );
-    }
-  }
-
-  String _getDisplayPath(String fullPath) {
-    if (Platform.isAndroid && fullPath.contains('/storage/emulated/0')) {
-      return fullPath.replaceFirst('/storage/emulated/0', 'Internal Storage');
-    }
-    return fullPath;
-  }
-
-  IconData _getFileIcon(String fileName) {
-    final extension = path.extension(fileName).toLowerCase();
-
-    switch (extension) {
-      case '.pdf':
-        return Icons.picture_as_pdf;
-      case '.jpg':
-      case '.jpeg':
-      case '.png':
-      case '.gif':
-        return Icons.image;
-      case '.doc':
-      case '.docx':
-        return Icons.description;
-      case '.xls':
-      case '.xlsx':
-        return Icons.table_chart;
-      case '.ppt':
-      case '.pptx':
-        return Icons.slideshow;
-      case '.txt':
-        return Icons.text_snippet;
-      case '.zip':
-      case '.rar':
-        return Icons.archive;
-      default:
-        return Icons.insert_drive_file;
-    }
-  }
-
-  Color _getFileColor(String fileName, BuildContext context) {
-    final extension = path.extension(fileName).toLowerCase();
-
-    switch (extension) {
-      case '.pdf':
-        return AppColors.error(context);
-      case '.jpg':
-      case '.jpeg':
-      case '.png':
-      case '.gif':
-        return AppColors.secondary(context);
-      case '.doc':
-      case '.docx':
-        return AppColors.primary(context);
-      case '.xls':
-      case '.xlsx':
-        return AppColors.success(context);
-      case '.ppt':
-      case '.pptx':
-        return AppColors.warning(context);
-      default:
-        return AppColors.textSecondary(context);
-    }
-  }
-
-  String _formatFileSize(int bytes) {
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    if (bytes < 1024 * 1024 * 1024) {
-      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
-    }
-    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
-  }
-
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
-
-    if (difference.inDays == 0) {
-      if (difference.inHours == 0) {
-        return '${difference.inMinutes} min ago';
-      }
-      return '${difference.inHours} hours ago';
-    } else if (difference.inDays == 1) {
-      return 'Yesterday';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays} days ago';
-    } else {
-      return '${date.day}/${date.month}/${date.year}';
-    }
+      ),
+    );
   }
 }

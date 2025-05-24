@@ -21,7 +21,6 @@ import '../../presentation/pages/unlock/unlock_page.dart';
 import '../../presentation/pages/rotate/rotate_page.dart';
 import '../../presentation/pages/page_numbers/page_numbers_page.dart';
 import '../../presentation/pages/storage/storage_browser_page.dart';
-import '../../presentation/pages/storage/storage_management_page.dart';
 import '../../presentation/pages/common/file_operation_success_page.dart';
 import '../../presentation/pages/pdf_viewer/pdf_viewer_page.dart';
 
@@ -127,15 +126,10 @@ GoRouter router(Ref ref) {
         path: '/storage',
         name: 'storage',
         builder: (context, state) {
-          final initialPath = state.uri.queryParameters['path'];
-          return StorageBrowserPage(initialPath: initialPath);
+          return StorageBrowserPage();
         },
       ),
-      GoRoute(
-        path: '/storage-management',
-        name: 'storage-management',
-        builder: (context, state) => const StorageManagementPage(),
-      ),
+     
 
       // Success page
       GoRoute(

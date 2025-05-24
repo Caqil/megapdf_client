@@ -27,7 +27,7 @@ class WatermarkPage extends ConsumerWidget {
       appBar: CustomAppBar(
         title: 'Add Watermark',
         subtitle: 'Add text or image watermark to PDF',
-        onBack: () => context.go('/'),
+        onBack: () => context.pop('/'),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
