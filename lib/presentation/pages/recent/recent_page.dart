@@ -61,23 +61,40 @@ class _RecentPageState extends ConsumerState<RecentPage>
       centerTitle: false,
       elevation: 0,
       automaticallyImplyLeading: false,
-      title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      title: Row(
         children: [
-          Text(
-            'Recent Files',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary(context),
-                ),
-          ),
-          if (state.recentFiles.isNotEmpty)
-            Text(
-              '${state.recentFiles.length} files processed',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary(context),
-                  ),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              gradient: AppColors.primaryGradient(context),
+              borderRadius: BorderRadius.circular(12),
             ),
+            child: const Icon(
+              Icons.view_list,
+              color: Colors.white,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Recent Files',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary(context),
+                    ),
+              ),
+              if (state.recentFiles.isNotEmpty)
+                Text(
+                  '${state.recentFiles.length} files processed',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary(context),
+                      ),
+                ),
+            ],
+          ),
         ],
       ),
       actions: [
@@ -470,7 +487,6 @@ class _RecentPageState extends ConsumerState<RecentPage>
                   type: SnackbarType.success,
                   duration: const Duration(seconds: 4),
                 );
-               
               }
             },
             child: Text('Delete'),

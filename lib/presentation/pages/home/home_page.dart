@@ -69,7 +69,6 @@ class _HomePageState extends ConsumerState<HomePage>
   Widget build(BuildContext context) {
     final fileManagerState = ref.watch(fileManagerNotifierProvider);
     final recentFilesState = ref.watch(recentFilesNotifierProvider);
-
     return Scaffold(
       backgroundColor: AppColors.background(context),
       appBar: HomeAppBar(

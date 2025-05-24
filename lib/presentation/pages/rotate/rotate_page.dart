@@ -24,7 +24,7 @@ class RotatePage extends ConsumerWidget {
       appBar: CustomAppBar(
         title: 'Rotate PDF',
         subtitle: 'Rotate pages in your PDF document',
-        onBack: () => context.go('/'),
+        onBack: () => context.pop('/'),
       ),
       body: SafeArea(
         child: SingleChildScrollView(

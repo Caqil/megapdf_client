@@ -56,7 +56,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
-  # Code Generation
+  flutter_launcher_icons: "^0.14.3"
   build_runner: ^2.4.7
   riverpod_generator: ^2.3.9
   retrofit_generator: ^9.2.0
@@ -68,12 +68,28 @@ dev_dependencies:
   # Testing
   mockito: ^5.4.4
 
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  remove_alpha_ios: true
+  image_path: "assets/icons/ic_icon.png"
+  min_sdk_android: 21 # android min sdk min:16, default 21
+  web:
+    generate: true
+    image_path: "assets/icons/ic_icon.png"
+  windows:
+    generate: true
+    image_path: "assets/icons/ic_icon.png"
+    icon_size: 48 # min:48, max:256, default: 48
+  macos:
+    generate: true
+    image_path: "assets/icons/ic_icon.png"
 flutter:
   uses-material-design: true
 
   assets:
     - assets/images/
-    - assets/images/feature_icons/
+    - assets/icons/
     - assets/animations/
 
   fonts:

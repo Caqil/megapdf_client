@@ -25,17 +25,10 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
       automaticallyImplyLeading: false,
       title: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              gradient: AppColors.primaryGradient(context),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Icons.picture_as_pdf,
-              color: Colors.white,
-              size: 24,
-            ),
+          Image.asset(
+            'assets/images/logo.png',
+            width: 40,
+            height: 40,
           ),
           const SizedBox(width: 12),
           Column(
@@ -49,7 +42,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
                     ),
               ),
               Text(
-                'Your PDF Workspace',
+                'All-in-One PDF Converter & Editor',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: AppColors.textSecondary(context),
                     ),

@@ -6,7 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../home/home_page.dart';
 import '../tools/tools_page.dart';
 import '../recent/recent_page.dart';
-import '../profile/profile_page.dart';
+import '../settings/settings_page.dart';
 
 class MainNavigationPage extends ConsumerStatefulWidget {
   const MainNavigationPage({super.key});
@@ -22,7 +22,7 @@ class _MainNavigationPageState extends ConsumerState<MainNavigationPage> {
     const HomePage(),
     const ToolsPage(),
     const RecentPage(),
-    const ProfilePage(),
+    const SettingsPage(),
   ];
 
   @override
@@ -80,7 +80,7 @@ class _MainNavigationPageState extends ConsumerState<MainNavigationPage> {
             BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),
               activeIcon: Icon(Icons.person),
-              label: 'Profile',
+              label: 'Settings',
             ),
           ],
         ),

@@ -17,10 +17,6 @@ class HomeTabBar extends StatelessWidget {
       ),
       child: TabBar(
         controller: controller,
-        indicator: BoxDecoration(
-          color: AppColors.primary(context).withOpacity(0.1),
-          borderRadius: BorderRadius.circular(8),
-        ),
         indicatorPadding: const EdgeInsets.all(4),
         labelColor: AppColors.primary(context),
         unselectedLabelColor: AppColors.textSecondary(context),

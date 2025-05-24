@@ -10,7 +10,7 @@ import '../../presentation/pages/onboarding/splash_screen.dart';
 import '../../presentation/pages/home/home_page.dart';
 import '../../presentation/pages/tools/tools_page.dart';
 import '../../presentation/pages/recent/recent_page.dart';
-import '../../presentation/pages/profile/profile_page.dart';
+import '../../presentation/pages/settings/settings_page.dart';
 import '../../presentation/pages/compress/compress_page.dart';
 import '../../presentation/pages/split/split_page.dart';
 import '../../presentation/pages/merge/merge_page.dart';
@@ -72,7 +72,7 @@ GoRouter router(Ref ref) {
       GoRoute(
         path: '/profile',
         name: 'profile',
-        builder: (context, state) => const ProfilePage(),
+        builder: (context, state) => const SettingsPage(),
       ),
 
       // PDF Operations

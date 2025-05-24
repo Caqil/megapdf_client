@@ -14,24 +14,45 @@ class ToolsPage extends StatelessWidget {
       backgroundColor: AppColors.background(context),
       appBar: AppBar(
         backgroundColor: AppColors.surface(context),
+        centerTitle: false,
         elevation: 0,
         automaticallyImplyLeading: false,
-        title: Text(
-          'PDF Tools',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary(context),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                gradient: AppColors.primaryGradient(context),
+                borderRadius: BorderRadius.circular(12),
               ),
+              child: const Icon(
+                Icons.edit_document,
+                color: Colors.white,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Tools',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary(context),
+                      ),
+                ),
+                Text(
+                  'Everything you need to work with PDFs in one place',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary(context),
+                      ),
+                ),
+              ],
+            ),
+          ],
         ),
-        actions: [
-          IconButton(
-            onPressed: () {
-              // Add help or info
-            },
-            icon: const Icon(Icons.help_outline),
-            color: AppColors.textSecondary(context),
-          ),
-        ],
+        actions: [],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

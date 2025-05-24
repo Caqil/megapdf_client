@@ -24,7 +24,7 @@ class PageNumbersPage extends ConsumerWidget {
       appBar: CustomAppBar(
         title: 'Add Page Numbers',
         subtitle: 'Add page numbers to your PDF document',
-        onBack: () => context.go('/'),
+        onBack: () => context.pop('/'),
       ),
       body: SafeArea(
         child: SingleChildScrollView(

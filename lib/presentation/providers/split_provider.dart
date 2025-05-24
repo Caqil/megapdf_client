@@ -1,11 +1,9 @@
 // lib/presentation/providers/split_provider.dart
 import 'dart:io';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../data/models/split_options.dart';
 import '../../data/models/split_result.dart';
 import '../../data/models/job_status.dart';
-import '../../data/repositories/pdf_repository.dart';
 import '../../data/repositories/pdf_repository_impl.dart';
 import '../../data/services/recent_files_service.dart';
 
@@ -70,7 +68,7 @@ class SplitNotifier extends _$SplitNotifier {
             originalFile: file,
             splitCount: result.splitParts!.length,
             splitFileNames: result.splitParts!
-                .map((part) => part.filename ?? 'unknown.pdf')
+                .map((part) => part.filename )
                 .toList(),
           );
 
@@ -83,7 +81,7 @@ class SplitNotifier extends _$SplitNotifier {
           // Handle error case
           state = state.copyWith(
             isLoading: false,
-            error: result.message ?? 'Failed to split PDF',
+            error: result.message ,
           );
         }
       }
@@ -103,23 +101,21 @@ class SplitNotifier extends _$SplitNotifier {
     final savedPaths = <String>[];
 
     for (final part in result.splitParts!) {
-      if (part.fileUrl != null) {
-        try {
-          final savedPath = await repository.saveProcessedFile(
-            fileUrl: part.fileUrl!,
-            filename: part.filename ?? 'split_part.pdf',
-            customFileName: 'Split_${part.filename ?? 'part'}',
-            subfolder: 'Split',
-          );
+      try {
+        final savedPath = await repository.saveProcessedFile(
+          fileUrl: part.fileUrl,
+          filename: part.filename ,
+          customFileName: 'Split_${part.filename }',
+          subfolder: 'Split',
+        );
 
-          if (savedPath.isNotEmpty) {
-            savedPaths.add(savedPath);
-          }
-        } catch (e) {
-          print('Error saving split part: $e');
+        if (savedPath.isNotEmpty) {
+          savedPaths.add(savedPath);
         }
+      } catch (e) {
+        print('Error saving split part: $e');
       }
-    }
+        }
 
     // Update saved paths in state if any were saved
     if (savedPaths.isNotEmpty) {

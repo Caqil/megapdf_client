@@ -1,12 +1,10 @@
-// lib/presentation/providers/merge_provider.dart
 import 'dart:io';
-import 'package:megapdf_client/data/repositories/pdf_repository_impl.dart';
-import 'package:megapdf_client/data/services/recent_files_service.dart';
-import 'package:megapdf_client/presentation/providers/file_operation_notifier.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../data/models/merge_result.dart';
-import '../../core/errors/api_exception.dart';
+import '../../data/repositories/pdf_repository_impl.dart';
+import 'file_path_provider.dart';
+import 'file_operation_notifier.dart';
 
 part 'merge_provider.g.dart';
 
@@ -18,123 +16,205 @@ class MergeNotifier extends _$MergeNotifier {
   }
 
   void addFiles(List<File> files) {
-    final allFiles = [...state.selectedFiles, ...files];
+    // Combine with existing files (if any)
+    final currentFiles = List<File>.from(state.selectedFiles);
+    currentFiles.addAll(files);
+
     state = state.copyWith(
-      selectedFiles: allFiles,
-      result: null,
+      selectedFiles: currentFiles,
       error: null,
     );
+
+    _validateFiles();
   }
 
   void removeFile(int index) {
-    final files = [...state.selectedFiles];
-    files.removeAt(index);
+    if (index < 0 || index >= state.selectedFiles.length) return;
+
+    final updatedFiles = List<File>.from(state.selectedFiles);
+    updatedFiles.removeAt(index);
+
     state = state.copyWith(
-      selectedFiles: files,
-      result: null,
+      selectedFiles: updatedFiles,
+      error: null,
+    );
+
+    _validateFiles();
+  }
+
+  void reorderFiles(int oldIndex, int newIndex) {
+    if (oldIndex < 0 || oldIndex >= state.selectedFiles.length) return;
+    if (newIndex < 0 || newIndex >= state.selectedFiles.length) return;
+
+    // Handle the reorder index adjustment needed by ReorderableListView
+    if (oldIndex < newIndex) {
+      newIndex -= 1;
+    }
+
+    final updatedFiles = List<File>.from(state.selectedFiles);
+    final file = updatedFiles.removeAt(oldIndex);
+    updatedFiles.insert(newIndex, file);
+
+    state = state.copyWith(
+      selectedFiles: updatedFiles,
       error: null,
     );
   }
 
-  void reorderFiles(int oldIndex, int newIndex) {
-    final files = [...state.selectedFiles];
-    if (newIndex > oldIndex) newIndex--;
-    final file = files.removeAt(oldIndex);
-    files.insert(newIndex, file);
-    state = state.copyWith(
-      selectedFiles: files,
-      result: null,
-      error: null,
-    );
+  void _validateFiles() {
+    // Check file count
+    if (state.selectedFiles.length < 2) {
+      // It's okay to have less than 2 files while still selecting
+      return;
+    }
+
+    // Check file sizes
+    for (final file in state.selectedFiles) {
+      final fileSize = file.lengthSync();
+      final fileSizeMB = fileSize / (1024 * 1024);
+
+      if (fileSizeMB > 50) {
+        state = state.copyWith(
+          error: 'File ${file.path.split('/').last} exceeds the 50MB limit',
+        );
+        return;
+      }
+    }
+
+    // Calculate total size
+    int totalSize = 0;
+    for (final file in state.selectedFiles) {
+      totalSize += file.lengthSync();
+    }
+
+    final totalSizeMB = totalSize / (1024 * 1024);
+    if (totalSizeMB > 100) {
+      state = state.copyWith(
+        error:
+            'Total file size (${totalSizeMB.toStringAsFixed(1)}MB) exceeds the 100MB limit',
+      );
+      return;
+    }
   }
 
   Future<void> mergePdfs() async {
     if (state.selectedFiles.length < 2) {
-      state = state.copyWith(error: 'Please select at least 2 PDF files');
+      state = state.copyWith(
+        error: 'Please select at least 2 PDF files to merge',
+      );
       return;
     }
 
+    // Clear any previous errors
     state = state.copyWith(
       isLoading: true,
       error: null,
       result: null,
+      savedPath: null,
     );
 
     try {
+      // Define file order if needed
+      final order = List<int>.generate(state.selectedFiles.length, (i) => i);
+
+      // Get repository
       final repository = ref.read(pdfRepositoryProvider);
-      final result = await repository.mergePdfs(state.selectedFiles);
+
+      // Perform merge operation
+      final result =
+          await repository.mergePdfs(state.selectedFiles, order: order);
 
       state = state.copyWith(
         isLoading: false,
         result: result,
       );
-    } on ApiException catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.userFriendlyMessage,
-      );
+
+      // Auto-save if result is successful
+      if (result.success && result.fileUrl != null) {
+        await saveResult();
+      }
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        error: 'An unexpected error occurred: ${e.toString()}',
+        error: 'Failed to merge PDFs: ${e.toString()}',
       );
     }
   }
 
   Future<void> saveResult() async {
-    final result = state.result;
-    if (result?.fileUrl == null || result?.filename == null) return;
+    if (state.result == null ||
+        !state.result!.success ||
+        state.result!.fileUrl == null) {
+      state = state.copyWith(
+        error: 'No valid result to save',
+      );
+      return;
+    }
 
-    state = state.copyWith(isSaving: true);
+    state = state.copyWith(
+      isSaving: true,
+      error: null,
+    );
 
     try {
       final repository = ref.read(pdfRepositoryProvider);
 
-      final localPath = await repository.saveProcessedFile(
-        fileUrl: result!.fileUrl!,
-        filename: result.filename!,
-        customFileName: 'merged_${DateTime.now().millisecondsSinceEpoch}.pdf',
+      // Define custom filename based on input files
+      String customFileName = 'Merged';
+      if (state.selectedFiles.isNotEmpty) {
+        final firstFileName = state.selectedFiles.first.path.split('/').last;
+        final baseName = firstFileName.split('.').first;
+
+        if (state.selectedFiles.length == 2) {
+          final secondFileName = state.selectedFiles[1].path.split('/').last;
+          final secondBaseName = secondFileName.split('.').first;
+          customFileName = '${baseName}_and_${secondBaseName}_merged';
+        } else if (state.selectedFiles.length > 2) {
+          customFileName =
+              '${baseName}_and_${state.selectedFiles.length - 1}_others_merged';
+        } else {
+          customFileName = '${baseName}_merged';
+        }
+      }
+
+      // Save the file
+      final savedPath = await repository.saveProcessedFile(
+        fileUrl: state.result!.fileUrl!,
+        filename: state.result!.filename ?? 'merged.pdf',
+        customFileName: customFileName,
         subfolder: 'merged',
       );
 
-      // Track in recent files
-      if (state.selectedFiles.isNotEmpty) {
-        final recentFilesService = ref.read(recentFilesServiceProvider);
-        await recentFilesService.trackMerge(
-          originalFiles: state.selectedFiles,
-          resultFileName: result.filename!,
-          resultFilePath: localPath,
-          mergedSizeBytes: result.mergedSize,
-          totalInputSizeBytes: result.totalInputSize,
-        );
-        ref
-            .read(fileOperationNotifierProvider.notifier)
-            .notifyFileOperationCompleted();
-      }
+      state = state.copyWith(
+        isSaving: false,
+        savedPath: savedPath,
+      );
 
-      state = state.copyWith(
-        isSaving: false,
-        savedPath: localPath,
-      );
-    } on ApiException catch (e) {
-      state = state.copyWith(
-        isSaving: false,
-        error: e.userFriendlyMessage,
-      );
+      // Notify file operation completed
+      ref
+          .read(fileOperationNotifierProvider.notifier)
+          .notifyOperationCompleted('merge');
+
+      // Also notify with file details
+      ref.read(lastOperationNotifierProvider.notifier).setLastOperation(
+            type: 'merge',
+            name: 'Merged PDF',
+            timestamp: DateTime.now(),
+            filePath: savedPath,
+          );
+
+      // Notify file save system
+      ref.read(fileSaveNotifierProvider.notifier).fileSaved(savedPath, 'merge');
     } catch (e) {
       state = state.copyWith(
         isSaving: false,
-        error: 'Failed to save file: ${e.toString()}',
+        error: 'Failed to save merged PDF: ${e.toString()}',
       );
     }
   }
 
   void reset() {
     state = const MergeState();
-  }
-
-  void clearError() {
-    state = state.copyWith(error: null);
   }
 }
 
@@ -169,16 +249,14 @@ class MergeState {
       isSaving: isSaving ?? this.isSaving,
       result: result ?? this.result,
       error: error,
-      savedPath: savedPath,
+      savedPath: savedPath ?? this.savedPath,
     );
   }
 
   bool get hasFiles => selectedFiles.isNotEmpty;
   bool get hasEnoughFiles => selectedFiles.length >= 2;
-  bool get hasResult => result != null;
-  bool get hasError => error != null;
-  bool get isProcessing => isLoading || isSaving;
-  bool get canMerge => hasEnoughFiles && !isProcessing;
-  bool get canSave => hasResult && !isSaving;
-  bool get hasSavedFile => savedPath != null;
+  bool get hasError => error != null && error!.isNotEmpty;
+  bool get hasResult => result != null && result!.success;
+  bool get canMerge => hasEnoughFiles && !isLoading && !isSaving;
+  bool get canSave => hasResult && !isSaving && !isLoading;
 }

@@ -6,14 +6,14 @@ import 'package:megapdf_client/data/services/storage_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../widgets/common/custom_snackbar.dart';
 
-class ProfilePage extends ConsumerStatefulWidget {
-  const ProfilePage({Key? key}) : super(key: key);
+class SettingsPage extends ConsumerStatefulWidget {
+  const SettingsPage({Key? key}) : super(key: key);
 
   @override
-  ConsumerState<ProfilePage> createState() => _ProfilePageState();
+  ConsumerState<SettingsPage> createState() => _SettingsPageState();
 }
 
-class _ProfilePageState extends ConsumerState<ProfilePage> {
+class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _hasStoragePermission = false;
   String? _megaPdfPath;
 
@@ -38,95 +38,58 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profile'),
+        backgroundColor: AppColors.surface(context),
+        centerTitle: false,
+        elevation: 0,
+        automaticallyImplyLeading: false,
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                gradient: AppColors.primaryGradient(context),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.edit_document,
+                color: Colors.white,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Settings',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary(context),
+                      ),
+                ),
+                Text(
+                  'Setting',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary(context),
+                      ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        actions: [],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // User profile section
-            _buildUserProfileCard(),
-
-            const SizedBox(height: 24),
-
-            // Storage section
             _buildStorageSection(),
-
             const SizedBox(height: 24),
-
-            // Settings section
             _buildSettingsSection(),
-
             const SizedBox(height: 24),
-
-            // Support section
             _buildSupportSection(),
-
             const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildUserProfileCard() {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 32,
-              backgroundColor: AppColors.primary(context).withOpacity(0.1),
-              child: Icon(
-                Icons.person,
-                size: 40,
-                color: AppColors.primary(context),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Guest User',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.star,
-                        size: 16,
-                        color: AppColors.warning(context),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Free Plan',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppColors.textSecondary(context),
-                            ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            OutlinedButton(
-              onPressed: () {
-                // Sign in functionality
-                _showSnackBar('Sign in coming soon!');
-              },
-              child: const Text('Sign In'),
-            ),
           ],
         ),
       ),

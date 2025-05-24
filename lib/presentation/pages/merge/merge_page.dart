@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:file_picker/file_picker.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../providers/merge_provider.dart';
@@ -25,7 +27,7 @@ class MergePage extends ConsumerWidget {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(6),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -72,7 +74,7 @@ class MergePage extends ConsumerWidget {
       ),
       floatingActionButton: state.hasFiles && !state.hasResult
           ? FloatingActionButton.extended(
-              onPressed: () => _showFilePickerDialog(context, ref),
+              onPressed: () => _pickPdfFiles(context, ref),
               icon: const Icon(Icons.add),
               label: const Text('Add Files'),
               backgroundColor: AppColors.mergeColor(context),
@@ -121,7 +123,7 @@ class MergePage extends ConsumerWidget {
                 child: Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    onTap: () => _showFilePickerDialog(context, ref),
+                    onTap: () => _pickPdfFiles(context, ref),
                     borderRadius: BorderRadius.circular(12),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -179,7 +181,7 @@ class MergePage extends ConsumerWidget {
                     ),
                     const Spacer(),
                     TextButton(
-                      onPressed: () => _showFilePickerDialog(context, ref),
+                      onPressed: () => _pickPdfFiles(context, ref),
                       child: const Text('Add More'),
                     ),
                   ],
@@ -334,28 +336,97 @@ class MergePage extends ConsumerWidget {
     );
   }
 
-  void _showFilePickerDialog(BuildContext context, WidgetRef ref) {
-    // This would show a file picker dialog
-    // For now, just trigger the file picker
-    // In a real implementation, you'd use file_picker package
+  // Implement a proper file picker
+  Future<void> _pickPdfFiles(BuildContext context, WidgetRef ref) async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+        allowMultiple: true,
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        final files = result.files
+            .where((file) => file.path != null)
+            .map((file) => File(file.path!))
+            .toList();
+
+        if (files.isNotEmpty) {
+          // Validate file sizes
+          final List<File> validFiles = [];
+          final List<String> oversizedFiles = [];
+          final int maxSizeMB = 50; // 50MB max per file
+
+          for (final file in files) {
+            final sizeInMB = file.lengthSync() / (1024 * 1024);
+            if (sizeInMB <= maxSizeMB) {
+              validFiles.add(file);
+            } else {
+              oversizedFiles.add(file.path.split('/').last);
+            }
+          }
+
+          // Add valid files
+          if (validFiles.isNotEmpty) {
+            ref.read(mergeNotifierProvider.notifier).addFiles(validFiles);
+          }
+
+          // Show warning if any files were too large
+          if (oversizedFiles.isNotEmpty) {
+            _showOversizedFilesWarning(context, oversizedFiles);
+          }
+        }
+      }
+    } catch (e) {
+      // Show error dialog
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Error'),
+          content: Text('Failed to pick files: ${e.toString()}'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  void _showOversizedFilesWarning(
+      BuildContext context, List<String> fileNames) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Select PDF Files'),
-        content: const Text(
-            'This would open a file picker to select multiple PDF files.'),
+        title: const Text('Files Too Large'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+                'The following files exceed the 50MB size limit and were not added:'),
+            const SizedBox(height: 8),
+            ...fileNames.map((name) => Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.warning, color: Colors.orange, size: 16),
+                      const SizedBox(width: 8),
+                      Expanded(
+                          child: Text(name,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold))),
+                    ],
+                  ),
+                )),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              // Here you would trigger the actual file picker
-              // and call ref.read(mergeNotifierProvider.notifier).addFiles(files);
-            },
-            child: const Text('Select Files'),
+            child: const Text('OK'),
           ),
         ],
       ),

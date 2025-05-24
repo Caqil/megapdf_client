@@ -1,4 +1,3 @@
-// lib/presentation/pages/merge/widgets/file_list_widget.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -8,12 +7,14 @@ class FileListWidget extends StatelessWidget {
   final List<File> files;
   final Function(int) onRemoveFile;
   final Function(int, int) onReorderFiles;
+  final bool showPreview;
 
   const FileListWidget({
     super.key,
     required this.files,
     required this.onRemoveFile,
     required this.onReorderFiles,
+    this.showPreview = true,
   });
 
   @override
@@ -81,6 +82,12 @@ class FileListWidget extends StatelessWidget {
 
             const SizedBox(height: 16),
 
+            // Total size indicator
+            if (files.isNotEmpty) ...[
+              _buildTotalSizeIndicator(context),
+              const SizedBox(height: 16),
+            ],
+
             // File List
             ReorderableListView.builder(
               shrinkWrap: true,
@@ -98,6 +105,44 @@ class FileListWidget extends StatelessWidget {
     );
   }
 
+  Widget _buildTotalSizeIndicator(BuildContext context) {
+    // Calculate total size
+    int totalBytes = 0;
+    for (final file in files) {
+      totalBytes += file.lengthSync();
+    }
+
+    // Format total size
+    final totalSizeMB = (totalBytes / (1024 * 1024)).toStringAsFixed(1);
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.mergeColor(context).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border:
+            Border.all(color: AppColors.mergeColor(context).withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.data_usage,
+            color: AppColors.mergeColor(context),
+            size: 20,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            'Total Size: $totalSizeMB MB',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.mergeColor(context),
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildFileItem(BuildContext context, File file, int index) {
     return Container(
       key: ValueKey(file.path),
@@ -109,79 +154,119 @@ class FileListWidget extends StatelessWidget {
         border:
             Border.all(color: AppColors.mergeColor(context).withOpacity(0.2)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Order Number
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: AppColors.mergeColor(context),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Center(
-              child: Text(
-                '${index + 1}',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
+          Row(
+            children: [
+              // Order Number
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: AppColors.mergeColor(context),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Center(
+                  child: Text(
+                    '${index + 1}',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                ),
               ),
-            ),
+
+              const SizedBox(width: 12),
+
+              // File Icon
+              Icon(
+                Icons.picture_as_pdf,
+                color: AppColors.mergeColor(context),
+                size: 24,
+              ),
+
+              const SizedBox(width: 12),
+
+              // File Info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      file.baseName,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Size: ${file.formattedSize}',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppColors.textSecondary(context),
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Drag Handle
+              Icon(
+                Icons.drag_handle,
+                color: AppColors.textMuted(context),
+              ),
+
+              const SizedBox(width: 8),
+
+              // Remove Button
+              IconButton(
+                onPressed: () => onRemoveFile(index),
+                icon: Icon(
+                  Icons.close,
+                  color: AppColors.error(context),
+                  size: 20,
+                ),
+                tooltip: 'Remove file',
+              ),
+            ],
           ),
 
-          const SizedBox(width: 12),
+          // Preview (conditionally shown)
+          if (showPreview) ...[
+            const SizedBox(height: 8),
+            _buildPreview(context, file),
+          ],
+        ],
+      ),
+    );
+  }
 
-          // File Icon
+  Widget _buildPreview(BuildContext context, File file) {
+    // For a real implementation, you would use a PDF thumbnail library
+    // For this example, we'll just show a placeholder
+    return Container(
+      height: 60,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.grey[200],
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
           Icon(
             Icons.picture_as_pdf,
-            color: AppColors.mergeColor(context),
-            size: 24,
+            color: Colors.grey[400],
           ),
-
-          const SizedBox(width: 12),
-
-          // File Info
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  file.baseName,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Size: ${file.formattedSize}',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary(context),
-                      ),
-                ),
-              ],
-            ),
-          ),
-
-          // Drag Handle
-          Icon(
-            Icons.drag_handle,
-            color: AppColors.textMuted(context),
-          ),
-
           const SizedBox(width: 8),
-
-          // Remove Button
-          IconButton(
-            onPressed: () => onRemoveFile(index),
-            icon: Icon(
-              Icons.close,
-              color: AppColors.error(context),
-              size: 20,
-            ),
-            tooltip: 'Remove file',
+          Text(
+            'PDF Preview',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Colors.grey[600],
+                ),
           ),
         ],
       ),

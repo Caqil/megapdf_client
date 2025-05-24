@@ -1,4 +1,3 @@
-// lib/presentation/pages/split/widgets/split_results.dart
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../data/models/split_result.dart';
@@ -163,7 +162,7 @@ class SplitResults extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      part.filename ?? 'Split PDF',
+                      part.filename,
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.w600,
                           ),
@@ -171,7 +170,7 @@ class SplitResults extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
-                      'Pages: ${part.pageRange ?? 'All'}',
+                      'Pages: ${part.pageRange}',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: AppColors.textSecondary(context),
                           ),
@@ -246,13 +245,13 @@ class SplitResults extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Pages: ${part.pageRange ?? 'Unknown'}',
+                  'Pages: ${part.pageRange}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: AppColors.textSecondary(context),
                       ),
                 ),
                 Text(
-                  '${part.pageCount ?? 0} page${part.pageCount != 1 ? 's' : ''}',
+                  '${part.pageCount} page${part.pageCount != 1 ? 's' : ''}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: AppColors.textSecondary(context),
                       ),

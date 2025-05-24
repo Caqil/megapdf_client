@@ -24,7 +24,7 @@ class ProtectPage extends ConsumerWidget {
       appBar: CustomAppBar(
         title: 'Protect PDF',
         subtitle: 'Add password protection to your PDF',
-        onBack: () => context.go('/'),
+        onBack: () => context.pop('/'),
       ),
       body: SafeArea(
         child: SingleChildScrollView(

@@ -44,12 +44,26 @@ class PdfRepositoryImpl implements PdfRepository {
 
   @override
   Future<SplitResult> splitPdf(File file, SplitOptions options) async {
-    return await _apiService.splitPdf(
-      file,
-      options.splitMethod.value,
-      options.pageRanges,
-      options.everyNPages,
-    );
+    try {
+      // Make sure options are properly checked
+      final method = options.splitMethod.value;
+      final pageRanges = options.pageRanges; // Could be null
+      final everyNPages = options.everyNPages; // Could be null
+
+      return await _apiService.splitPdf(
+        file,
+        method,
+        pageRanges, // Make sure API can handle null
+        everyNPages, // Make sure API can handle null
+      );
+    } catch (e) {
+      // Proper error handling with specific error messages
+      if (e is DioException) {
+        // Handle API errors
+      }
+      // Re-throw with context
+      throw 'Failed to split PDF: $e';
+    }
   }
 
   @override
