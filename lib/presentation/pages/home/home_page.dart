@@ -84,64 +84,11 @@ class _HomePageState extends ConsumerState<HomePage>
             fileState: fileManagerState,
             recentState: recentFilesState,
           ),
-          HomeTabBar(controller: _tabController),
           Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                QuickAccessTab(),
-                FilesTab(
-                  fileState: fileManagerState,
-                  searchQuery: _searchQuery,
-                  isGridView: _isGridView,
-                ),
-                RecentTab(recentState: recentFilesState),
-              ],
-            ),
+            child: QuickAccessTab(),
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _pickAndImportFile,
-        backgroundColor: AppColors.primary(context),
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
     );
-  }
-
-  Future<void> _pickAndImportFile() async {
-    try {
-      // Show file picker
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'],
-      );
-
-      if (result != null && result.files.isNotEmpty) {
-        final file = result.files.first;
-        if (file.path != null) {
-          // Import file to app
-          final success = await ref
-              .read(fileManagerNotifierProvider.notifier)
-              .importFile(file.path!);
-
-          if (success) {
-            CustomSnackbar.show(
-              context: context,
-              message: 'File imported successfully',
-              type: SnackbarType.success,
-              duration: const Duration(seconds: 3),
-            );
-          }
-        }
-      }
-    } catch (e) {
-      CustomSnackbar.show(
-        context: context,
-        message: 'Failed to import file: $e',
-        type: SnackbarType.failure,
-        duration: const Duration(seconds: 3),
-      );
-    }
   }
 }
