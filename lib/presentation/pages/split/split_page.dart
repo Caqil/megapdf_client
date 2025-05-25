@@ -1,4 +1,6 @@
 // lib/presentation/pages/split/split_page.dart
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,17 +9,83 @@ import '../../../core/theme/app_colors.dart';
 import '../../../data/models/split_options.dart';
 import '../../providers/split_provider.dart';
 import '../../widgets/common/app_bar_widget.dart';
+import '../../widgets/common/custom_snackbar.dart';
 import '../../widgets/common/error_widget.dart';
 import '../../widgets/common/file_picker_button.dart';
 import 'widgets/split_method_selector.dart';
 import 'widgets/page_range_input.dart';
 import 'widgets/split_results.dart';
 
-class SplitPage extends ConsumerWidget {
-  const SplitPage({super.key});
+class SplitPage extends ConsumerStatefulWidget {
+  final String? initialFilePath;
+  final String? initialFileName;
+
+  const SplitPage({
+    super.key,
+    this.initialFilePath,
+    this.initialFileName,
+  });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SplitPage> createState() => _SplitPageState();
+}
+
+class _SplitPageState extends ConsumerState<SplitPage> {
+  final TextEditingController _pageRangesController = TextEditingController();
+  final TextEditingController _everyNPagesController =
+      TextEditingController(text: '1');
+  SplitMethod _selectedMethod = SplitMethod.range;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Check for parameters in route and load file if available
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadInitialFileIfAvailable();
+    });
+  }
+
+  void _loadInitialFileIfAvailable() {
+    if (widget.initialFilePath != null && widget.initialFilePath!.isNotEmpty) {
+      try {
+        final file = File(widget.initialFilePath!);
+        if (file.existsSync()) {
+          // Select the file in the provider
+          ref.read(splitNotifierProvider.notifier).selectFile(file);
+
+          // Show a notification to the user
+          CustomSnackbar.show(
+            context: context,
+            message: 'Loaded ${widget.initialFileName ?? "file"} for splitting',
+            type: SnackbarType.success,
+          );
+        } else {
+          CustomSnackbar.show(
+            context: context,
+            message: 'Could not find the selected file',
+            type: SnackbarType.failure,
+          );
+        }
+      } catch (e) {
+        CustomSnackbar.show(
+          context: context,
+          message: 'Error loading file: $e',
+          type: SnackbarType.failure,
+        );
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _pageRangesController.dispose();
+    _everyNPagesController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(splitNotifierProvider);
 
     return Scaffold(

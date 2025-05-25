@@ -105,6 +105,20 @@ class ScannerNotifier extends _$ScannerNotifier {
             isConverting: false,
             savedPdfPath: savedPath,
           );
+
+          // Close the scanner page after successful conversion
+          if (context.mounted) {
+            Navigator.of(context).pop();
+
+            // Optional: Show a success message
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('PDF saved successfully'),
+                backgroundColor: Colors.green,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
         } else {
           state = state.copyWith(
             isConverting: false,
@@ -174,6 +188,20 @@ class ScannerNotifier extends _$ScannerNotifier {
           isConverting: false,
           savedPdfPath: savedPath,
         );
+
+        // Close the scanner page after successful conversion
+        if (context.mounted) {
+          Navigator.of(context).pop();
+
+          // Optional: Show a success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('PDF saved successfully'),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
       } else {
         state = state.copyWith(
           isConverting: false,
@@ -241,6 +269,18 @@ class ScannerNotifier extends _$ScannerNotifier {
             isSaving: false,
             savedImagePath: savedPath,
           );
+          if (context.mounted) {
+            Navigator.of(context).pop();
+
+            // Optional: Show a success message
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Image saved successfully'),
+                backgroundColor: Colors.green,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
         } else {
           state = state.copyWith(
             isSaving: false,

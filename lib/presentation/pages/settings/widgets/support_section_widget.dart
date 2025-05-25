@@ -6,6 +6,8 @@ import 'package:megapdf_client/core/theme/app_colors.dart';
 import 'package:megapdf_client/presentation/widgets/common/custom_snackbar.dart';
 import 'package:megapdf_client/presentation/pages/settings/widgets/section_card_widget.dart';
 
+import '../../../../data/services/app_review_service.dart';
+
 class SupportSectionWidget extends ConsumerWidget {
   const SupportSectionWidget({Key? key}) : super(key: key);
 
@@ -107,12 +109,22 @@ class SupportSectionWidget extends ConsumerWidget {
             Icons.chevron_right,
             color: AppColors.textSecondary(context),
           ),
-          onTap: () {
-            CustomSnackbar.show(
-              context: context,
-              message: 'Thank you for your support!',
-              type: SnackbarType.success,
-            );
+          onTap: () async {
+            try {
+              await ref.read(appReviewServiceProvider).requestReview();
+
+              // Note: We don't show a success message here because the system
+              // dialog for rating is enough of a confirmation
+            } catch (e) {
+              // Only show an error if something goes wrong
+              if (context.mounted) {
+                CustomSnackbar.show(
+                  context: context,
+                  message: 'Could not open app review. Please try again later.',
+                  type: SnackbarType.failure,
+                );
+              }
+            }
           },
         ),
       ],

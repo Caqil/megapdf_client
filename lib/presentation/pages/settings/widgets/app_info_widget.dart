@@ -11,17 +11,10 @@ class AppInfoWidget extends ConsumerWidget {
     return Center(
       child: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              gradient: AppColors.primaryGradient(context),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: const Icon(
-              Icons.edit_document,
-              color: Colors.white,
-              size: 32,
-            ),
+          Image.asset(
+            'assets/images/logo.png',
+            width: 40,
+            height: 40,
           ),
           const SizedBox(height: 12),
           Text(
@@ -33,14 +26,14 @@ class AppInfoWidget extends ConsumerWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Version 1.2.0',
+            'Version 1.0.0',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: AppColors.textSecondary(context),
                 ),
           ),
           const SizedBox(height: 8),
           Text(
-            '© 2024 MegaPDF Team',
+            '© 2025 MegaPDF Team',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: AppColors.textSecondary(context),
                 ),

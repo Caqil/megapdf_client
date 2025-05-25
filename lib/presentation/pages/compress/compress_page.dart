@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,16 +7,71 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../providers/compress_provider.dart';
 import '../../widgets/common/app_bar_widget.dart';
+import '../../widgets/common/custom_snackbar.dart';
 import '../../widgets/common/error_widget.dart';
 import '../../widgets/common/file_picker_button.dart';
 import '../../widgets/common/download_button.dart';
 import 'widgets/compression_result.dart';
 
-class CompressPage extends ConsumerWidget {
-  const CompressPage({super.key});
+class CompressPage extends ConsumerStatefulWidget {
+  final String? initialFilePath;
+  final String? initialFileName;
+
+  const CompressPage({
+    super.key,
+    this.initialFilePath,
+    this.initialFileName,
+  });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CompressPage> createState() => _CompressPageState();
+}
+
+class _CompressPageState extends ConsumerState<CompressPage> {
+  @override
+  void initState() {
+    super.initState();
+
+    // Check for parameters in route and load file if available
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadInitialFileIfAvailable();
+    });
+  }
+
+  void _loadInitialFileIfAvailable() {
+    if (widget.initialFilePath != null && widget.initialFilePath!.isNotEmpty) {
+      try {
+        final file = File(widget.initialFilePath!);
+        if (file.existsSync()) {
+          // Select the file in the provider
+          ref.read(compressNotifierProvider.notifier).selectFile(file);
+
+          // Show a notification to the user
+          CustomSnackbar.show(
+            context: context,
+            message:
+                'Loaded ${widget.initialFileName ?? "file"} for protection',
+            type: SnackbarType.success,
+          );
+        } else {
+          CustomSnackbar.show(
+            context: context,
+            message: 'Could not find the selected file',
+            type: SnackbarType.failure,
+          );
+        }
+      } catch (e) {
+        CustomSnackbar.show(
+          context: context,
+          message: 'Error loading file: $e',
+          type: SnackbarType.failure,
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(compressNotifierProvider);
 
     return Scaffold(
@@ -199,7 +256,6 @@ class CompressPage extends ConsumerWidget {
           ),
         ],
 
-        // Download Button
         if (state.hasResult) ...[
           SaveButton(
             onPressed: state.canSave

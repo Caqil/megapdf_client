@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "261978309187",
+    "project_id": "mega-pdf-project",
+    "storage_bucket": "mega-pdf-project.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:261978309187:android:ca550b0bdf7ee772ca8af6",
+        "android_client_info": {
+          "package_name": "com.mega.pdf"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCurAc4OY1j-1cdWcLHMBlQcQeI8fHYyCw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

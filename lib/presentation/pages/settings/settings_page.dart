@@ -1,8 +1,6 @@
 // lib/presentation/pages/settings/settings_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:megapdf_client/presentation/pages/settings/widgets/storage_section_widget.dart';
-import 'package:megapdf_client/presentation/pages/settings/widgets/file_management_section_widget.dart';
 import 'package:megapdf_client/presentation/pages/settings/widgets/support_section_widget.dart';
 import 'package:megapdf_client/presentation/pages/settings/widgets/privacy_policy_widget.dart';
 import 'package:megapdf_client/presentation/pages/settings/widgets/terms_of_service_widget.dart';
@@ -61,9 +59,6 @@ class SettingsPage extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: const [
-            StorageSectionWidget(),
-            SizedBox(height: 24),
-            FileManagementSectionWidget(),
             SizedBox(height: 24),
             SupportSectionWidget(),
             SizedBox(height: 24),

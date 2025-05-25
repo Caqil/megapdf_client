@@ -2,18 +2,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:file_picker/file_picker.dart';
-
 import '../../../core/theme/app_colors.dart';
 import '../../providers/file_manager_provider.dart';
 import '../../providers/recent_files_provider.dart';
-import '../../widgets/common/custom_snackbar.dart';
 import 'widgets/home_app_bar.dart';
 import 'widgets/welcome_header.dart';
-import 'widgets/home_tab_bar.dart';
 import 'widgets/quick_access_tab.dart';
-import 'widgets/files_tab.dart';
-import 'widgets/recent_tab.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});

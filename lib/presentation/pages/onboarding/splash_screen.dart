@@ -142,7 +142,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                               AppColors.primary(context).withOpacity(0.8),
                             ],
                           ),
-                          borderRadius: BorderRadius.circular(35),
+                          borderRadius: BorderRadius.circular(17),
                           boxShadow: [
                             BoxShadow(
                               color:
@@ -152,10 +152,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                             ),
                           ],
                         ),
-                        child: const Icon(
-                          Icons.picture_as_pdf,
-                          size: 70,
-                          color: Colors.white,
+                        child: Image.asset(
+                          'assets/images/logo.png',
+                          width: 60,
+                          height: 60,
                         ),
                       ),
                     ),

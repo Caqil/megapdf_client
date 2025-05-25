@@ -1,4 +1,4 @@
-package com.example.megapdf_client
+package com.mega.pdf
 
 import io.flutter.embedding.android.FlutterActivity
 

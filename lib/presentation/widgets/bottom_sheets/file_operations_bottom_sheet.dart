@@ -1,12 +1,12 @@
-// lib/presentation/widgets/bottom_sheets/file_operations_bottom_sheet.dart
+
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:megapdf_client/data/database/database_helper.dart';
 import 'package:megapdf_client/presentation/providers/recent_files_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:open_file/open_file.dart';
-import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../data/models/recent_file_model.dart';
 import '../common/custom_snackbar.dart';
@@ -72,7 +72,7 @@ class _FileOperationsBottomSheetState
                       _buildFileOperations(),
 
                       // PDF tools
-                      if (_isPdf) _buildPdfTools(),
+                      _buildPdfTools(),
 
                       // Bottom padding for safe area
                       SizedBox(
@@ -308,14 +308,6 @@ class _FileOperationsBottomSheetState
           onTap: _showFileInfo,
         ),
         _buildOperationTile(
-          icon: Icons.folder_open,
-          title: 'Show in Folder',
-          subtitle: 'Open file location',
-          color: AppColors.primary(context),
-          onTap: _showInFolder,
-          enabled: widget.file.resultFilePath != null,
-        ),
-        _buildOperationTile(
           icon: Icons.copy,
           title: 'Duplicate',
           subtitle: 'Make a copy of this file',
@@ -480,7 +472,13 @@ class _FileOperationsBottomSheetState
             ? () {
                 if (mounted) {
                   Navigator.pop(context);
-                  context.go(route);
+                  // Pass file path and name as query parameters
+                  final encodedPath =
+                      Uri.encodeComponent(widget.file.resultFilePath!);
+                  final encodedName =
+                      Uri.encodeComponent(widget.file.originalFileName);
+                  context.push(
+                      '$route?filePath=$encodedPath&fileName=$encodedName');
                 }
               }
             : null,
@@ -577,10 +575,6 @@ class _FileOperationsBottomSheetState
         builder: (context) => _FileInfoDialog(file: widget.file),
       );
     }
-  }
-
-  void _showInFolder() {
-    _showSnackBar('Show in folder - Coming soon!');
   }
 
   void _duplicateFile() {
@@ -798,6 +792,8 @@ class _FileOperationsBottomSheetState
         return AppColors.watermarkColor(context);
       case 'page_numbers':
         return AppColors.pageNumbersColor(context);
+      case 'import':
+        return AppColors.primary(context);
       default:
         return AppColors.primary(context);
     }

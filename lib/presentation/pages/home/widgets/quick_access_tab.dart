@@ -1,10 +1,17 @@
 // lib/presentation/pages/home/widgets/quick_access_tab.dart
+import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:path/path.dart' as path;
 import 'package:megapdf_client/core/theme/app_colors.dart';
+import 'package:megapdf_client/core/utils/file_utils.dart';
+import 'package:megapdf_client/data/repositories/recent_files_repository.dart';
 import 'package:megapdf_client/presentation/pages/home/widgets/tips_section.dart';
+import 'package:megapdf_client/presentation/providers/file_operation_notifier.dart';
+import 'package:megapdf_client/presentation/providers/file_path_provider.dart';
+import '../../../../data/services/recent_files_service.dart';
 import '../../../providers/file_manager_provider.dart';
 import '../../../widgets/common/custom_snackbar.dart';
 import 'quick_action_card.dart';
@@ -27,12 +34,56 @@ class QuickAccessTab extends ConsumerWidget {
         if (result != null && result.files.isNotEmpty) {
           final file = result.files.first;
           if (file.path != null) {
-            // Import file to app
-            final success = await ref
-                .read(fileManagerNotifierProvider.notifier)
-                .importFile(file.path!);
+            // Create a File object from the path
+            final sourceFile = File(file.path!);
+            final originalName = file.name;
+            final originalSize = sourceFile.lengthSync();
 
-            if (success) {
+            // Use addFile instead of importFile to get the destination path
+            final savedPath = await ref
+                .read(fileManagerNotifierProvider.notifier)
+                .addFile(sourceFile);
+
+            if (savedPath != null) {
+              // Track in recent files
+              final recentFilesService = ref.read(recentFilesServiceProvider);
+              // Since there's no trackImport method, we'll use the repository directly
+              final recentFilesRepository =
+                  ref.read(recentFilesRepositoryProvider);
+              await recentFilesRepository.addRecentFile(
+                originalFileName: originalName,
+                resultFileName: path.basename(savedPath),
+                operation: 'Import File',
+                operationType: 'import',
+                originalFilePath: sourceFile.path,
+                resultFilePath: savedPath,
+                originalSize: FileUtils.formatFileSize(originalSize),
+                resultSize: FileUtils.formatFileSize(
+                    originalSize), // Same size for import
+                metadata: {
+                  'imported_at': DateTime.now().toIso8601String(),
+                  'is_public_storage': true,
+                },
+              );
+
+              // Notify file operation completed
+              ref
+                  .read(fileOperationNotifierProvider.notifier)
+                  .notifyOperationCompleted('import');
+
+              // Set as last operation
+              ref.read(lastOperationNotifierProvider.notifier).setLastOperation(
+                    type: 'import',
+                    name: 'Imported File',
+                    timestamp: DateTime.now(),
+                    filePath: savedPath,
+                  );
+
+              // Notify file save system
+              ref
+                  .read(fileSaveNotifierProvider.notifier)
+                  .fileSaved(savedPath, 'import');
+
               CustomSnackbar.show(
                 context: context,
                 message: 'File imported successfully',

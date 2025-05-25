@@ -120,12 +120,7 @@ class ProtectResultWidget extends StatelessWidget {
                     size: 16,
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    'File: ${result.filename}',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.textSecondary(context),
-                        ),
-                  ),
+                 
                 ],
               ),
             ],

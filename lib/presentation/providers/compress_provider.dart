@@ -73,7 +73,6 @@ class CompressNotifier extends _$CompressNotifier {
           compressedSizeBytes: result.compressedSize,
         );
 
-        // ADD THIS LINE HERE:
         ref
             .read(fileOperationNotifierProvider.notifier)
             .notifyFileOperationCompleted();

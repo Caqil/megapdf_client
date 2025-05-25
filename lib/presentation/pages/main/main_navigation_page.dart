@@ -24,6 +24,12 @@ class _MainNavigationPageState extends ConsumerState<MainNavigationPage> {
     const RecentPage(),
     const SettingsPage(),
   ];
+  
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -78,8 +84,8 @@ class _MainNavigationPageState extends ConsumerState<MainNavigationPage> {
               label: 'Recent',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
+              icon: Icon(Icons.settings_outlined),
+              activeIcon: Icon(Icons.settings),
               label: 'Settings',
             ),
           ],

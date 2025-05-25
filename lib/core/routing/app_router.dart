@@ -85,57 +85,112 @@ GoRouter router(Ref ref) {
       GoRoute(
         path: '/compress',
         name: 'compress',
-        builder: (context, state) => const CompressPage(),
+        builder: (context, state) {
+          final filePath = state.uri.queryParameters['filePath'];
+          final fileName = state.uri.queryParameters['fileName'];
+          return CompressPage(
+            initialFilePath: filePath,
+            initialFileName: fileName,
+          );
+        },
       ),
       GoRoute(
         path: '/split',
         name: 'split',
-        builder: (context, state) => const SplitPage(),
+        builder: (context, state) {
+          final filePath = state.uri.queryParameters['filePath'];
+          final fileName = state.uri.queryParameters['fileName'];
+          return SplitPage(
+            initialFilePath: filePath,
+            initialFileName: fileName,
+          );
+        },
       ),
       GoRoute(
         path: '/merge',
         name: 'merge',
-        builder: (context, state) => const MergePage(),
+        builder: (context, state) {
+          final filePath = state.uri.queryParameters['filePath'];
+          final fileName = state.uri.queryParameters['fileName'];
+          return MergePage(
+            initialFilePath: filePath,
+            initialFileName: fileName,
+          );
+        },
       ),
       GoRoute(
         path: '/watermark',
         name: 'watermark',
-        builder: (context, state) => const WatermarkPage(),
+        builder: (context, state) {
+          final filePath = state.uri.queryParameters['filePath'];
+          final fileName = state.uri.queryParameters['fileName'];
+          return WatermarkPage(
+            initialFilePath: filePath,
+            initialFileName: fileName,
+          );
+        },
       ),
       GoRoute(
         path: '/convert',
         name: 'convert',
-        builder: (context, state) => const ConvertPage(),
+        builder: (context, state) {
+          final filePath = state.uri.queryParameters['filePath'];
+          final fileName = state.uri.queryParameters['fileName'];
+          return ConvertPage(
+            initialFilePath: filePath,
+            initialFileName: fileName,
+          );
+        },
       ),
       GoRoute(
         path: '/protect',
         name: 'protect',
-        builder: (context, state) => const ProtectPage(),
+        builder: (context, state) {
+          final filePath = state.uri.queryParameters['filePath'];
+          final fileName = state.uri.queryParameters['fileName'];
+          return ProtectPage(
+            initialFilePath: filePath,
+            initialFileName: fileName,
+          );
+        },
       ),
       GoRoute(
         path: '/unlock',
         name: 'unlock',
-        builder: (context, state) => const UnlockPage(),
+        builder: (context, state) {
+          final filePath = state.uri.queryParameters['filePath'];
+          final fileName = state.uri.queryParameters['fileName'];
+          return UnlockPage(
+            initialFilePath: filePath,
+            initialFileName: fileName,
+          );
+        },
       ),
       GoRoute(
         path: '/rotate',
         name: 'rotate',
-        builder: (context, state) => const RotatePage(),
+        builder: (context, state) {
+          final filePath = state.uri.queryParameters['filePath'];
+          final fileName = state.uri.queryParameters['fileName'];
+          return RotatePage(
+            initialFilePath: filePath,
+            initialFileName: fileName,
+          );
+        },
       ),
       GoRoute(
         path: '/page-numbers',
         name: 'page-numbers',
-        builder: (context, state) => const PageNumbersPage(),
-      ),
-
-      // Storage Management
-      GoRoute(
-        path: '/storage',
-        name: 'storage',
         builder: (context, state) {
-          return StorageBrowserPage();
+          final filePath = state.uri.queryParameters['filePath'];
+          final fileName = state.uri.queryParameters['fileName'];
+          return PageNumbersPage(
+            initialFilePath: filePath,
+            initialFileName: fileName,
+          );
         },
       ),
+     
       GoRoute(
         path: '/faq',
         name: 'faq',
@@ -146,46 +201,6 @@ GoRouter router(Ref ref) {
         name: 'contact',
         builder: (context, state) => const ContactPage(),
       ),
-      // Success page
-      GoRoute(
-        path: '/success',
-        name: 'success',
-        builder: (context, state) {
-          final filePath = state.uri.queryParameters['filePath'] ?? '';
-          final operationType =
-              state.uri.queryParameters['operationType'] ?? '';
-          final operationName =
-              state.uri.queryParameters['operationName'] ?? 'Processed';
-
-          // Convert details string to map if available
-          Map<String, dynamic>? details;
-          if (state.uri.queryParameters.containsKey('details')) {
-            try {
-              details = {};
-              final detailsString = state.uri.queryParameters['details'] ?? '';
-              final pairs = detailsString.split('|');
-
-              for (final pair in pairs) {
-                final keyValue = pair.split(':');
-                if (keyValue.length == 2) {
-                  details[keyValue[0]] = keyValue[1];
-                }
-              }
-            } catch (e) {
-              details = null;
-            }
-          }
-
-          return FileOperationSuccessPage(
-            filePath: filePath,
-            operationType: operationType,
-            operationName: operationName,
-            details: details,
-          );
-        },
-      ),
-
-      // PDF Viewer page
       GoRoute(
         path: '/pdfViewer',
         name: 'pdfViewer',

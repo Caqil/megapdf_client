@@ -7,16 +7,70 @@ import 'package:file_picker/file_picker.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../providers/merge_provider.dart';
 import '../../widgets/common/app_bar_widget.dart';
+import '../../widgets/common/custom_snackbar.dart';
 import '../../widgets/common/error_widget.dart';
 import '../../widgets/common/download_button.dart';
 import 'widgets/file_list_widget.dart';
 import 'widgets/merge_result.dart';
 
-class MergePage extends ConsumerWidget {
-  const MergePage({super.key});
+class MergePage extends ConsumerStatefulWidget {
+  final String? initialFilePath;
+  final String? initialFileName;
+
+  const MergePage({
+    super.key,
+    this.initialFilePath,
+    this.initialFileName,
+  });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MergePage> createState() => _MergePageState();
+}
+
+class _MergePageState extends ConsumerState<MergePage> {
+  @override
+  void initState() {
+    super.initState();
+
+    // Check for parameters in route and load file if available
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadInitialFileIfAvailable();
+    });
+  }
+
+  void _loadInitialFileIfAvailable() {
+    if (widget.initialFilePath != null && widget.initialFilePath!.isNotEmpty) {
+      try {
+        final file = File(widget.initialFilePath!);
+        if (file.existsSync()) {
+          // Add the file to the merge list
+          ref.read(mergeNotifierProvider.notifier).addFiles([file]);
+
+          // Show a notification to the user
+          CustomSnackbar.show(
+            context: context,
+            message: 'Added ${widget.initialFileName ?? "file"} to merge list',
+            type: SnackbarType.success,
+          );
+        } else {
+          CustomSnackbar.show(
+            context: context,
+            message: 'Could not find the selected file',
+            type: SnackbarType.failure,
+          );
+        }
+      } catch (e) {
+        CustomSnackbar.show(
+          context: context,
+          message: 'Error loading file: $e',
+          type: SnackbarType.failure,
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(mergeNotifierProvider);
 
     return Scaffold(

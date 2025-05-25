@@ -1,4 +1,6 @@
 // lib/presentation/pages/unlock/unlock_page.dart
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,17 +8,73 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../providers/unlock_provider.dart';
 import '../../widgets/common/app_bar_widget.dart';
+import '../../widgets/common/custom_snackbar.dart';
 import '../../widgets/common/error_widget.dart';
 import '../../widgets/common/file_picker_button.dart';
 import '../../widgets/common/download_button.dart';
 import 'widgets/password_input.dart';
 import 'widgets/unlock_result_widget.dart';
 
-class UnlockPage extends ConsumerWidget {
-  const UnlockPage({super.key});
+
+class UnlockPage extends ConsumerStatefulWidget {
+  final String? initialFilePath;
+  final String? initialFileName;
+
+  const UnlockPage({
+    super.key,
+    this.initialFilePath,
+    this.initialFileName,
+  });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<UnlockPage> createState() => _UnlockPageState();
+}
+
+class _UnlockPageState extends ConsumerState<UnlockPage> {
+  @override
+  void initState() {
+    super.initState();
+
+    // Check for parameters in route and load file if available
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadInitialFileIfAvailable();
+    });
+  }
+
+  void _loadInitialFileIfAvailable() {
+    if (widget.initialFilePath != null && widget.initialFilePath!.isNotEmpty) {
+      try {
+        final file = File(widget.initialFilePath!);
+        if (file.existsSync()) {
+          // Select the file in the provider
+          ref.read(unlockNotifierProvider.notifier).selectFile(file);
+
+          // Show a notification to the user
+          CustomSnackbar.show(
+            context: context,
+            message:
+                'Loaded ${widget.initialFileName ?? "file"} for protection',
+            type: SnackbarType.success,
+          );
+        } else {
+          CustomSnackbar.show(
+            context: context,
+            message: 'Could not find the selected file',
+            type: SnackbarType.failure,
+          );
+        }
+      } catch (e) {
+        CustomSnackbar.show(
+          context: context,
+          message: 'Error loading file: $e',
+          type: SnackbarType.failure,
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(unlockNotifierProvider);
 
     return Scaffold(

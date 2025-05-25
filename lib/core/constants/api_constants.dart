@@ -17,7 +17,7 @@ class ApiConstants {
   static const String protectPdf = '$_apiPrefix/pdf/protect';
   static const String unlockPdf = '$_apiPrefix/pdf/unlock';
   static const String rotatePdf = '$_apiPrefix/pdf/rotate';
-  static const String addPageNumbers = '$_apiPrefix/pdf/add-page-numbers';
+  static const String addPageNumbers = '$_apiPrefix/pdf/pagenumber';
 
   // File serving
   static const String serveFile = '$_apiPrefix/file';
