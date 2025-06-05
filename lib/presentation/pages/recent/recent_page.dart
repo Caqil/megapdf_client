@@ -22,6 +22,7 @@ class _RecentPageState extends ConsumerState<RecentPage>
     with AutomaticKeepAliveClientMixin {
   String? _selectedFilter;
   bool _showFilterChips = false;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   bool get wantKeepAlive => true;
@@ -30,9 +31,30 @@ class _RecentPageState extends ConsumerState<RecentPage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(recentFilesNotifierProvider.notifier).loadRecentFiles();
+      ref
+          .read(recentFilesNotifierProvider.notifier)
+          .loadRecentFiles(isInitial: true);
       ref.read(recentFilesNotifierProvider.notifier).loadStats();
     });
+
+    // Add scroll listener for infinite scroll (optional)
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      final state = ref.read(recentFilesNotifierProvider);
+      if (state.canLoadMore) {
+        ref.read(recentFilesNotifierProvider.notifier).loadMoreFiles();
+      }
+    }
   }
 
   @override
@@ -86,9 +108,11 @@ class _RecentPageState extends ConsumerState<RecentPage>
                       color: AppColors.textPrimary(context),
                     ),
               ),
-              if (state.recentFiles.isNotEmpty)
+              if (state.totalCount > 0)
                 Text(
-                  '${state.recentFiles.length} files processed',
+                  state.showingAllFiles
+                      ? 'Showing all ${state.totalCount} files'
+                      : '${state.recentFiles.length} of ${state.totalCount} files',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: AppColors.textSecondary(context),
                       ),
@@ -108,8 +132,9 @@ class _RecentPageState extends ConsumerState<RecentPage>
             },
             icon: Icon(
               _showFilterChips ? Icons.filter_list_off : Icons.filter_list,
-              color:
-                  _selectedFilter != null ? AppColors.primary(context) : null,
+              color: _selectedFilter != null || _showFilterChips
+                  ? AppColors.primary(context)
+                  : AppColors.textSecondary(context),
             ),
             tooltip: 'Filter',
           ),
@@ -184,6 +209,7 @@ class _RecentPageState extends ConsumerState<RecentPage>
     }
 
     return SingleChildScrollView(
+      controller: _scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -203,6 +229,15 @@ class _RecentPageState extends ConsumerState<RecentPage>
 
           // Recent files list
           _buildRecentFilesList(state),
+
+          // Load more / View all section
+          if (state.hasRecentFiles) ...[
+            const SizedBox(height: 24),
+            _buildLoadMoreSection(state),
+          ],
+
+          // Add bottom padding for scroll
+          const SizedBox(height: 100),
         ],
       ),
     );
@@ -226,7 +261,7 @@ class _RecentPageState extends ConsumerState<RecentPage>
                 });
                 ref
                     .read(recentFilesNotifierProvider.notifier)
-                    .loadRecentFiles();
+                    .loadRecentFiles(isInitial: true);
               },
               selectedColor: AppColors.primary(context).withOpacity(0.2),
               checkmarkColor: AppColors.primary(context),
@@ -246,7 +281,10 @@ class _RecentPageState extends ConsumerState<RecentPage>
                   });
                   ref
                       .read(recentFilesNotifierProvider.notifier)
-                      .loadRecentFiles(operationType: _selectedFilter);
+                      .loadRecentFiles(
+                        operationType: _selectedFilter,
+                        isInitial: true,
+                      );
                 },
                 selectedColor:
                     _getOperationColor(operationType).withOpacity(0.2),
@@ -318,12 +356,22 @@ class _RecentPageState extends ConsumerState<RecentPage>
                     color: AppColors.textPrimary(context),
                   ),
             ),
-            if (state.recentFiles.length > 10)
+            // Quick toggle between limited and all files
+            if (state.totalCount > 10 && !state.showingAllFiles)
               TextButton(
                 onPressed: () {
-                  // TODO: Navigate to expanded view
+                  ref.read(recentFilesNotifierProvider.notifier).showAllFiles();
                 },
-                child: Text('View All'),
+                child: Text(state.viewAllButtonText),
+              ),
+            if (state.showingAllFiles)
+              TextButton(
+                onPressed: () {
+                  ref
+                      .read(recentFilesNotifierProvider.notifier)
+                      .showLimitedFiles();
+                },
+                child: Text('Show Less'),
               ),
           ],
         ),
@@ -341,6 +389,109 @@ class _RecentPageState extends ConsumerState<RecentPage>
             );
           },
         ),
+      ],
+    );
+  }
+
+  Widget _buildLoadMoreSection(RecentFilesState state) {
+    // Don't show load more section if showing all files
+    if (state.showingAllFiles) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      children: [
+        // Load more button
+        if (state.canLoadMore) ...[
+          Container(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: state.isLoadingMore
+                  ? null
+                  : () {
+                      ref
+                          .read(recentFilesNotifierProvider.notifier)
+                          .loadMoreFiles();
+                    },
+              icon: state.isLoadingMore
+                  ? SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                            AppColors.primary(context)),
+                      ),
+                    )
+                  : Icon(Icons.expand_more),
+              label: Text(
+                state.isLoadingMore ? 'Loading...' : state.loadMoreButtonText,
+              ),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                side: BorderSide(color: AppColors.primary(context)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+
+        // View all button (alternative to load more)
+        if (state.hasMoreFiles && !state.isLoadingMore) ...[
+          Container(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                ref.read(recentFilesNotifierProvider.notifier).showAllFiles();
+              },
+              icon: Icon(Icons.visibility),
+              label: Text(state.viewAllButtonText),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary(context),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ),
+        ],
+
+        // No more files indicator
+        if (!state.hasMoreFiles && !state.showingAllFiles) ...[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceVariant(context),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.border(context)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.check_circle_outline,
+                  color: AppColors.success(context),
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'All files loaded',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.textSecondary(context),
+                        fontWeight: FontWeight.w500,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ],
+
+        // Loading more indicator
+        if (state.isLoadingMore) ...[
+          const SizedBox(height: 16),
+          Center(
+            child: LoadingWidget(message: 'Loading more files...'),
+          ),
+        ],
       ],
     );
   }
@@ -392,7 +543,7 @@ class _RecentPageState extends ConsumerState<RecentPage>
                 });
                 ref
                     .read(recentFilesNotifierProvider.notifier)
-                    .loadRecentFiles();
+                    .loadRecentFiles(isInitial: true);
               },
               child: Text('Show All Files'),
             ),

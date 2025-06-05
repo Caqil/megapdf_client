@@ -13,6 +13,9 @@ part 'recent_files_provider.g.dart';
 
 @riverpod
 class RecentFilesNotifier extends _$RecentFilesNotifier {
+  static const int _pageSize = 20;
+  static const int _initialLoadSize = 10;
+
   @override
   RecentFilesState build() {
     print('🔧 PROVIDER: Building RecentFilesNotifier');
@@ -23,8 +26,7 @@ class RecentFilesNotifier extends _$RecentFilesNotifier {
       if (previous != null && next > previous) {
         print('🔧 PROVIDER: New file operation, refreshing...');
         Future.delayed(const Duration(milliseconds: 500), () {
-          loadRecentFiles(operationType: state.currentFilter);
-          loadStats();
+          refreshRecentFiles();
         });
       }
     });
@@ -36,8 +38,7 @@ class RecentFilesNotifier extends _$RecentFilesNotifier {
               previous.lastSavedFilePath != next.lastSavedFilePath)) {
         print('🔧 PROVIDER: New file saved, refreshing...');
         Future.delayed(const Duration(milliseconds: 500), () {
-          loadRecentFiles(operationType: state.currentFilter);
-          loadStats();
+          refreshRecentFiles();
         });
       }
     });
@@ -45,28 +46,69 @@ class RecentFilesNotifier extends _$RecentFilesNotifier {
     // Auto-load recent files when provider is created
     WidgetsBinding.instance.addPostFrameCallback((_) {
       print('🔧 PROVIDER: Auto-loading recent files');
-      loadRecentFiles();
+      loadRecentFiles(isInitial: true);
       loadStats();
     });
     return const RecentFilesState();
   }
 
-  Future<void> loadRecentFiles({String? operationType}) async {
-    print('🔧 PROVIDER: loadRecentFiles called with filter: $operationType');
+  Future<void> loadRecentFiles({
+    String? operationType,
+    bool isInitial = false,
+    bool showAllFiles = false,
+  }) async {
+    print(
+        '🔧 PROVIDER: loadRecentFiles called with filter: $operationType, isInitial: $isInitial, showAll: $showAllFiles');
 
-    state = state.copyWith(isLoading: true, error: null);
-    print('🔧 PROVIDER: Set loading state');
+    // For initial load or when changing filters, reset pagination
+    if (isInitial || state.currentFilter != operationType) {
+      state = state.copyWith(
+        isLoading: true,
+        error: null,
+        currentFilter: operationType,
+        currentPage: 0,
+        hasMoreFiles: true,
+        showingAllFiles: showAllFiles,
+      );
+    } else {
+      state = state.copyWith(isLoading: true, error: null);
+    }
 
     try {
-      // Direct database access to ensure we get the data
       final dbHelper = DatabaseHelper();
       final db = await dbHelper.database;
 
       // Get count for verification
-      final countResult =
-          await db.rawQuery("SELECT COUNT(*) as count FROM recent_files");
+      String countQuery = "SELECT COUNT(*) as count FROM recent_files";
+      List<dynamic> countArgs = [];
+
+      if (operationType != null) {
+        countQuery += " WHERE operation_type = ?";
+        countArgs.add(operationType);
+      }
+
+      final countResult = await db.rawQuery(countQuery, countArgs);
       final totalCount = countResult.first['count'] as int;
       print('🔧 PROVIDER: Database contains $totalCount files');
+
+      // Determine limit based on mode
+      int limit;
+      int offset = 0;
+
+      if (showAllFiles) {
+        // Load all files when showing all
+        limit = totalCount;
+        offset = 0;
+      } else if (isInitial) {
+        // Load initial smaller set
+        limit = _initialLoadSize;
+        offset = 0;
+      } else {
+        // Load up to current page
+        final currentPage = state.currentPage;
+        limit = _initialLoadSize + (currentPage * _pageSize);
+        offset = 0;
+      }
 
       // Get files with proper ordering
       List<Map<String, dynamic>> rawFiles;
@@ -76,13 +118,15 @@ class RecentFilesNotifier extends _$RecentFilesNotifier {
           where: 'operation_type = ?',
           whereArgs: [operationType],
           orderBy: 'processed_at DESC',
-          limit: 50,
+          limit: limit,
+          offset: offset,
         );
       } else {
         rawFiles = await db.query(
           'recent_files',
           orderBy: 'processed_at DESC',
-          limit: 50,
+          limit: limit,
+          offset: offset,
         );
       }
 
@@ -192,6 +236,13 @@ class RecentFilesNotifier extends _$RecentFilesNotifier {
 
       print('🔧 PROVIDER: Found operation types: $operationTypes');
 
+      // Determine if there are more files to load
+      bool hasMoreFiles = false;
+      if (!showAllFiles) {
+        hasMoreFiles =
+            verifiedFiles.length >= limit && verifiedFiles.length < totalCount;
+      }
+
       // Force state update
       final newState = state.copyWith(
         isLoading: false,
@@ -199,11 +250,14 @@ class RecentFilesNotifier extends _$RecentFilesNotifier {
         operationTypes: operationTypes,
         currentFilter: operationType,
         error: null,
+        totalCount: totalCount,
+        hasMoreFiles: hasMoreFiles,
+        showingAllFiles: showAllFiles,
       );
 
       state = newState;
       print(
-          '🔧 PROVIDER: State updated! New state has ${state.recentFiles.length} files');
+          '🔧 PROVIDER: State updated! New state has ${state.recentFiles.length} files, hasMore: ${state.hasMoreFiles}');
 
       // Force a rebuild by accessing the state
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -218,6 +272,177 @@ class RecentFilesNotifier extends _$RecentFilesNotifier {
         error: e.toString(),
       );
     }
+  }
+
+  Future<void> loadMoreFiles() async {
+    if (state.isLoadingMore || !state.hasMoreFiles || state.showingAllFiles) {
+      print(
+          '🔧 PROVIDER: Cannot load more - isLoadingMore: ${state.isLoadingMore}, hasMore: ${state.hasMoreFiles}, showingAll: ${state.showingAllFiles}');
+      return;
+    }
+
+    print(
+        '🔧 PROVIDER: Loading more files, current page: ${state.currentPage}');
+
+    state = state.copyWith(isLoadingMore: true, error: null);
+
+    try {
+      final dbHelper = DatabaseHelper();
+      final db = await dbHelper.database;
+
+      final nextPage = state.currentPage + 1;
+      final offset = _initialLoadSize + (state.currentPage * _pageSize);
+      final limit = _pageSize;
+
+      print(
+          '🔧 PROVIDER: Loading page $nextPage with offset $offset and limit $limit');
+
+      // Get additional files
+      List<Map<String, dynamic>> rawFiles;
+      if (state.currentFilter != null) {
+        rawFiles = await db.query(
+          'recent_files',
+          where: 'operation_type = ?',
+          whereArgs: [state.currentFilter],
+          orderBy: 'processed_at DESC',
+          limit: limit,
+          offset: offset,
+        );
+      } else {
+        rawFiles = await db.query(
+          'recent_files',
+          orderBy: 'processed_at DESC',
+          limit: limit,
+          offset: offset,
+        );
+      }
+
+      print('🔧 PROVIDER: Load more query returned ${rawFiles.length} files');
+
+      // Parse additional files
+      final List<RecentFileModel> additionalFiles = [];
+      for (int i = 0; i < rawFiles.length; i++) {
+        try {
+          final rawFile = rawFiles[i];
+          final Map<String, dynamic> fileMap =
+              Map<String, dynamic>.from(rawFile);
+
+          // Handle metadata parsing
+          if (fileMap['metadata'] != null &&
+              fileMap['metadata'].toString().isNotEmpty) {
+            try {
+              fileMap['metadata'] = jsonDecode(fileMap['metadata'].toString());
+            } catch (e) {
+              print(
+                  '🔧 PROVIDER: Failed to parse metadata for additional file $i: $e');
+              fileMap['metadata'] = null;
+            }
+          }
+
+          final recentFile = RecentFileModel.fromMap(fileMap);
+          additionalFiles.add(recentFile);
+        } catch (e) {
+          print('🔧 PROVIDER: Failed to parse additional file $i: $e');
+        }
+      }
+
+      // Verify additional files
+      final verifiedAdditionalFiles = <RecentFileModel>[];
+      for (final file in additionalFiles) {
+        if (file.resultFilePath != null) {
+          try {
+            final physicalFile = File(file.resultFilePath!);
+            if (await physicalFile.exists()) {
+              verifiedAdditionalFiles.add(file);
+            } else {
+              // Add with missing file flag
+              final updatedMetadata =
+                  Map<String, dynamic>.from(file.metadata ?? {});
+              updatedMetadata['file_missing'] = true;
+
+              final updatedFile = RecentFileModel(
+                id: file.id,
+                originalFileName: file.originalFileName,
+                resultFileName: file.resultFileName,
+                operation: file.operation,
+                operationType: file.operationType,
+                originalFilePath: file.originalFilePath,
+                resultFilePath: file.resultFilePath,
+                originalSize: file.originalSize,
+                resultSize: file.resultSize,
+                processedAt: file.processedAt,
+                metadata: updatedMetadata,
+              );
+
+              verifiedAdditionalFiles.add(updatedFile);
+            }
+          } catch (e) {
+            // Add with error flag
+            final updatedMetadata =
+                Map<String, dynamic>.from(file.metadata ?? {});
+            updatedMetadata['file_error'] = e.toString();
+
+            final updatedFile = RecentFileModel(
+              id: file.id,
+              originalFileName: file.originalFileName,
+              resultFileName: file.resultFileName,
+              operation: file.operation,
+              operationType: file.operationType,
+              originalFilePath: file.originalFilePath,
+              resultFilePath: file.resultFilePath,
+              originalSize: file.originalSize,
+              resultSize: file.resultSize,
+              processedAt: file.processedAt,
+              metadata: updatedMetadata,
+            );
+
+            verifiedAdditionalFiles.add(updatedFile);
+          }
+        } else {
+          verifiedAdditionalFiles.add(file);
+        }
+      }
+
+      // Combine with existing files
+      final allFiles = [...state.recentFiles, ...verifiedAdditionalFiles];
+
+      // Check if there are more files to load
+      final hasMoreFiles = verifiedAdditionalFiles.length >= _pageSize;
+
+      state = state.copyWith(
+        isLoadingMore: false,
+        recentFiles: allFiles,
+        currentPage: nextPage,
+        hasMoreFiles: hasMoreFiles,
+      );
+
+      print(
+          '🔧 PROVIDER: Load more completed. Total files: ${allFiles.length}, page: $nextPage, hasMore: $hasMoreFiles');
+    } catch (e, stackTrace) {
+      print('🔧 PROVIDER: Error in loadMoreFiles: $e');
+      print('🔧 PROVIDER: Stack trace: $stackTrace');
+      state = state.copyWith(
+        isLoadingMore: false,
+        error: e.toString(),
+      );
+    }
+  }
+
+  Future<void> showAllFiles() async {
+    print('🔧 PROVIDER: Showing all files');
+    await loadRecentFiles(
+      operationType: state.currentFilter,
+      showAllFiles: true,
+    );
+  }
+
+  Future<void> showLimitedFiles() async {
+    print('🔧 PROVIDER: Showing limited files');
+    await loadRecentFiles(
+      operationType: state.currentFilter,
+      isInitial: true,
+      showAllFiles: false,
+    );
   }
 
   Future<void> loadStats() async {
@@ -237,7 +462,11 @@ class RecentFilesNotifier extends _$RecentFilesNotifier {
 
   Future<void> refreshRecentFiles() async {
     print('🔧 PROVIDER: Manual refresh requested');
-    await loadRecentFiles(operationType: state.currentFilter);
+    await loadRecentFiles(
+      operationType: state.currentFilter,
+      isInitial: true,
+      showAllFiles: state.showingAllFiles,
+    );
     await loadStats();
   }
 
@@ -248,7 +477,7 @@ class RecentFilesNotifier extends _$RecentFilesNotifier {
       await repository.clearAllRecentFiles();
 
       // Reload
-      await loadRecentFiles();
+      await loadRecentFiles(isInitial: true);
       await loadStats();
     } catch (e) {
       print('🔧 PROVIDER: Error clearing files: $e');
@@ -263,7 +492,7 @@ class RecentFilesNotifier extends _$RecentFilesNotifier {
       await repository.deleteOldRecentFiles(keepDays: keepDays);
 
       // Reload
-      await loadRecentFiles();
+      await loadRecentFiles(isInitial: true);
       await loadStats();
     } catch (e) {
       print('🔧 PROVIDER: Error deleting old files: $e');
@@ -328,7 +557,12 @@ class RecentFilesState {
   final Map<String, int> stats;
   final String? currentFilter;
   final bool isLoading;
+  final bool isLoadingMore;
   final String? error;
+  final int currentPage;
+  final bool hasMoreFiles;
+  final int totalCount;
+  final bool showingAllFiles;
 
   const RecentFilesState({
     this.recentFiles = const [],
@@ -336,7 +570,12 @@ class RecentFilesState {
     this.stats = const {},
     this.currentFilter,
     this.isLoading = false,
+    this.isLoadingMore = false,
     this.error,
+    this.currentPage = 0,
+    this.hasMoreFiles = true,
+    this.totalCount = 0,
+    this.showingAllFiles = false,
   });
 
   RecentFilesState copyWith({
@@ -345,7 +584,12 @@ class RecentFilesState {
     Map<String, int>? stats,
     String? currentFilter,
     bool? isLoading,
+    bool? isLoadingMore,
     String? error,
+    int? currentPage,
+    bool? hasMoreFiles,
+    int? totalCount,
+    bool? showingAllFiles,
   }) {
     return RecentFilesState(
       recentFiles: recentFiles ?? this.recentFiles,
@@ -353,12 +597,19 @@ class RecentFilesState {
       stats: stats ?? this.stats,
       currentFilter: currentFilter ?? this.currentFilter,
       isLoading: isLoading ?? this.isLoading,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       error: error,
+      currentPage: currentPage ?? this.currentPage,
+      hasMoreFiles: hasMoreFiles ?? this.hasMoreFiles,
+      totalCount: totalCount ?? this.totalCount,
+      showingAllFiles: showingAllFiles ?? this.showingAllFiles,
     );
   }
 
   bool get hasRecentFiles => recentFiles.isNotEmpty;
   bool get hasError => error != null;
+  bool get canLoadMore =>
+      hasMoreFiles && !isLoading && !isLoadingMore && !showingAllFiles;
 
   // Get files filtered by operation type
   List<RecentFileModel> getFilteredFiles(String operationType) {
@@ -372,7 +623,7 @@ class RecentFilesState {
     return recentFiles
         .where((file) =>
             file.resultFilePath != null &&
-                !file.metadata!.containsKey('file_missing'))
+            !file.metadata!.containsKey('file_missing'))
         .toList();
   }
 
@@ -383,5 +634,25 @@ class RecentFilesState {
       return filtered.first;
     }
     return null;
+  }
+
+  // Get display text for load more/view all buttons
+  String get loadMoreButtonText {
+    if (showingAllFiles) {
+      return 'Show Less';
+    } else if (hasMoreFiles) {
+      final remaining = totalCount - recentFiles.length;
+      return 'Load More ($remaining remaining)';
+    } else {
+      return 'No More Files';
+    }
+  }
+
+  String get viewAllButtonText {
+    if (showingAllFiles) {
+      return 'Show Less';
+    } else {
+      return 'View All ($totalCount)';
+    }
   }
 }

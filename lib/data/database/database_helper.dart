@@ -78,6 +78,88 @@ class DatabaseHelper {
     return await db.insert('recent_files', map);
   }
 
+  Future<int> getRecentFilesCount() async {
+    try {
+      final db = await database;
+      final result =
+          await db.rawQuery("SELECT COUNT(*) as count FROM recent_files");
+      return result.first['count'] as int;
+    } catch (e) {
+      print('Error getting recent files count: $e');
+      return 0;
+    }
+  }
+
+  Future<void> clearAllData() async {
+    try {
+      final db = await database;
+
+      // Clear all tables
+      await db.delete('recent_files');
+
+      // Reset any auto-increment counters
+      await db.execute("DELETE FROM sqlite_sequence WHERE name='recent_files'");
+
+      print('All database data cleared');
+    } catch (e) {
+      print('Error clearing all data: $e');
+      throw Exception('Failed to clear database: $e');
+    }
+  }
+
+  Future<void> clearRecentFiles() async {
+    try {
+      final db = await database;
+
+      // Clear recent files table
+      await db.delete('recent_files');
+
+      // Reset auto-increment counter
+      await db.execute("DELETE FROM sqlite_sequence WHERE name='recent_files'");
+
+      print('Recent files cleared');
+    } catch (e) {
+      print('Error clearing recent files: $e');
+      throw Exception('Failed to clear recent files: $e');
+    }
+  }
+
+  Future<Map<String, int>> getRecentFilesStats() async {
+    try {
+      final db = await database;
+
+      // Get files from today
+      final today = DateTime.now();
+      final todayStart = DateTime(today.year, today.month, today.day);
+      final todayResult = await db.rawQuery(
+          "SELECT COUNT(*) as count FROM recent_files WHERE processed_at >= ?",
+          [todayStart.millisecondsSinceEpoch ~/ 1000]);
+
+      // Get files from this week
+      final weekStart = todayStart.subtract(Duration(days: today.weekday - 1));
+      final weekResult = await db.rawQuery(
+          "SELECT COUNT(*) as count FROM recent_files WHERE processed_at >= ?",
+          [weekStart.millisecondsSinceEpoch ~/ 1000]);
+
+      // Get total files
+      final totalResult =
+          await db.rawQuery("SELECT COUNT(*) as count FROM recent_files");
+
+      return {
+        'today': todayResult.first['count'] as int,
+        'thisWeek': weekResult.first['count'] as int,
+        'total': totalResult.first['count'] as int,
+      };
+    } catch (e) {
+      print('Error getting recent files stats: $e');
+      return {
+        'today': 0,
+        'thisWeek': 0,
+        'total': 0,
+      };
+    }
+  }
+
   Future<List<RecentFileModel>> getRecentFiles({
     int limit = 50,
     String? operationType,
@@ -116,39 +198,6 @@ class DatabaseHelper {
       }
       return RecentFileModel.fromMap(map);
     }).toList();
-  }
-
-  Future<Map<String, int>> getRecentFilesStats() async {
-    final db = await database;
-
-    // Get today's count
-    final today = DateTime.now();
-    final startOfToday = DateTime(today.year, today.month, today.day);
-    final endOfToday = startOfToday.add(const Duration(days: 1));
-
-    final todayResult = await db.rawQuery('''
-      SELECT COUNT(*) as count FROM recent_files 
-      WHERE processed_at >= ? AND processed_at < ?
-    ''', [
-      startOfToday.millisecondsSinceEpoch,
-      endOfToday.millisecondsSinceEpoch
-    ]);
-
-    // Get this week's count
-    final startOfWeek =
-        startOfToday.subtract(Duration(days: today.weekday - 1));
-    final endOfWeek = startOfWeek.add(const Duration(days: 7));
-
-    final weekResult = await db.rawQuery('''
-      SELECT COUNT(*) as count FROM recent_files 
-      WHERE processed_at >= ? AND processed_at < ?
-    ''',
-        [startOfWeek.millisecondsSinceEpoch, endOfWeek.millisecondsSinceEpoch]);
-
-    return {
-      'today': (todayResult.first['count'] as int?) ?? 0,
-      'thisWeek': (weekResult.first['count'] as int?) ?? 0,
-    };
   }
 
   Future<Map<String, int>> getOperationStats() async {

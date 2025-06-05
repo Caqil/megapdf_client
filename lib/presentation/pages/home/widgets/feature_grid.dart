@@ -78,7 +78,7 @@ class FeatureGrid extends StatelessWidget {
         route: '/page-numbers',
       ),
       Feature(
-        title: 'Document Scanner',
+        title: 'Scanner',
         description: 'Scan and save',
         icon: Icons.document_scanner,
         color: mutedColor,
@@ -355,7 +355,7 @@ class _FeatureCardState extends State<_FeatureCard>
                             width: double.infinity,
                             height: double.infinity,
                             child: Padding(
-                              padding: const EdgeInsets.all(12),
+                              padding: const EdgeInsets.all(8),
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 crossAxisAlignment: CrossAxisAlignment.center,
