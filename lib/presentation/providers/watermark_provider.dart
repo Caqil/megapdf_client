@@ -1,4 +1,4 @@
-// lib/presentation/providers/watermark_provider.dart
+// lib/presentation/providers/watermark_provider.dart - Fixed implementation
 import 'dart:io';
 import 'package:megapdf_client/data/repositories/pdf_repository_impl.dart';
 import 'package:megapdf_client/data/services/recent_files_service.dart';
@@ -90,6 +90,28 @@ class WatermarkNotifier extends _$WatermarkNotifier {
     );
   }
 
+  // Helper method to convert WatermarkPosition enum to API string
+  String _positionToApiString(WatermarkPosition position) {
+    switch (position) {
+      case WatermarkPosition.center:
+        return 'center';
+      case WatermarkPosition.topLeft:
+        return 'top-left';
+      case WatermarkPosition.topRight:
+        return 'top-right';
+      case WatermarkPosition.bottomLeft:
+        return 'bottom-left';
+      case WatermarkPosition.bottomRight:
+        return 'bottom-right';
+      case WatermarkPosition.custom:
+        return 'custom';
+      case WatermarkPosition.tile:
+        return 'tile';
+      default:
+        return 'center';
+    }
+  }
+
   Future<void> addWatermark() async {
     if (!state.canAddWatermark) {
       state = state.copyWith(
@@ -107,6 +129,9 @@ class WatermarkNotifier extends _$WatermarkNotifier {
       final repository = ref.read(pdfRepositoryProvider);
       WatermarkResult result;
 
+      // Convert position enum to API string
+      final positionString = _positionToApiString(state.position);
+
       if (state.watermarkType == WatermarkType.text) {
         result = await repository.addTextWatermark(
           state.selectedFile!,
@@ -114,10 +139,10 @@ class WatermarkNotifier extends _$WatermarkNotifier {
           textColor: state.textColor,
           fontSize: state.fontSize,
           fontFamily: state.fontFamily,
-          position: state.position.name,
+          position: positionString,
           rotation: state.rotation,
           opacity: state.opacity,
-          pages: state.pages,
+          pages: state.pages == 'all' ? null : state.pages,
           customPages: state.customPages,
           customX: state.customX,
           customY: state.customY,
@@ -126,11 +151,11 @@ class WatermarkNotifier extends _$WatermarkNotifier {
         result = await repository.addImageWatermark(
           state.selectedFile!,
           state.watermarkImage!,
-          position: state.position.name,
+          position: positionString,
           rotation: state.rotation,
           opacity: state.opacity,
           scale: state.scale,
-          pages: state.pages,
+          pages: state.pages == 'all' ? null : state.pages,
           customPages: state.customPages,
           customX: state.customX,
           customY: state.customY,
@@ -180,7 +205,7 @@ class WatermarkNotifier extends _$WatermarkNotifier {
           watermarkType: state.watermarkType.name,
           watermarkText:
               state.watermarkType == WatermarkType.text ? state.text : null,
-          position: state.position.name,
+          position: _positionToApiString(state.position),
         );
 
         ref
@@ -321,4 +346,25 @@ class WatermarkState {
 
   bool get canSave => hasResult && !isSaving;
   bool get hasSavedFile => savedPath != null;
+
+  String get positionDisplayName {
+    switch (position) {
+      case WatermarkPosition.center:
+        return 'Center';
+      case WatermarkPosition.topLeft:
+        return 'Top Left';
+      case WatermarkPosition.topRight:
+        return 'Top Right';
+      case WatermarkPosition.bottomLeft:
+        return 'Bottom Left';
+      case WatermarkPosition.bottomRight:
+        return 'Bottom Right';
+      case WatermarkPosition.custom:
+        return 'Custom Position';
+      case WatermarkPosition.tile:
+        return 'Tile (Repeat)';
+      default:
+        return 'Center';
+    }
+  }
 }

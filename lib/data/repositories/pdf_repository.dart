@@ -42,6 +42,7 @@ abstract class PdfRepository {
     File file,
     File imageFile, {
     String? position,
+    String? watermarkType,
     int? rotation,
     int? opacity,
     int? scale,

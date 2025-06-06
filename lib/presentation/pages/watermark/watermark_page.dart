@@ -1,4 +1,4 @@
-// lib/presentation/pages/watermark/watermark_page.dart
+// lib/presentation/pages/watermark/watermark_page.dart - Updated implementation
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -13,11 +13,13 @@ import '../../widgets/common/custom_snackbar.dart';
 import '../../widgets/common/error_widget.dart';
 import '../../widgets/common/file_picker_button.dart';
 import '../../widgets/common/download_button.dart';
+import '../../widgets/watermark_position_selector.dart';
+import '../../widgets/watermark_settings.dart';
 import 'widgets/watermark_type_tabs.dart';
 import 'widgets/text_watermark_form.dart';
 import 'widgets/image_watermark_form.dart';
-import 'widgets/watermark_options.dart' as w;
 import 'widgets/watermark_result_widget.dart';
+// import 'widgets/watermark_debug_widget.dart'; // Uncomment for debugging
 
 class WatermarkPage extends ConsumerStatefulWidget {
   final String? initialFilePath;
@@ -56,7 +58,7 @@ class _WatermarkPageState extends ConsumerState<WatermarkPage> {
           CustomSnackbar.show(
             context: context,
             message:
-                'Loaded ${widget.initialFileName ?? "file"} for protection',
+                'Loaded ${widget.initialFileName ?? "file"} for watermarking',
             type: SnackbarType.success,
           );
         } else {
@@ -103,8 +105,15 @@ class _WatermarkPageState extends ConsumerState<WatermarkPage> {
                 const SizedBox(height: 24),
                 _buildWatermarkContentSection(context, ref, state),
                 const SizedBox(height: 24),
-                w.WatermarkOptions(
-                  position: state.position,
+                WatermarkPositionSelector(
+                  selectedPosition: state.position,
+                  onPositionChanged: (position) => ref
+                      .read(watermarkNotifierProvider.notifier)
+                      .updatePositionOptions(position: position),
+                ),
+                const SizedBox(height: 24),
+                WatermarkSettings(
+                  watermarkType: state.watermarkType,
                   rotation: state.rotation,
                   opacity: state.opacity,
                   scale: state.scale,
@@ -112,9 +121,7 @@ class _WatermarkPageState extends ConsumerState<WatermarkPage> {
                   customPages: state.customPages,
                   customX: state.customX,
                   customY: state.customY,
-                  onPositionChanged: (position) => ref
-                      .read(watermarkNotifierProvider.notifier)
-                      .updatePositionOptions(position: position),
+                  position: state.position,
                   onRotationChanged: (rotation) => ref
                       .read(watermarkNotifierProvider.notifier)
                       .updatePositionOptions(rotation: rotation),
@@ -155,6 +162,24 @@ class _WatermarkPageState extends ConsumerState<WatermarkPage> {
 
               const SizedBox(height: 24),
               _buildActionButtons(context, ref, state),
+
+              // Debug widget (uncomment for testing)
+              // const SizedBox(height: 24),
+              // WatermarkDebugWidget(
+              //   watermarkType: state.watermarkType,
+              //   text: state.text,
+              //   textColor: state.textColor,
+              //   fontSize: state.fontSize,
+              //   fontFamily: state.fontFamily,
+              //   position: state.position,
+              //   rotation: state.rotation,
+              //   opacity: state.opacity,
+              //   scale: state.scale,
+              //   pages: state.pages,
+              //   customPages: state.customPages,
+              //   customX: state.customX,
+              //   customY: state.customY,
+              // ),
 
               const SizedBox(height: 24),
               _buildInfoSection(context),
@@ -357,7 +382,7 @@ class _WatermarkPageState extends ConsumerState<WatermarkPage> {
                       valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                     ),
                   )
-                : Icon(Icons.branding_watermark),
+                : const Icon(Icons.branding_watermark),
             label:
                 Text(state.isLoading ? 'Adding Watermark...' : 'Add Watermark'),
             style: ElevatedButton.styleFrom(
@@ -432,6 +457,7 @@ class _WatermarkPageState extends ConsumerState<WatermarkPage> {
               'Image watermarks for logos and branding',
               'Customizable position, rotation, and opacity',
               'Apply to specific pages or entire document',
+              'Professional results with precise control',
             ]),
           ],
         ),

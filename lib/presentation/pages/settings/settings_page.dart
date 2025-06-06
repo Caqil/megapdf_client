@@ -68,13 +68,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       backgroundColor: AppColors.surface(context),
       centerTitle: false,
       elevation: 0,
-      leading: IconButton(
-        onPressed: () => context.pop(),
-        icon: Icon(
-          Icons.arrow_back_ios,
-          color: AppColors.textPrimary(context),
-        ),
-      ),
       title: Row(
         children: [
           Container(
