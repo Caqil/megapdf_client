@@ -409,13 +409,6 @@ class PrivacySecuritySection extends ConsumerWidget {
                 Icons.lock,
                 AppColors.success(context),
               ),
-              _buildSecurityFeature(
-                context,
-                'No Network Required',
-                'Most features work completely offline',
-                Icons.wifi_off,
-                AppColors.success(context),
-              ),
             ],
           ),
         ),

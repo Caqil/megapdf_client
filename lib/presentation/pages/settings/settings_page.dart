@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../providers/settings_provider.dart';
+import '../../providers/app_info_provider.dart';
 import '../../widgets/about_support_section.dart';
 import '../../widgets/common/custom_snackbar.dart';
 import '../../widgets/common/loading_widget.dart';
@@ -34,22 +35,35 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ref.read(settingsNotifierProvider.notifier).clearError();
       }
     });
+
+    // Listen for app info errors
+    ref.listenManual(appInfoNotifierProvider, (previous, next) {
+      if (next.hasError && mounted) {
+        CustomSnackbar.show(
+          context: context,
+          message: 'Failed to load app information',
+          type: SnackbarType.failure,
+        );
+        ref.read(appInfoNotifierProvider.notifier).clearError();
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final settingsState = ref.watch(settingsNotifierProvider);
+    final appInfoState = ref.watch(appInfoNotifierProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background(context),
-      appBar: _buildAppBar(context),
+      appBar: _buildAppBar(context, appInfoState),
       body: settingsState.isLoading
           ? const Center(child: LoadingWidget(message: 'Loading settings...'))
           : _buildBody(context, settingsState),
     );
   }
 
-  PreferredSizeWidget _buildAppBar(BuildContext context) {
+  PreferredSizeWidget _buildAppBar(BuildContext context, AppInfoState appInfo) {
     return AppBar(
       backgroundColor: AppColors.surface(context),
       centerTitle: false,
@@ -97,9 +111,26 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ],
       ),
       actions: [
+        // Theme mode quick toggle
+        IconButton(
+          onPressed: () => _quickToggleTheme(),
+          icon: Icon(
+            _getThemeIcon(ref.read(settingsNotifierProvider).themeMode),
+            color: AppColors.textSecondary(context),
+          ),
+          tooltip: 'Toggle theme',
+        ),
         PopupMenuButton<String>(
           onSelected: (value) => _handleMenuAction(value),
           itemBuilder: (context) => [
+            PopupMenuItem(
+              value: 'refresh_app_info',
+              child: ListTile(
+                leading: Icon(Icons.refresh, color: AppColors.info(context)),
+                title: Text('Refresh App Info'),
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
             PopupMenuItem(
               value: 'reset_settings',
               child: ListTile(
@@ -129,7 +160,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   Widget _buildBody(BuildContext context, SettingsState state) {
     return RefreshIndicator(
       onRefresh: () async {
-        await ref.read(settingsNotifierProvider.notifier).refreshStorageInfo();
+        await Future.wait([
+          ref.read(settingsNotifierProvider.notifier).refreshStorageInfo(),
+          ref.read(appInfoNotifierProvider.notifier).refreshAppInfo(),
+        ]);
       },
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -170,6 +204,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     }
 
     final storage = state.storageInfo!;
+    final appInfo = ref.watch(appInfoNotifierProvider);
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -256,9 +291,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               Expanded(
                 child: _buildStatCard(
                   context,
-                  'Storage',
-                  storage.formattedSize,
-                  Icons.folder,
+                  'Version',
+                  appInfo.version,
+                  Icons.info,
                 ),
               ),
             ],
@@ -299,8 +334,64 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
+  IconData _getThemeIcon(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.light:
+        return Icons.light_mode;
+      case ThemeMode.dark:
+        return Icons.dark_mode;
+      case ThemeMode.system:
+        return Icons.brightness_auto;
+    }
+  }
+
+  void _quickToggleTheme() {
+    final currentTheme = ref.read(settingsNotifierProvider).themeMode;
+    ThemeMode newTheme;
+
+    switch (currentTheme) {
+      case ThemeMode.light:
+        newTheme = ThemeMode.dark;
+        break;
+      case ThemeMode.dark:
+        newTheme = ThemeMode.system;
+        break;
+      case ThemeMode.system:
+        newTheme = ThemeMode.light;
+        break;
+    }
+
+    ref.read(settingsNotifierProvider.notifier).updateThemeMode(newTheme);
+
+    CustomSnackbar.show(
+      context: context,
+      message: 'Theme changed to ${_getThemeName(newTheme)}',
+      type: SnackbarType.info,
+      duration: const Duration(seconds: 2),
+    );
+  }
+
+  String _getThemeName(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.light:
+        return 'Light';
+      case ThemeMode.dark:
+        return 'Dark';
+      case ThemeMode.system:
+        return 'System';
+    }
+  }
+
   void _handleMenuAction(String action) {
     switch (action) {
+      case 'refresh_app_info':
+        ref.read(appInfoNotifierProvider.notifier).refreshAppInfo();
+        CustomSnackbar.show(
+          context: context,
+          message: 'App information refreshed',
+          type: SnackbarType.success,
+        );
+        break;
       case 'reset_settings':
         _showResetSettingsDialog();
         break;

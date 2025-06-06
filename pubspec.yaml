@@ -1,7 +1,7 @@
 name: megapdf_client
 description: Flutter client for MegaPDF API - PDF processing made simple
 publish_to: "none"
-version: 1.0.0+1
+version: 1.0.0+100
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -57,6 +57,7 @@ dependencies:
   in_app_review: ^2.0.10
   firebase_core: ^3.13.1
   firebase_analytics: ^11.4.6
+  package_info_plus: ^8.3.0
 
 dev_dependencies:
   flutter_test:

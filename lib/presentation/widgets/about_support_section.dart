@@ -1,4 +1,4 @@
-// lib/presentation/pages/settings/widgets/about_support_section.dart
+// lib/presentation/widgets/about_support_section.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../data/services/app_review_service.dart';
 import '../providers/settings_provider.dart';
+import '../providers/app_info_provider.dart';
 import 'common/custom_snackbar.dart';
 import 'settings_section_widget.dart';
 
@@ -19,13 +20,15 @@ class AboutSupportSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final appInfo = ref.watch(appInfoNotifierProvider);
+
     return SettingsSectionWidget(
       title: 'About & Support',
       icon: Icons.help_center,
       iconColor: AppColors.info(context),
       children: [
         // App Info Header
-        _buildAppInfoHeader(context),
+        _buildAppInfoHeader(context, appInfo),
 
         const Divider(height: 1, indent: 16, endIndent: 16),
 
@@ -79,7 +82,7 @@ class AboutSupportSection extends ConsumerWidget {
           iconColor: AppColors.primary(context),
           title: 'What\'s New',
           subtitle: 'See the latest features and updates',
-          onTap: () => _showWhatsNew(context),
+          onTap: () => _showWhatsNew(context, appInfo),
         ),
 
         const Divider(height: 1, indent: 16, endIndent: 16),
@@ -90,7 +93,7 @@ class AboutSupportSection extends ConsumerWidget {
           iconColor: AppColors.textSecondary(context),
           title: 'Version Information',
           subtitle: 'App version, build info, and system details',
-          onTap: () => _showVersionInfo(context),
+          onTap: () => _showVersionInfo(context, appInfo),
         ),
 
         const Divider(height: 1, indent: 16, endIndent: 16),
@@ -101,7 +104,7 @@ class AboutSupportSection extends ConsumerWidget {
           iconColor: AppColors.textSecondary(context),
           title: 'Open Source Licenses',
           subtitle: 'Third-party libraries and their licenses',
-          onTap: () => _showLicenses(context),
+          onTap: () => _showLicenses(context, appInfo),
         ),
 
         const Divider(height: 1, indent: 16, endIndent: 16),
@@ -123,7 +126,7 @@ class AboutSupportSection extends ConsumerWidget {
     );
   }
 
-  Widget _buildAppInfoHeader(BuildContext context) {
+  Widget _buildAppInfoHeader(BuildContext context, AppInfoState appInfo) {
     return Container(
       padding: const EdgeInsets.all(20),
       child: Row(
@@ -141,10 +144,9 @@ class AboutSupportSection extends ConsumerWidget {
                 ),
               ],
             ),
-            child: Image.asset(
-              'assets/images/logo.png',
-              width: 40,
-              height: 40,
+            child: Icon(
+              Icons.picture_as_pdf,
+              size: 40,
               color: Colors.white,
             ),
           ),
@@ -154,7 +156,7 @@ class AboutSupportSection extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'MegaPDF',
+                  appInfo.appName,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: AppColors.textPrimary(context),
@@ -178,7 +180,7 @@ class AboutSupportSection extends ConsumerWidget {
                         color: AppColors.primary(context).withOpacity(0.3)),
                   ),
                   child: Text(
-                    'Version 1.0.0',
+                    'Version ${appInfo.fullVersion}',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: AppColors.primary(context),
                           fontWeight: FontWeight.w600,
@@ -188,6 +190,16 @@ class AboutSupportSection extends ConsumerWidget {
               ],
             ),
           ),
+          if (appInfo.isLoading)
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor:
+                    AlwaysStoppedAnimation<Color>(AppColors.primary(context)),
+              ),
+            ),
         ],
       ),
     );
@@ -216,7 +228,7 @@ class AboutSupportSection extends ConsumerWidget {
     );
   }
 
-  void _showWhatsNew(BuildContext context) {
+  void _showWhatsNew(BuildContext context, AppInfoState appInfo) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -233,7 +245,7 @@ class AboutSupportSection extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Version 1.0.0',
+                'Version ${appInfo.fullVersion}',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -259,13 +271,6 @@ class AboutSupportSection extends ConsumerWidget {
                 'Comprehensive settings for customizing your experience',
                 Icons.settings,
                 AppColors.info(context),
-              ),
-              _buildFeatureItem(
-                context,
-                'Offline Processing',
-                'All operations work completely offline for privacy',
-                Icons.offline_bolt,
-                AppColors.success(context),
               ),
               const SizedBox(height: 16),
               Container(
@@ -355,7 +360,7 @@ class AboutSupportSection extends ConsumerWidget {
     );
   }
 
-  void _showVersionInfo(BuildContext context) {
+  void _showVersionInfo(BuildContext context, AppInfoState appInfo) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -365,11 +370,12 @@ class AboutSupportSection extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildInfoRow(context, 'App Version', '1.0.0'),
-              _buildInfoRow(context, 'Build Number', '1'),
-              _buildInfoRow(context, 'Release Date', 'May 2025'),
-              _buildInfoRow(
-                  context, 'Platform', Theme.of(context).platform.name),
+              _buildInfoRow(context, 'App Name', appInfo.appName),
+              _buildInfoRow(context, 'Package', appInfo.packageName),
+              _buildInfoRow(context, 'Version', appInfo.version),
+              _buildInfoRow(context, 'Build Number', appInfo.buildNumber),
+              _buildInfoRow(context, 'Platform', appInfo.platformName),
+              _buildInfoRow(context, 'Install Source', appInfo.installSource),
               const SizedBox(height: 16),
               Text(
                 'Device Information',
@@ -378,15 +384,15 @@ class AboutSupportSection extends ConsumerWidget {
                     ),
               ),
               const SizedBox(height: 8),
-              _buildInfoRow(context, 'OS', 'Android 13'),
-              _buildInfoRow(context, 'Device Model', 'Unknown'),
               _buildInfoRow(context, 'Screen Size',
                   '${MediaQuery.of(context).size.width.round()} x ${MediaQuery.of(context).size.height.round()}'),
+              _buildInfoRow(context, 'Pixel Ratio',
+                  MediaQuery.of(context).devicePixelRatio.toStringAsFixed(2)),
               const SizedBox(height: 16),
               Container(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: () => _copyVersionInfo(context),
+                  onPressed: () => _copyVersionInfo(context, appInfo),
                   icon: Icon(Icons.copy, size: 16),
                   label: Text('Copy Info'),
                   style: ElevatedButton.styleFrom(
@@ -417,25 +423,30 @@ class AboutSupportSection extends ConsumerWidget {
             '$label:',
             style: TextStyle(fontWeight: FontWeight.w500),
           ),
-          Text(
-            value,
-            style: TextStyle(color: AppColors.textSecondary(context)),
+          Flexible(
+            child: Text(
+              value,
+              style: TextStyle(color: AppColors.textSecondary(context)),
+              textAlign: TextAlign.end,
+            ),
           ),
         ],
       ),
     );
   }
 
-  void _copyVersionInfo(BuildContext context) {
+  void _copyVersionInfo(BuildContext context, AppInfoState appInfo) {
     final info = '''
-MegaPDF Version Information
-App Version: 1.0.0
-Build Number: 1
-Release Date: December 2024
-Platform: ${Theme.of(context).platform.name}
-Flutter Version: 3.24.0
-Dart Version: 3.5.0
+${appInfo.appName} Version Information
+App Name: ${appInfo.appName}
+Package: ${appInfo.packageName}
+Version: ${appInfo.version}
+Build Number: ${appInfo.buildNumber}
+Full Version: ${appInfo.fullVersion}
+Platform: ${appInfo.platformName}
+Install Source: ${appInfo.installSource}
 Screen Size: ${MediaQuery.of(context).size.width.round()} x ${MediaQuery.of(context).size.height.round()}
+Pixel Ratio: ${MediaQuery.of(context).devicePixelRatio.toStringAsFixed(2)}
 ''';
 
     Clipboard.setData(ClipboardData(text: info));
@@ -448,21 +459,20 @@ Screen Size: ${MediaQuery.of(context).size.width.round()} x ${MediaQuery.of(cont
     );
   }
 
-  void _showLicenses(BuildContext context) {
+  void _showLicenses(BuildContext context, AppInfoState appInfo) {
     showLicensePage(
       context: context,
-      applicationName: 'MegaPDF',
-      applicationVersion: '1.0.0',
+      applicationName: appInfo.appName,
+      applicationVersion: appInfo.fullVersion,
       applicationIcon: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           gradient: AppColors.primaryGradient(context),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Image.asset(
-          'assets/images/logo.png',
-          width: 32,
-          height: 32,
+        child: Icon(
+          Icons.picture_as_pdf,
+          size: 32,
           color: Colors.white,
         ),
       ),

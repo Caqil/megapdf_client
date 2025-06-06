@@ -1,4 +1,4 @@
-// lib/presentation/pages/settings/widgets/general_settings_section.dart
+// lib/presentation/widgets/general_settings_section.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -20,40 +20,40 @@ class GeneralSettingsSection extends ConsumerWidget {
       icon: Icons.tune,
       iconColor: AppColors.primary(context),
       children: [
-        // // Theme Setting
-        // SettingsItemWidget(
-        //   icon: _getThemeIcon(state.themeMode),
-        //   iconColor: AppColors.primary(context),
-        //   title: 'Appearance',
-        //   subtitle: 'App theme: ${state.themeModeDisplayName}',
-        //   trailing: DropdownButton<ThemeMode>(
-        //     value: state.themeMode,
-        //     underline: const SizedBox.shrink(),
-        //     items: const [
-        //       DropdownMenuItem(
-        //         value: ThemeMode.system,
-        //         child: Text('System'),
-        //       ),
-        //       DropdownMenuItem(
-        //         value: ThemeMode.light,
-        //         child: Text('Light'),
-        //       ),
-        //       DropdownMenuItem(
-        //         value: ThemeMode.dark,
-        //         child: Text('Dark'),
-        //       ),
-        //     ],
-        //     onChanged: (ThemeMode? value) {
-        //       if (value != null) {
-        //         ref
-        //             .read(settingsNotifierProvider.notifier)
-        //             .updateThemeMode(value);
-        //       }
-        //     },
-        //   ),
-        // ),
+        // Theme Setting
+        SettingsItemWidget(
+          icon: _getThemeIcon(state.themeMode),
+          iconColor: AppColors.primary(context),
+          title: 'Appearance',
+          subtitle: 'App theme: ${state.themeModeDisplayName}',
+          trailing: DropdownButton<ThemeMode>(
+            value: state.themeMode,
+            underline: const SizedBox.shrink(),
+            items: const [
+              DropdownMenuItem(
+                value: ThemeMode.system,
+                child: Text('System'),
+              ),
+              DropdownMenuItem(
+                value: ThemeMode.light,
+                child: Text('Light'),
+              ),
+              DropdownMenuItem(
+                value: ThemeMode.dark,
+                child: Text('Dark'),
+              ),
+            ],
+            onChanged: (ThemeMode? value) {
+              if (value != null) {
+                ref
+                    .read(settingsNotifierProvider.notifier)
+                    .updateThemeMode(value);
+              }
+            },
+          ),
+        ),
 
-        // const Divider(height: 1, indent: 16, endIndent: 16),
+        const Divider(height: 1, indent: 16, endIndent: 16),
 
         // File Preview Setting
         SettingsItemWidget(
@@ -116,18 +116,18 @@ class GeneralSettingsSection extends ConsumerWidget {
         const Divider(height: 1, indent: 16, endIndent: 16),
 
         // Language Setting (placeholder)
-        // SettingsItemWidget(
-        //   icon: Icons.language,
-        //   iconColor: AppColors.info(context),
-        //   title: 'Language',
-        //   subtitle: 'English (US)',
-        //   onTap: () => _showLanguageDialog(context),
-        //   trailing: Icon(
-        //     Icons.chevron_right,
-        //     color: AppColors.textSecondary(context),
-        //     size: 20,
-        //   ),
-        // ),
+        SettingsItemWidget(
+          icon: Icons.language,
+          iconColor: AppColors.info(context),
+          title: 'Language',
+          subtitle: 'English (US)',
+          onTap: () => _showLanguageDialog(context),
+          trailing: Icon(
+            Icons.chevron_right,
+            color: AppColors.textSecondary(context),
+            size: 20,
+          ),
+        ),
       ],
     );
   }
@@ -144,14 +144,14 @@ class GeneralSettingsSection extends ConsumerWidget {
   }
 
   void _showQualityDialog(BuildContext context, WidgetRef ref) {
+    int tempQuality = ref.read(settingsNotifierProvider).defaultQuality;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Default Compression Quality'),
         content: StatefulBuilder(
           builder: (context, setState) {
-            int tempQuality = ref.read(settingsNotifierProvider).defaultQuality;
-
             return Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -230,13 +230,9 @@ class GeneralSettingsSection extends ConsumerWidget {
           ),
           ElevatedButton(
             onPressed: () {
-              final tempQuality = (context as Element).findRenderObject();
-              // Get the current value from the slider
-              final newQuality =
-                  ref.read(settingsNotifierProvider).defaultQuality;
               ref
                   .read(settingsNotifierProvider.notifier)
-                  .updateDefaultQuality(newQuality);
+                  .updateDefaultQuality(tempQuality);
               Navigator.pop(context);
             },
             child: Text('Save'),
