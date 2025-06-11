@@ -1,4 +1,5 @@
 // lib/presentation/pages/onboarding/splash_screen.dart
+import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -23,7 +24,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   @override
   void initState() {
     super.initState();
-
+    WidgetsFlutterBinding.ensureInitialized().addPostFrameCallback((_) async {
+      final status =
+          await AppTrackingTransparency.requestTrackingAuthorization();
+    });
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 2000),
       vsync: this,

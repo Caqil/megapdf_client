@@ -39,6 +39,7 @@ class RecentFilesNotifier extends _$RecentFilesNotifier {
         print('🔧 PROVIDER: New file saved, refreshing...');
         Future.delayed(const Duration(milliseconds: 500), () {
           refreshRecentFiles();
+          _immediateRefresh();
         });
       }
     });
@@ -50,6 +51,15 @@ class RecentFilesNotifier extends _$RecentFilesNotifier {
       loadStats();
     });
     return const RecentFilesState();
+  }
+
+  // Immediate refresh without delay
+  void _immediateRefresh() {
+    Future.microtask(() async {
+      await refreshRecentFiles();
+      // Force UI rebuild
+      ref.invalidateSelf();
+    });
   }
 
   Future<void> loadRecentFiles({

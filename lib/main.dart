@@ -1,6 +1,8 @@
 import 'dart:io';
 
+import 'package:device_preview/device_preview.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -48,8 +50,10 @@ void main() async {
   }
 
   runApp(
-    const ProviderScope(
-      child: MegaPDFApp(),
-    ),
+    ProviderScope(
+        child: DevicePreview(
+      enabled: false, //kReleaseMode,
+      builder: (context) => MegaPDFApp(),
+    )),
   );
 }

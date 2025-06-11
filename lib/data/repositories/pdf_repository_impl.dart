@@ -129,10 +129,11 @@ class PdfRepositoryImpl implements PdfRepository {
     String? customPages,
     int? customX,
     int? customY,
+    String? watermarkType, // Add this missing parameter
   }) async {
     return await _apiService.watermarkPdf(
       file,
-      'image',
+      'image', // Always 'image' for this method
       null, // text
       null, // textColor
       null, // fontSize

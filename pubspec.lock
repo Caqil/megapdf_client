@@ -49,6 +49,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.1.1"
+  app_tracking_transparency:
+    dependency: "direct main"
+    description:
+      name: app_tracking_transparency
+      sha256: "1f71f4d8402552fbf8b191d4edab301f233c1af794878b7bc56c708470ffd74c"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.6+1"
   archive:
     dependency: transitive
     description:
@@ -297,6 +305,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.0"
+  device_frame:
+    dependency: transitive
+    description:
+      name: device_frame
+      sha256: d031a06f5d6f4750009672db98a5aa1536aa4a231713852469ce394779a23d75
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.2.0"
   device_info_plus:
     dependency: "direct main"
     description:
@@ -313,6 +329,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.0.2"
+  device_preview:
+    dependency: "direct main"
+    description:
+      name: device_preview
+      sha256: a694acdd3894b4c7d600f4ee413afc4ff917f76026b97ab06575fe886429ef19
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.2.0"
   dio:
     dependency: "direct main"
     description:
@@ -470,6 +494,11 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.0.0"
+  flutter_localizations:
+    dependency: transitive
+    description: flutter
+    source: sdk
+    version: "0.0.0"
   flutter_plugin_android_lifecycle:
     dependency: transitive
     description:
@@ -508,10 +537,10 @@ packages:
     dependency: transitive
     description:
       name: freezed_annotation
-      sha256: c87ff004c8aa6af2d531668b46a4ea379f7191dc6dfa066acd53d506da6e044b
+      sha256: c2e2d632dd9b8a2b7751117abcfc2b4888ecfe181bd9fca7170d9ef02e595fe2
       url: "https://pub.dev"
     source: hosted
-    version: "3.0.0"
+    version: "2.4.4"
   frontend_server_client:
     dependency: transitive
     description:
@@ -728,6 +757,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.4.5"
+  nested:
+    dependency: transitive
+    description:
+      name: nested
+      sha256: "03bac4c528c64c95c722ec99280375a6f2fc708eec17c7b3f07253b626cd2a20"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.0"
   octo_image:
     dependency: transitive
     description:
@@ -1008,6 +1045,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.1.0"
+  provider:
+    dependency: transitive
+    description:
+      name: provider
+      sha256: "4abbd070a04e9ddc287673bf5a030c7ca8b685ff70218720abab8b092f53dd84"
+      url: "https://pub.dev"
+    source: hosted
+    version: "6.1.5"
   pub_semver:
     dependency: transitive
     description:
@@ -1060,10 +1105,10 @@ packages:
     dependency: transitive
     description:
       name: riverpod_analyzer_utils
-      sha256: "03a17170088c63aab6c54c44456f5ab78876a1ddb6032ffde1662ddab4959611"
+      sha256: "837a6dc33f490706c7f4632c516bcd10804ee4d9ccc8046124ca56388715fdf3"
       url: "https://pub.dev"
     source: hosted
-    version: "0.5.10"
+    version: "0.5.9"
   riverpod_annotation:
     dependency: "direct main"
     description:
@@ -1076,10 +1121,10 @@ packages:
     dependency: "direct dev"
     description:
       name: riverpod_generator
-      sha256: "44a0992d54473eb199ede00e2260bd3c262a86560e3c6f6374503d86d0580e36"
+      sha256: "120d3310f687f43e7011bb213b90a436f1bbc300f0e4b251a72c39bccb017a4f"
       url: "https://pub.dev"
     source: hosted
-    version: "2.6.5"
+    version: "2.6.4"
   rxdart:
     dependency: transitive
     description:
